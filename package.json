@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test:sprint-1": "tsx scripts/test-sprint-1.ts"
+    "test:sprint-1": "tsx scripts/test-sprint-1.ts",
+    "test:sprint-3": "tsx scripts/test-sprint-3.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

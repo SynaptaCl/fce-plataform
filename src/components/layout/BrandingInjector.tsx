@@ -1,33 +1,26 @@
 "use client";
 
-import { useEffect } from "react";
-
-export interface BrandingConfig {
-  primary?: string;
-  navy?: string;
-  navy_deep?: string;
-  accent?: string;
-  light_bg?: string;
-  logo_url?: string;
-  clinic_short_name?: string;
-  clinic_initials?: string;
-}
+import type { FceTokens } from "@/lib/modules/registry";
 
 interface BrandingInjectorProps {
-  branding: BrandingConfig | null;
+  tokens: FceTokens;
 }
 
-export function BrandingInjector({ branding }: BrandingInjectorProps) {
-  useEffect(() => {
-    if (!branding) return;
-    const root = document.documentElement;
-    if (branding.primary)   root.style.setProperty("--clinic-primary",  branding.primary);
-    if (branding.navy)      root.style.setProperty("--clinic-navy",      branding.navy);
-    if (branding.navy_deep) root.style.setProperty("--clinic-navy-deep", branding.navy_deep);
-    if (branding.accent)    root.style.setProperty("--clinic-accent",    branding.accent);
-    if (branding.light_bg)  root.style.setProperty("--clinic-light-bg",  branding.light_bg);
-  }, [branding]);
+/**
+ * Inyecta los tokens de branding de la clínica como CSS custom properties en :root.
+ * Tailwind v4 usa --color-kp-* para sus utility classes (text-kp-primary, bg-kp-accent, etc.).
+ * El <style> tag no layered overridea los valores @theme inline de globals.css (fallback).
+ */
+export function BrandingInjector({ tokens }: BrandingInjectorProps) {
+  const css =
+    `:root{` +
+    `--color-kp-primary:${tokens.primary};` +
+    `--color-kp-primary-deep:${tokens["primary-deep"]};` +
+    `--color-kp-accent:${tokens.accent};` +
+    `--color-kp-accent-lt:${tokens["accent-lt"]};` +
+    `--color-kp-secondary:${tokens.secondary};` +
+    `--color-kp-primary-hover:${tokens["primary-hover"]};` +
+    `}`;
 
-  // Renders nothing — only side-effect
-  return null;
+  return <style dangerouslySetInnerHTML={{ __html: css }} />;
 }

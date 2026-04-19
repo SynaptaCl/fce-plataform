@@ -3,7 +3,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { Patient } from "@/types";
-import type { BrandingConfig } from "@/components/layout/BrandingInjector";
+import type { BrandingConfig } from "@/lib/modules/registry";
 
 export interface PdfPatientData {
   patient: Patient;

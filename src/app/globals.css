@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
 @theme inline {
-  /* ── Korporis Brand Colors ── */
+  /* ── Brand Colors — FALLBACK (BrandingInjector los overridea con valores de DB) ── */
   --color-kp-primary: #006B6B;
   --color-kp-primary-deep: #004545;
   --color-kp-accent: #00B0A8;
@@ -10,6 +10,7 @@
   --color-kp-accent-xs: #E6FAF9;
   --color-kp-secondary: #F5A623;
   --color-kp-secondary-lt: #FEF3E2;
+  --color-kp-primary-hover: #009990;
 
   /* ── Surfaces ── */
   --color-surface-0: #F1F5F9;

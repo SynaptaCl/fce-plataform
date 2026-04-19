@@ -14,6 +14,8 @@ import {
   Pencil,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useClinicaConfig } from "@/lib/modules/provider";
+import type { ModuleId } from "@/lib/modules/registry";
 
 interface PatientActionNavProps {
   patientId: string;
@@ -26,6 +28,8 @@ interface NavItem {
   icon: React.ReactNode;
   href: string;
   adminOnly?: boolean;
+  /** Si está definido, el ítem solo se muestra si el módulo está activo. */
+  moduleId?: ModuleId;
 }
 
 interface NavGroup {
@@ -46,12 +50,14 @@ function buildNav(patientId: string): NavEntry[] {
           label: "Signos Vitales",
           icon: <Activity className="w-4 h-4" />,
           href: `${base}/anamnesis`,
+          moduleId: "M2_anamnesis",
         },
         {
           id: "evaluacion",
           label: "Evaluación Kine/Fono/Maso",
           icon: <Stethoscope className="w-4 h-4" />,
           href: `${base}/evaluacion`,
+          moduleId: "M3_evaluacion",
         },
       ],
     },
@@ -63,6 +69,7 @@ function buildNav(patientId: string): NavEntry[] {
           label: "Notas SOAP",
           icon: <FileText className="w-4 h-4" />,
           href: `${base}/evolucion`,
+          moduleId: "M4_soap",
         },
       ],
     },
@@ -72,6 +79,7 @@ function buildNav(patientId: string): NavEntry[] {
         label: "Consentimientos",
         icon: <FileSignature className="w-4 h-4" />,
         href: `${base}/consentimiento`,
+        moduleId: "M5_consentimiento",
       },
     },
     {
@@ -81,6 +89,7 @@ function buildNav(patientId: string): NavEntry[] {
         icon: <ShieldCheck className="w-4 h-4" />,
         href: `${base}/auditoria`,
         adminOnly: true,
+        moduleId: "M6_auditoria",
       },
     },
     {
@@ -139,7 +148,16 @@ export function PatientActionNav({
   isAdmin,
 }: PatientActionNavProps) {
   const pathname = usePathname();
+  const config = useClinicaConfig();
+  const modulosActivos = config.modulosActivos;
+
   const entries = buildNav(patientId);
+
+  function isVisible(item: NavItem): boolean {
+    if (item.adminOnly && !isAdmin) return false;
+    if (item.moduleId && !modulosActivos.includes(item.moduleId)) return false;
+    return true;
+  }
 
   function isActiveHref(href: string) {
     return pathname === href || pathname.startsWith(href + "?");
@@ -152,19 +170,21 @@ export function PatientActionNav({
         <p className="text-[0.6rem] font-bold text-ink-3 uppercase tracking-widest">
           Acciones
         </p>
-        <Link
-          href={`/dashboard/pacientes/${patientId}/evolucion?nueva=1`}
-          className="flex items-center gap-1 min-h-[44px] px-2 text-[0.65rem] font-semibold text-kp-accent hover:text-kp-primary transition-colors"
-          title="Nueva nota SOAP"
-        >
-          <Plus className="w-3 h-3" />
-          Nueva nota
-        </Link>
+        {modulosActivos.includes("M4_soap") && (
+          <Link
+            href={`/dashboard/pacientes/${patientId}/evolucion?nueva=1`}
+            className="flex items-center gap-1 min-h-[44px] px-2 text-[0.65rem] font-semibold text-kp-accent hover:text-kp-primary transition-colors"
+            title="Nueva nota SOAP"
+          >
+            <Plus className="w-3 h-3" />
+            Nueva nota
+          </Link>
+        )}
       </div>
 
       {/* Nav entries */}
       <div className="p-2 space-y-1">
-        {/* Editar datos — siempre primero */}
+        {/* Editar datos — siempre primero (M1 siempre activo) */}
         <NavLink
           item={{
             id: "editar",
@@ -178,6 +198,8 @@ export function PatientActionNav({
 
         {entries.map((entry, idx) => {
           if ("title" in entry) {
+            const visibleItems = entry.items.filter(isVisible);
+            if (visibleItems.length === 0) return null;
             return (
               <div key={entry.title}>
                 {idx > 0 && <div className="my-1 border-t border-kp-border" />}
@@ -185,7 +207,7 @@ export function PatientActionNav({
                   {entry.title}
                 </p>
                 <div className="space-y-0.5">
-                  {entry.items.map((item) => (
+                  {visibleItems.map((item) => (
                     <NavLink
                       key={item.id}
                       item={item}
@@ -197,7 +219,7 @@ export function PatientActionNav({
             );
           }
           const { item } = entry;
-          if (item.adminOnly && !isAdmin) return null;
+          if (!isVisible(item)) return null;
           return (
             <div key={item.id}>
               <div className="my-1 border-t border-kp-border" />

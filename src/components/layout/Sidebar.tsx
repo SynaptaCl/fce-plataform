@@ -12,8 +12,9 @@ import {
   ChevronLeft,
 } from "lucide-react";
 import { ESPECIALIDAD_LABELS } from "@/lib/constants";
-import type { Especialidad, Rol } from "@/lib/constants";
-import type { BrandingConfig } from "./BrandingInjector";
+import type { Especialidad } from "@/lib/constants";
+import { useClinicaConfig, useRol } from "@/lib/modules/provider";
+import { ROLES_QUE_CONFIGURAN } from "@/lib/modules/registry";
 
 interface NavItemProps {
   icon: React.ReactNode;
@@ -46,27 +47,38 @@ interface SidebarProps {
   practitionerName: string;
   practitionerInitials: string;
   especialidad: Especialidad;
-  rol: Rol;
   activeSection: string;
   onNavigate: (section: string) => void;
   onLogout: () => void;
-  branding: BrandingConfig | null;
 }
 
 export function Sidebar({
   practitionerName,
   practitionerInitials,
   especialidad,
-  rol,
   activeSection,
   onNavigate,
   onLogout,
-  branding,
 }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
+  const config = useClinicaConfig();
+  const rol = useRol();
 
-  const clinicName = branding?.clinic_short_name ?? "KORPORIS FCE";
-  const logoUrl    = branding?.logo_url ?? null;
+  const clinicName = config.nombreDisplay;
+  const logoUrl    = config.logoUrl;
+  const clinicInitials = config.clinicInitials;
+  const puedeConfigurar = ROLES_QUE_CONFIGURAN.includes(rol);
+
+  const roleLabel =
+    rol === "profesional"
+      ? (ESPECIALIDAD_LABELS[especialidad] ?? especialidad)
+      : rol === "admin"
+        ? "Administración Clínica"
+        : rol === "director"
+          ? "Director Clínico"
+          : rol === "superadmin"
+            ? "Super Admin"
+            : "Administración";
 
   return (
     <aside
@@ -88,7 +100,9 @@ export function Sidebar({
               className="shrink-0 object-contain"
             />
           ) : (
-            <Activity className="text-kp-accent w-6 h-6 shrink-0" />
+            <div className="w-7 h-7 rounded-md bg-kp-accent flex items-center justify-center text-white text-xs font-bold shrink-0">
+              {clinicInitials}
+            </div>
           )}
           {!collapsed && (
             <span className="text-white font-bold tracking-wider ml-3 text-sm truncate">
@@ -118,9 +132,7 @@ export function Sidebar({
             </div>
             <div className="ml-3 min-w-0">
               <div className="text-sm font-bold text-white truncate">{practitionerName}</div>
-              <div className="text-xs text-kp-accent">
-                {rol === "admin" ? "Administración Clínica" : ESPECIALIDAD_LABELS[especialidad]}
-              </div>
+              <div className="text-xs text-kp-accent">{roleLabel}</div>
             </div>
           </div>
         </div>
@@ -142,7 +154,7 @@ export function Sidebar({
           collapsed={collapsed}
           onClick={() => onNavigate("pacientes")}
         />
-        {rol === "admin" && (
+        {puedeConfigurar && (
           <NavItem
             icon={<Settings />}
             text="Configuración"

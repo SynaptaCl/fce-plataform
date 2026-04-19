@@ -1,8 +1,8 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { DashboardShell } from "@/components/layout/DashboardShell";
-import { BrandingInjector, type BrandingConfig } from "@/components/layout/BrandingInjector";
-import type { Especialidad, Rol as LegacyRol } from "@/lib/constants";
+import { BrandingInjector } from "@/components/layout/BrandingInjector";
+import type { Especialidad } from "@/lib/constants";
 import { ClinicaSessionProvider } from "@/lib/modules/provider";
 import { getClinicaConfig } from "@/lib/modules/config";
 import { requireAccesoFCE } from "@/lib/modules/guards";
@@ -48,24 +48,12 @@ export default async function DashboardLayout({
   // Bloquear recepcionistas — no tienen acceso al FCE
   requireAccesoFCE(rol);
 
-  // Config FCE + branding raw en paralelo (branding needed for BrandingInjector/DashboardShell)
-  const [config, clinicaRes] = await Promise.all([
-    getClinicaConfig(adminRow.id_clinica, supabase),
-    supabase
-      .from("clinicas")
-      .select("config")
-      .eq("id", adminRow.id_clinica)
-      .single(),
-  ]);
-
+  const config = await getClinicaConfig(adminRow.id_clinica, supabase);
   if (!config) {
     redirect("/login?error=sin-config");
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const branding: BrandingConfig | null = (clinicaRes.data?.config as any)?.branding ?? null;
-
-  // Datos de display del profesional (best-effort — columna especialidad es texto libre)
+  // Datos de display del profesional (best-effort)
   const profesional = profesionalRes.data;
   const nombre =
     profesional?.nombre ?? adminRow.nombre ?? user.email?.split("@")[0] ?? "Usuario";
@@ -78,13 +66,11 @@ export default async function DashboardLayout({
 
   return (
     <ClinicaSessionProvider session={{ config, rol, userId: user.id }}>
-      <BrandingInjector branding={branding} />
+      <BrandingInjector tokens={config.tokensColor} />
       <DashboardShell
         practitionerName={nombre}
         practitionerInitials={initials}
         especialidad={especialidad}
-        rol={rol as unknown as LegacyRol}
-        branding={branding}
       >
         {children}
       </DashboardShell>

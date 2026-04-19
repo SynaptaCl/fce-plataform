@@ -5,16 +5,13 @@ import { useRouter, usePathname } from "next/navigation";
 import { Sidebar } from "./Sidebar";
 import { TopBar } from "./TopBar";
 import { createClient } from "@/lib/supabase/client";
-import type { Especialidad, Rol } from "@/lib/constants";
-import type { BrandingConfig } from "./BrandingInjector";
+import type { Especialidad } from "@/lib/constants";
 
 interface DashboardShellProps {
   children: React.ReactNode;
   practitionerName: string;
   practitionerInitials: string;
   especialidad: Especialidad;
-  rol: Rol;
-  branding: BrandingConfig | null;
 }
 
 const SECTION_TITLES: Record<string, string> = {
@@ -43,7 +40,7 @@ const SECTION_TO_PATH: Record<string, string> = {
   agenda:    "/dashboard",
   pacientes: "/dashboard/pacientes",
   config:    "/dashboard/configuracion",
-  fhir:      "/dashboard/pacientes", // FHIR es por paciente; va a la lista
+  fhir:      "/dashboard/pacientes",
 };
 
 export function DashboardShell({
@@ -51,8 +48,6 @@ export function DashboardShell({
   practitionerName,
   practitionerInitials,
   especialidad,
-  rol,
-  branding,
 }: DashboardShellProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -78,15 +73,13 @@ export function DashboardShell({
         practitionerName={practitionerName}
         practitionerInitials={practitionerInitials}
         especialidad={especialidad}
-        rol={rol}
         activeSection={activeSection}
         onNavigate={handleNavigate}
         onLogout={handleLogout}
-        branding={branding}
       />
 
       <div className="flex flex-1 flex-col overflow-hidden min-w-0">
-        <TopBar title={SECTION_TITLES[activeSection] ?? "FCE Korporis"} />
+        <TopBar title={SECTION_TITLES[activeSection] ?? "FCE Platform"} />
         <main className="flex-1 overflow-auto p-6">{children}</main>
       </div>
     </div>
