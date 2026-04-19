@@ -1,107 +1,95 @@
 /**
- * Guards para bloquear acceso a rutas y server actions si el módulo está inactivo.
- *
- * Usar requireModule() en Server Components (page.tsx, layout.tsx).
- * Usar assertModuleEnabled() en Server Actions (retorna ActionResult).
+ * Guards para bloquear acceso a rutas y server actions si el módulo está inactivo
+ * o si el rol no tiene permisos suficientes.
  */
 
-import { notFound } from "next/navigation";
-import type { ModuleId, EspecialidadId } from "./registry";
+import { notFound, redirect } from "next/navigation";
+import type { ModuleId, EspecialidadCodigo, Rol } from "./registry";
+import { ROLES_CON_ACCESO_FCE, ROLES_QUE_PUEDEN_ESCRIBIR, ROLES_QUE_PUEDEN_FIRMAR, ROLES_QUE_CONFIGURAN } from "./registry";
 import type { ClinicaConfig } from "./config";
 import { isModuleEnabled, isEspecialidadEnabled } from "./config";
-
-// ============================================================================
-// TIPO ACTION RESULT (espejo del proyecto)
-// ============================================================================
 
 export type ActionResult<T = void> =
   | { success: true; data: T }
   | { success: false; error: string };
 
 // ============================================================================
-// GUARD PARA SERVER COMPONENTS
+// GUARDS PARA SERVER COMPONENTS (page.tsx, layout.tsx)
 // ============================================================================
 
-/**
- * Si el módulo NO está activo para esta clínica, llama notFound() → 404.
- * Si la config es null (clínica sin config), también notFound() por seguridad.
- *
- * Usar al inicio de page.tsx/layout.tsx:
- *   requireModule(config, "M2_anamnesis");
- */
 export function requireModule(config: ClinicaConfig | null, moduleId: ModuleId): void {
-  if (!config) {
-    notFound();
-  }
-  if (!isModuleEnabled(config, moduleId)) {
-    notFound();
-  }
+  if (!config) notFound();
+  if (!isModuleEnabled(config, moduleId)) notFound();
 }
 
-/**
- * Igual que requireModule, pero para especialidades.
- */
 export function requireEspecialidad(
   config: ClinicaConfig | null,
-  especialidadId: EspecialidadId
+  especialidad: EspecialidadCodigo
 ): void {
-  if (!config) {
-    notFound();
-  }
-  if (!isEspecialidadEnabled(config, especialidadId)) {
-    notFound();
+  if (!config) notFound();
+  if (!isEspecialidadEnabled(config, especialidad)) notFound();
+}
+
+/**
+ * Redirige al login si el rol no puede acceder al FCE.
+ * Recepcionista no tiene acceso (queda en agenda/pagos/chat que viven en otro repo).
+ */
+export function requireAccesoFCE(rol: Rol | null): void {
+  if (!rol || !ROLES_CON_ACCESO_FCE.includes(rol)) {
+    redirect("/login?error=sin-acceso");
   }
 }
 
 // ============================================================================
-// GUARD PARA SERVER ACTIONS
+// GUARDS PARA SERVER ACTIONS (retornan ActionResult)
 // ============================================================================
 
-/**
- * Version no-throwing para server actions. Retorna ActionResult<never> con error,
- * o ActionResult<true> si el módulo está habilitado.
- *
- * Usar al inicio de una server action:
- *   const gate = assertModuleEnabled(config, "M4_soap");
- *   if (!gate.success) return gate;
- */
 export function assertModuleEnabled(
   config: ClinicaConfig | null,
   moduleId: ModuleId
 ): ActionResult<true> {
   if (!config) {
-    return {
-      success: false,
-      error: "No se encontró configuración de clínica. Contacta al administrador.",
-    };
+    return { success: false, error: "No se encontró configuración FCE de la clínica." };
   }
   if (!isModuleEnabled(config, moduleId)) {
+    return { success: false, error: `El módulo ${moduleId} no está habilitado para esta clínica.` };
+  }
+  return { success: true, data: true };
+}
+
+export function assertEspecialidadEnabled(
+  config: ClinicaConfig | null,
+  especialidad: EspecialidadCodigo
+): ActionResult<true> {
+  if (!config) {
+    return { success: false, error: "No se encontró configuración FCE de la clínica." };
+  }
+  if (!isEspecialidadEnabled(config, especialidad)) {
     return {
       success: false,
-      error: `El módulo ${moduleId} no está habilitado para esta clínica.`,
+      error: `La especialidad ${especialidad} no está habilitada para esta clínica.`,
     };
   }
   return { success: true, data: true };
 }
 
-/**
- * Version para especialidades.
- */
-export function assertEspecialidadEnabled(
-  config: ClinicaConfig | null,
-  especialidadId: EspecialidadId
-): ActionResult<true> {
-  if (!config) {
-    return {
-      success: false,
-      error: "No se encontró configuración de clínica.",
-    };
+export function assertPuedeEscribir(rol: Rol | null): ActionResult<true> {
+  if (!rol || !ROLES_QUE_PUEDEN_ESCRIBIR.includes(rol)) {
+    return { success: false, error: "Tu rol no permite escribir en el FCE." };
   }
-  if (!isEspecialidadEnabled(config, especialidadId)) {
-    return {
-      success: false,
-      error: `La especialidad ${especialidadId} no está habilitada para esta clínica.`,
-    };
+  return { success: true, data: true };
+}
+
+export function assertPuedeFirmar(rol: Rol | null): ActionResult<true> {
+  if (!rol || !ROLES_QUE_PUEDEN_FIRMAR.includes(rol)) {
+    return { success: false, error: "Solo profesionales pueden firmar notas SOAP." };
+  }
+  return { success: true, data: true };
+}
+
+export function assertPuedeConfigurar(rol: Rol | null): ActionResult<true> {
+  if (!rol || !ROLES_QUE_CONFIGURAN.includes(rol)) {
+    return { success: false, error: "Solo admin, director o superadmin pueden editar configuración." };
   }
   return { success: true, data: true };
 }

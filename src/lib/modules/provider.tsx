@@ -1,43 +1,52 @@
 "use client";
 
 /**
- * Context para propagar la config de clínica a todos los Client Components
- * descendientes del dashboard layout.
- *
- * Server Components pueden leer la config vía getClinicaConfigFromSession().
- * Client Components la leen vía useClinicaConfig().
+ * Context para propagar config de clínica + rol del usuario a todos los
+ * Client Components descendientes del dashboard layout.
  */
 
 import { createContext, useContext, type ReactNode } from "react";
 import type { ClinicaConfig } from "./config";
+import type { Rol } from "./registry";
 
-const ClinicaConfigContext = createContext<ClinicaConfig | null>(null);
+export interface ClinicaSession {
+  config: ClinicaConfig;
+  rol: Rol;
+  userId: string;
+}
+
+const ClinicaSessionContext = createContext<ClinicaSession | null>(null);
 
 interface ProviderProps {
-  config: ClinicaConfig;
+  session: ClinicaSession;
   children: ReactNode;
 }
 
-export function ClinicaConfigProvider({ config, children }: ProviderProps) {
+export function ClinicaSessionProvider({ session, children }: ProviderProps) {
   return (
-    <ClinicaConfigContext.Provider value={config}>{children}</ClinicaConfigContext.Provider>
+    <ClinicaSessionContext.Provider value={session}>{children}</ClinicaSessionContext.Provider>
   );
 }
 
-export function useClinicaConfig(): ClinicaConfig {
-  const ctx = useContext(ClinicaConfigContext);
+export function useClinicaSession(): ClinicaSession {
+  const ctx = useContext(ClinicaSessionContext);
   if (!ctx) {
     throw new Error(
-      "useClinicaConfig debe usarse dentro de <ClinicaConfigProvider>. ¿Estás en un Client Component fuera del dashboard layout?"
+      "useClinicaSession debe usarse dentro de <ClinicaSessionProvider> en el dashboard layout."
     );
   }
   return ctx;
 }
 
-/**
- * Variante opcional que no lanza si no hay provider (útil para componentes
- * usados tanto dentro como fuera del dashboard).
- */
-export function useClinicaConfigOptional(): ClinicaConfig | null {
-  return useContext(ClinicaConfigContext);
+export function useClinicaConfig(): ClinicaConfig {
+  return useClinicaSession().config;
+}
+
+export function useRol(): Rol {
+  return useClinicaSession().rol;
+}
+
+/** Variante opcional para componentes que pueden usarse fuera del dashboard. */
+export function useClinicaSessionOptional(): ClinicaSession | null {
+  return useContext(ClinicaSessionContext);
 }

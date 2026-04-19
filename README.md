@@ -1,152 +1,122 @@
-# 📦 Paquete handoff — FCE Platform multi-tenant
+# 📦 Paquete handoff v2 — FCE Platform multi-tenant
 
-Este paquete contiene todo lo necesario para que Claude Code convierta el FCE de Korporis en una plataforma multi-tenant.
+Paquete con todo lo necesario para que Claude Code convierta el repo `korporis-fce` (copiado a `fce-plataform`) en una plataforma multi-tenant del ecosistema Synapta.
 
-## Qué hay adentro
+## Qué cambió vs v1
+
+Después de inspeccionar el schema real de `Synapta Product`, el plan original tenía varias asunciones incorrectas. v2 corrige:
+
+| Cambio | v1 | v2 |
+|---|---|---|
+| DB destino | Se asumía DB aislada de Korporis | Compartida en `Synapta Product` con Nuvident y otros repos |
+| Config de clínica | Tabla nueva `clinicas_config` | Tabla nueva `clinicas_fce_config` + branding leído de `clinicas.config.branding` existente |
+| Especialidades | Lowercase sin tilde (`kinesiologia`) | Capitalized con tilde (`Kinesiología`) — match DB exacto |
+| Check constraint de `fce_encuentros.especialidad` | Ignorado | Migrado a tabla lookup `especialidades_catalogo` |
+| Roles | 3 valores | 5 valores reales (`superadmin, director, admin, profesional, recepcionista`) |
+| Módulos | M1–M8 (incluía Agenda y Facturación) | Solo M1–M6 (Agenda/Pagos viven en otros repos del ecosistema) |
+| Clínicas | Solo Korporis | Korporis + Nuvident desde el día 1 |
+| Branding | Tokens FCE propios | Leer `config.branding` + mapear |
+
+## Contenido
 
 ```
-handoff/
-├── README.md                          ← Este archivo
-├── CLAUDE.md                          ← Maestro de la plataforma (pegar en root)
+handoff-v2/
+├── README.md                                                    ← Este archivo
+├── CLAUDE.md                                                    ← Maestro (v2)
 ├── docs/
-│   ├── plan-multi-tenant.md           ← Arquitectura y decisiones
-│   └── sprints.md                     ← Roadmap sprint por sprint (seguir en orden)
+│   ├── plan-multi-tenant.md                                     ← Arquitectura v2
+│   ├── sprints.md                                               ← 5 sprints (no 7)
+│   └── schema-real.md                                           ← Mapa del schema actual
 ├── src/lib/modules/
-│   ├── registry.ts                    ← Catálogo universal
-│   ├── config.ts                      ← Helpers de runtime
-│   ├── guards.ts                      ← requireModule, assertModuleEnabled
-│   └── provider.tsx                   ← React Context
+│   ├── registry.ts                                              ← Catálogo + mapBrandingToTokens
+│   ├── config.ts                                                ← getClinicaConfig + helpers
+│   ├── guards.ts                                                ← requireModule, roles
+│   └── provider.tsx                                             ← ClinicaSessionProvider
 ├── supabase/migrations/
-│   └── 20260417_create_clinicas_config.sql
-├── clinics/korporis/
-│   └── CLAUDE.md                      ← Config específica de Korporis
+│   ├── 20260417_01_especialidades_catalogo.sql                 ← Tabla lookup + trigger
+│   └── 20260417_02_clinicas_fce_config.sql                     ← Config FCE separada + seed
+├── clinics/
+│   ├── korporis/CLAUDE.md                                       ← Contexto Korporis
+│   └── nuvident/CLAUDE.md                                       ← Contexto Nuvident
 └── scripts/
-    └── onboard-clinica.ts             ← CLI para agregar clínicas nuevas
+    └── onboard-clinica.ts                                       ← CLI de onboarding
 ```
 
 ---
 
-## Pasos que tú (humano) haces antes de invocar Claude Code
+## Uso
 
-### 1. Copiar el repo actual de Korporis
+### 1. Descomprimir en el repo fce-plataform
 
-```bash
-# Desde la carpeta donde tienes el repo de Korporis
-cp -R fce-korporis fce-platform
-cd fce-platform
-rm -rf .git
-git init
+Asumiendo que ya tienes el repo inicializado (Sprint 0 hecho):
+
+```powershell
+Copy-Item -Path "C:\...\handoff-v2\*" -Destination "C:\Users\alexi\fce-plataform\" -Recurse -Force
 ```
 
-### 2. Crear repo en GitHub
+Esto:
+- Reemplaza el `CLAUDE.md` del paquete anterior
+- Agrega los 2 migrations nuevos en `supabase/migrations/`
+- Reemplaza los 4 archivos de `src/lib/modules/`
+- Agrega `clinics/nuvident/CLAUDE.md`
+- Agrega `docs/schema-real.md`
+- Reemplaza `docs/plan-multi-tenant.md`, `docs/sprints.md`, `scripts/onboard-clinica.ts`, `clinics/korporis/CLAUDE.md`
 
-En GitHub, crear repo privado `fce-platform`. Luego:
+### 2. Verificar que build sigue funcionando
 
-```bash
-git remote add origin git@github.com:tu-usuario/fce-platform.git
-git add .
-git commit -m "chore: baseline desde fce-korporis"
-git branch -M main
-git push -u origin main
-```
-
-### 3. Copiar el contenido de este paquete al repo
-
-Copiar todos los archivos de `handoff/` al root de `fce-platform/`, respetando la estructura de carpetas:
-
-- `handoff/CLAUDE.md` → `fce-platform/CLAUDE.md` (reemplazar el existente)
-- `handoff/docs/*` → `fce-platform/docs/*` (agregar, no reemplazar los legacy)
-- `handoff/src/lib/modules/*` → `fce-platform/src/lib/modules/*`
-- `handoff/supabase/migrations/*` → `fce-platform/supabase/migrations/*`
-- `handoff/clinics/*` → `fce-platform/clinics/*`
-- `handoff/scripts/*` → `fce-platform/scripts/*`
-
-Commit:
-```bash
-git add .
-git commit -m "feat(handoff): paquete multi-tenant base"
-git push
-```
-
-### 4. Verificar que build sigue corriendo
-
-```bash
+```powershell
 npm install
 npm run build
 ```
 
-Los archivos del paquete **no se usan todavía en ningún import** — solo existen. El build debe pasar idéntico al Korporis original.
+Debe dar 0 errores (los nuevos archivos compilan pero aún no se importan).
 
-### 5. Invocar Claude Code
+### 3. Aplicar migrations en Supabase
 
-Abrir Claude Code en `fce-platform/`. El `CLAUDE.md` raíz lo orienta automáticamente.
+**Opción A: vía Claude Code con Supabase MCP** (recomendado)
+- Abrir Claude Code en el repo
+- Pedirle: "Aplica las migrations en supabase/migrations/ usando el Supabase MCP"
+- Claude Code usa `apply_migration` del MCP para ejecutar ambas en orden
 
-Primer prompt sugerido:
+**Opción B: manual via Supabase Dashboard**
+- Ir a https://supabase.com/dashboard/project/vigyhfpwyxihrjiygfsa/sql
+- Ejecutar `20260417_01_especialidades_catalogo.sql`
+- Verificar: `SELECT * FROM especialidades_catalogo;` → 10 filas
+- Ejecutar `20260417_02_clinicas_fce_config.sql`
+- Verificar: `SELECT * FROM clinicas_fce_config;` → 2 filas (Korporis + Nuvident)
 
-> "Lee CLAUDE.md, docs/plan-multi-tenant.md y docs/sprints.md. Cuando los hayas entendido, resumí qué vas a hacer en el Sprint 1 y esperá mi confirmación antes de ejecutar."
+### 4. Commit del paquete
 
----
-
-## Cómo Claude Code debería trabajar
-
-### Flujo ideal
-
-1. Lee `CLAUDE.md` raíz
-2. Lee `docs/sprints.md`
-3. Confirma entendimiento
-4. Ejecuta Sprint 1 completo (catálogo + migration + helpers)
-5. `npm run build` = 0 errores
-6. Commit: `feat(registry): agregar module registry y config helpers`
-7. Pide confirmación antes del Sprint 2
-8. Repite
-
-### Qué NO debe hacer Claude Code
-
-- Saltarse sprints
-- Modificar el registry "para adaptar a Korporis"
-- Ejecutar el Sprint 7 (migración Korporis) sin coordinación explícita
-- Aplicar migrations en producción sin confirmación
-- Tocar código de Korporis producción (está en otro repo)
-
-### Qué hacer si algo falla
-
-Si el build de `npm run build` se rompe:
-1. NO continuar al siguiente sprint
-2. Reportar el error exacto
-3. Corregir y re-correr build
-4. Solo entonces avanzar
-
----
-
-## Generador de CLAUDE.md para clínica nueva (sin CLI)
-
-Si quieres generar un CLAUDE.md antes de tener el CLI implementado (Sprint 6), hay un artifact web en Claude.ai donde seleccionas módulos y especialidades, y descargas el archivo. Luego lo guardas en `clinics/<slug>/CLAUDE.md`.
-
-## Onboarding con CLI (post Sprint 6)
-
-```bash
-npm run onboard-clinica -- \
-  --slug=mi-clinica \
-  --nombre="Mi Clínica" \
-  --admin-email=admin@miclinica.cl \
-  --direccion="Dirección 123, Santiago" \
-  --modulos=M1_identificacion,M2_anamnesis,M5_consentimiento,M6_auditoria \
-  --especialidades=psicologia,nutricion
+```powershell
+cd C:\Users\alexi\fce-plataform
+git add .
+git commit -m "feat(handoff-v2): paquete multi-tenant alineado a schema real"
+git push
 ```
 
-El script valida con el registry, crea la fila en DB, invita al admin, e imprime el CLAUDE.md sugerido.
+### 5. Abrir Claude Code y arrancar Sprint 1
+
+```powershell
+claude
+```
+
+Primer prompt:
+
+> Antes de ejecutar nada, lee en orden: `CLAUDE.md`, `docs/plan-multi-tenant.md`, `docs/schema-real.md`, `docs/sprints.md`, y `clinics/korporis/CLAUDE.md`.
+>
+> Luego armá el plan del Sprint 1 (sin ejecutarlo) con:
+> 1. Qué migrations vas a aplicar y en qué orden
+> 2. Qué tests de validación vas a correr después
+> 3. Qué archivos vas a tocar (esperable: ninguno; el código del Sprint 1 ya viene en el paquete)
+>
+> Esperá mi confirmación antes de tocar DB o código.
 
 ---
 
-## Referencias cruzadas
+## Notas operacionales
 
-- **Repo original de Korporis** (NO TOCAR): `fce-korporis` en GitHub
-- **Repo plataforma** (donde se trabaja): `fce-platform`
-- **Staging DB** para pruebas: Supabase project separado
-- **Producción DB**: solo se toca en Sprint 7
-
----
-
-## Contactos y coordinación
-
-Cualquier cambio que afecte producción (Sprint 7 o migrations en DB prod) requiere coordinación explícita con el usuario humano. Claude Code nunca debe ejecutar migrations destructivas en prod sin confirmación.
+- **Modelo recomendado**: OpusPlan (Opus planea, Sonnet ejecuta). Balance de calidad y cuota.
+- **Sprint 5 (migración Korporis)** nunca se corre sin pedido explícito del usuario.
+- **Supabase MCP está conectado** a `Synapta Product` — Claude Code puede aplicar migrations directo.
+- **Las tablas FCE están vacías** (0 filas) — las migrations son de bajo riesgo.
+- **Nuvident admin está inactivo** — se reactiva cuando la clínica empiece a usar FCE.

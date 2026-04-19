@@ -1,16 +1,19 @@
 /**
- * Catálogo de módulos y especialidades de la plataforma FCE.
+ * Catálogo de módulos FCE y helpers de validación.
  *
- * FUENTE ÚNICA DE VERDAD. NO MODIFICAR PARA ADAPTAR A UNA CLÍNICA ESPECÍFICA.
+ * FUENTE ÚNICA DE VERDAD para el scope de fce-plataform.
  *
- * Si una clínica no usa un módulo, se desactiva en `clinicas_config.modulos_activos`,
- * NO se borra de este archivo.
- *
- * Agregar módulo nuevo = agregar entrada aquí + migration SQL + componentes.
+ * Importante:
+ * - Este registry solo cubre módulos FCE (M1-M6). Agenda, pagos, chatbot,
+ *   recordatorios y tickets viven en OTROS repos del ecosistema Synapta.
+ * - Las especialidades (codigo) deben coincidir con la tabla
+ *   especialidades_catalogo en Supabase. Al agregar una especialidad nueva,
+ *   primero se agrega a la tabla catálogo y luego aquí (o al revés).
+ * - Los roles espejan los definidos en public.admin_users.rol check constraint.
  */
 
 // ============================================================================
-// TIPOS
+// IDs de módulos FCE
 // ============================================================================
 
 export type ModuleId =
@@ -19,25 +22,49 @@ export type ModuleId =
   | "M3_evaluacion"
   | "M4_soap"
   | "M5_consentimiento"
-  | "M6_auditoria"
-  | "M7_agenda"
-  | "M8_facturacion";
+  | "M6_auditoria";
 
-export type EspecialidadId =
-  | "kinesiologia"
-  | "fonoaudiologia"
-  | "masoterapia"
-  | "medicina_general"
-  | "psicologia"
-  | "nutricion"
-  | "terapia_ocupacional"
-  | "podologia";
+// ============================================================================
+// IDs de especialidades (coinciden con especialidades_catalogo.codigo)
+// ============================================================================
+
+export type EspecialidadCodigo =
+  | "Kinesiología"
+  | "Fonoaudiología"
+  | "Masoterapia"
+  | "Administración Clínica"
+  | "Odontología"
+  | "Medicina General"
+  | "Psicología"
+  | "Nutrición"
+  | "Terapia Ocupacional"
+  | "Podología";
+
+// ============================================================================
+// Roles (coinciden con admin_users.rol check constraint)
+// ============================================================================
+
+export type Rol =
+  | "superadmin"
+  | "director"
+  | "admin"
+  | "profesional"
+  | "recepcionista";
+
+export const ROLES_CON_ACCESO_FCE: Rol[] = ["superadmin", "director", "admin", "profesional"];
+export const ROLES_QUE_PUEDEN_ESCRIBIR: Rol[] = ["superadmin", "director", "admin", "profesional"];
+export const ROLES_QUE_PUEDEN_FIRMAR: Rol[] = ["profesional"];
+export const ROLES_QUE_CONFIGURAN: Rol[] = ["superadmin", "director", "admin"];
+
+// ============================================================================
+// Definición de módulo
+// ============================================================================
 
 export interface ModuleDefinition {
   id: ModuleId;
   label: string;
   descripcion: string;
-  /** Si true, no se puede desactivar desde clinicas_config */
+  /** Si true, no se puede desactivar desde clinicas_fce_config */
   obligatorio: boolean;
   /** IDs de módulos que deben estar activos para habilitar este */
   dependeDe: ModuleId[];
@@ -53,8 +80,12 @@ export interface ModuleDefinition {
   estado: "estable" | "roadmap" | "beta";
 }
 
+// ============================================================================
+// Definición de especialidad
+// ============================================================================
+
 export interface EspecialidadDefinition {
-  id: EspecialidadId;
+  codigo: EspecialidadCodigo;
   label: string;
   /** Componente de evaluación específico (referencia) */
   componenteEval: string;
@@ -62,8 +93,8 @@ export interface EspecialidadDefinition {
   tieneContraindicaciones: boolean;
   /** Si true, tiene escalas funcionales (Barthel, etc.) */
   tieneEscalaFuncional: boolean;
-  /** Estado: "estable" | "beta" */
-  estado: "estable" | "beta";
+  /** Estado de implementación en el repo fce-plataform */
+  estado: "estable" | "beta" | "roadmap";
 }
 
 // ============================================================================
@@ -91,7 +122,7 @@ export const MODULE_REGISTRY: Record<ModuleId, ModuleDefinition> = {
   M2_anamnesis: {
     id: "M2_anamnesis",
     label: "Anamnesis + Red Flags + Signos Vitales",
-    descripcion: "Motivo de consulta, red flags clínicas, signos vitales.",
+    descripcion: "Motivo de consulta, antecedentes médicos/quirúrgicos, red flags, signos vitales.",
     obligatorio: false,
     dependeDe: ["M1_identificacion"],
     tablasSupabase: ["fce_anamnesis", "fce_signos_vitales"],
@@ -104,7 +135,8 @@ export const MODULE_REGISTRY: Record<ModuleId, ModuleDefinition> = {
   M3_evaluacion: {
     id: "M3_evaluacion",
     label: "Evaluación por especialidad",
-    descripcion: "Formularios de evaluación según especialidades activas de la clínica.",
+    descripcion:
+      "Formularios de evaluación según especialidades activas de la clínica (JSONB flexible en fce_evaluaciones.data).",
     obligatorio: false,
     dependeDe: ["M2_anamnesis"],
     tablasSupabase: ["fce_evaluaciones"],
@@ -113,7 +145,7 @@ export const MODULE_REGISTRY: Record<ModuleId, ModuleDefinition> = {
       "KinesiologiaEval",
       "FonoaudiologiaEval",
       "MasoterapiaEval",
-      // futuros: MedicinaGeneralEval, PsicologiaEval, etc.
+      "OdontologiaEval",
     ],
     requiereEspecialidad: true,
     estado: "estable",
@@ -148,9 +180,10 @@ export const MODULE_REGISTRY: Record<ModuleId, ModuleDefinition> = {
 
   M6_auditoria: {
     id: "M6_auditoria",
-    label: "Auditoría (admin)",
-    descripcion: "Timeline append-only de todas las escrituras. Solo rol admin.",
-    obligatorio: true, // compliance requiere siempre auditoría
+    label: "Auditoría",
+    descripcion:
+      "Timeline append-only de todas las escrituras. Rol admin/director/superadmin puede ver.",
+    obligatorio: true,
     dependeDe: ["M1_identificacion"],
     tablasSupabase: ["logs_auditoria"],
     rutasApp: ["/dashboard/pacientes/[id]/auditoria"],
@@ -158,102 +191,92 @@ export const MODULE_REGISTRY: Record<ModuleId, ModuleDefinition> = {
     requiereEspecialidad: false,
     estado: "estable",
   },
-
-  M7_agenda: {
-    id: "M7_agenda",
-    label: "Agenda y citas",
-    descripcion: "Gestión de agenda, citas, recordatorios WhatsApp/SMS.",
-    obligatorio: false,
-    dependeDe: ["M1_identificacion"],
-    tablasSupabase: ["citas"],
-    rutasApp: ["/dashboard/agenda"],
-    componentes: ["AgendaView", "CitaForm"],
-    requiereEspecialidad: false,
-    estado: "roadmap",
-  },
-
-  M8_facturacion: {
-    id: "M8_facturacion",
-    label: "Facturación",
-    descripcion: "Boletas electrónicas, facturas, integración SII.",
-    obligatorio: false,
-    dependeDe: ["M1_identificacion"],
-    tablasSupabase: ["boletas"],
-    rutasApp: ["/dashboard/facturacion"],
-    componentes: ["BoletaForm"],
-    requiereEspecialidad: false,
-    estado: "roadmap",
-  },
 };
 
 // ============================================================================
-// CATÁLOGO DE ESPECIALIDADES
+// CATÁLOGO DE ESPECIALIDADES (espejo de especialidades_catalogo en DB)
 // ============================================================================
 
-export const ESPECIALIDADES_REGISTRY: Record<EspecialidadId, EspecialidadDefinition> = {
-  kinesiologia: {
-    id: "kinesiologia",
+export const ESPECIALIDADES_REGISTRY: Record<EspecialidadCodigo, EspecialidadDefinition> = {
+  "Kinesiología": {
+    codigo: "Kinesiología",
     label: "Kinesiología",
     componenteEval: "KinesiologiaEval",
     tieneContraindicaciones: false,
     tieneEscalaFuncional: true,
     estado: "estable",
   },
-  fonoaudiologia: {
-    id: "fonoaudiologia",
+  "Fonoaudiología": {
+    codigo: "Fonoaudiología",
     label: "Fonoaudiología",
     componenteEval: "FonoaudiologiaEval",
     tieneContraindicaciones: false,
     tieneEscalaFuncional: true,
     estado: "estable",
   },
-  masoterapia: {
-    id: "masoterapia",
+  "Masoterapia": {
+    codigo: "Masoterapia",
     label: "Masoterapia",
     componenteEval: "MasoterapiaEval",
-    tieneContraindicaciones: true, // hard-stop obligatorio
+    tieneContraindicaciones: true,
     tieneEscalaFuncional: false,
     estado: "estable",
   },
-  medicina_general: {
-    id: "medicina_general",
+  "Administración Clínica": {
+    codigo: "Administración Clínica",
+    label: "Administración Clínica",
+    componenteEval: "AdministracionEval",
+    tieneContraindicaciones: false,
+    tieneEscalaFuncional: false,
+    estado: "estable",
+  },
+  "Odontología": {
+    codigo: "Odontología",
+    label: "Odontología",
+    componenteEval: "OdontologiaEval",
+    tieneContraindicaciones: true,
+    tieneEscalaFuncional: false,
+    estado: "beta",
+  },
+  "Medicina General": {
+    codigo: "Medicina General",
     label: "Medicina General",
     componenteEval: "MedicinaGeneralEval",
     tieneContraindicaciones: false,
     tieneEscalaFuncional: false,
-    estado: "beta",
+    estado: "roadmap",
   },
-  psicologia: {
-    id: "psicologia",
+  "Psicología": {
+    codigo: "Psicología",
     label: "Psicología",
     componenteEval: "PsicologiaEval",
     tieneContraindicaciones: false,
     tieneEscalaFuncional: false,
-    estado: "beta",
+    estado: "roadmap",
   },
-  nutricion: {
-    id: "nutricion",
+  "Nutrición": {
+    codigo: "Nutrición",
     label: "Nutrición",
     componenteEval: "NutricionEval",
     tieneContraindicaciones: false,
     tieneEscalaFuncional: false,
-    estado: "beta",
+    estado: "roadmap",
   },
-  terapia_ocupacional: {
-    id: "terapia_ocupacional",
+  "Terapia Ocupacional": {
+    codigo: "Terapia Ocupacional",
     label: "Terapia Ocupacional",
     componenteEval: "TerapiaOcupacionalEval",
     tieneContraindicaciones: false,
     tieneEscalaFuncional: true,
-    estado: "beta",
+    estado: "roadmap",
   },
-  podologia: {
-    id: "podologia",
+  "Podología": {
+    codigo: "Podología",
     label: "Podología",
     componenteEval: "PodologiaEval",
     tieneContraindicaciones: true,
     tieneEscalaFuncional: false,
-    estado: "beta",
+    estado: "roadmap",
   },
 };
 
@@ -261,14 +284,9 @@ export const ESPECIALIDADES_REGISTRY: Record<EspecialidadId, EspecialidadDefinit
 // HELPERS DE VALIDACIÓN
 // ============================================================================
 
-/**
- * Valida que todos los módulos activos tengan sus dependencias activas.
- * Retorna lista de problemas (vacía si todo OK).
- */
 export function validateDependencies(modulosActivos: ModuleId[]): string[] {
   const problemas: string[] = [];
   const set = new Set(modulosActivos);
-
   for (const moduleId of modulosActivos) {
     const mod = MODULE_REGISTRY[moduleId];
     if (!mod) {
@@ -276,52 +294,42 @@ export function validateDependencies(modulosActivos: ModuleId[]): string[] {
       continue;
     }
     for (const dep of mod.dependeDe) {
-      if (!set.has(dep)) {
-        problemas.push(`${moduleId} requiere ${dep} activo.`);
-      }
+      if (!set.has(dep)) problemas.push(`${moduleId} requiere ${dep} activo.`);
     }
   }
-
   return problemas;
 }
 
-/**
- * Valida que los módulos obligatorios estén todos activos.
- */
 export function validateObligatorios(modulosActivos: ModuleId[]): string[] {
   const problemas: string[] = [];
   const set = new Set(modulosActivos);
-
   for (const [id, mod] of Object.entries(MODULE_REGISTRY) as [ModuleId, ModuleDefinition][]) {
     if (mod.obligatorio && !set.has(id)) {
       problemas.push(`Módulo obligatorio faltante: ${id}`);
     }
   }
-
   return problemas;
 }
 
-/**
- * Valida que si M3 está activo, haya al menos una especialidad activa.
- */
 export function validateEspecialidades(
   modulosActivos: ModuleId[],
-  especialidadesActivas: EspecialidadId[]
+  especialidadesActivas: EspecialidadCodigo[]
 ): string[] {
   const problemas: string[] = [];
-  const m3Active = modulosActivos.includes("M3_evaluacion");
-  if (m3Active && especialidadesActivas.length === 0) {
+  if (modulosActivos.includes("M3_evaluacion") && especialidadesActivas.length === 0) {
     problemas.push("M3_evaluacion está activo pero no hay especialidades configuradas.");
+  }
+  for (const esp of especialidadesActivas) {
+    if (!ESPECIALIDADES_REGISTRY[esp]) {
+      problemas.push(`Especialidad desconocida en registry: ${esp}`);
+    }
   }
   return problemas;
 }
 
-/**
- * Todas las validaciones juntas.
- */
 export function validateConfig(
   modulosActivos: ModuleId[],
-  especialidadesActivas: EspecialidadId[]
+  especialidadesActivas: EspecialidadCodigo[]
 ): { ok: boolean; errores: string[] } {
   const errores = [
     ...validateObligatorios(modulosActivos),
@@ -331,44 +339,85 @@ export function validateConfig(
   return { ok: errores.length === 0, errores };
 }
 
-/**
- * Retorna los módulos que dependen de `moduleId` (para UI: "si desactivas X, se desactivan Y, Z").
- */
 export function getDependentes(moduleId: ModuleId): ModuleId[] {
   return (Object.keys(MODULE_REGISTRY) as ModuleId[]).filter((id) =>
     MODULE_REGISTRY[id].dependeDe.includes(moduleId)
   );
 }
 
-/**
- * Tokens de color que la plataforma espera en clinicas_config.tokens_color.
- */
-export const REQUIRED_COLOR_TOKENS = [
-  "primary",
-  "primary-deep",
-  "accent",
-  "accent-md",
-  "accent-lt",
-  "secondary",
-] as const;
-
-export type ColorToken = (typeof REQUIRED_COLOR_TOKENS)[number];
+// ============================================================================
+// MAPEO config.branding → tokens FCE
+// ============================================================================
 
 /**
- * Valida que tokens_color tenga todas las claves requeridas con formato hex válido.
+ * Estructura de clinicas.config.branding (ejemplo Korporis):
+ * {
+ *   "navy": "#006B6B",
+ *   "accent": "#F5A623",
+ *   "primary": "#00B0A8",
+ *   "light_bg": "#E6FAF9",
+ *   "navy_deep": "#004545",
+ *   "primary_hover": "#009990",
+ *   "logo_url": "...",
+ *   "clinic_initials": "KP",
+ *   "clinic_short_name": "Korporis"
+ * }
+ *
+ * El FCE consume tokens kp-* que se inyectan como CSS variables.
+ * Este mapa traduce las claves del branding a las claves del FCE.
  */
-export function validateTokens(tokens: Record<string, string>): string[] {
-  const problemas: string[] = [];
-  const hexRegex = /^#[0-9A-Fa-f]{6}$/;
+export interface BrandingConfig {
+  navy?: string;
+  accent?: string;
+  primary?: string;
+  light_bg?: string;
+  navy_deep?: string;
+  primary_hover?: string;
+  logo_url?: string;
+  clinic_initials?: string;
+  clinic_short_name?: string;
+}
 
-  for (const token of REQUIRED_COLOR_TOKENS) {
-    const val = tokens[token];
-    if (!val) {
-      problemas.push(`Falta token de color: ${token}`);
-    } else if (!hexRegex.test(val)) {
-      problemas.push(`Token ${token} no es hex válido: ${val}`);
-    }
-  }
+export interface FceTokens {
+  primary: string;
+  "primary-deep": string;
+  accent: string;
+  "accent-lt": string;
+  secondary: string;
+  "primary-hover": string;
+}
 
-  return problemas;
+/** Fallback: paleta por defecto (Korporis teal) si branding está vacío. */
+export const DEFAULT_FCE_TOKENS: FceTokens = {
+  "primary": "#006B6B",
+  "primary-deep": "#004545",
+  "accent": "#00B0A8",
+  "accent-lt": "#D5F5F4",
+  "secondary": "#F5A623",
+  "primary-hover": "#009990",
+};
+
+/**
+ * Convierte el branding existente en clinicas.config.branding a tokens FCE.
+ * Si alguna clave falta, usa el fallback default.
+ */
+export function mapBrandingToTokens(branding: BrandingConfig | null | undefined): FceTokens {
+  if (!branding) return DEFAULT_FCE_TOKENS;
+  return {
+    "primary": branding.navy ?? DEFAULT_FCE_TOKENS.primary,
+    "primary-deep": branding.navy_deep ?? DEFAULT_FCE_TOKENS["primary-deep"],
+    "accent": branding.primary ?? DEFAULT_FCE_TOKENS.accent,
+    "accent-lt": branding.light_bg ?? DEFAULT_FCE_TOKENS["accent-lt"],
+    "secondary": branding.accent ?? DEFAULT_FCE_TOKENS.secondary,
+    "primary-hover": branding.primary_hover ?? DEFAULT_FCE_TOKENS["primary-hover"],
+  };
+}
+
+/**
+ * Genera CSS variables inline para inyectar en un <style> tag del layout.
+ */
+export function tokensToCssVars(tokens: FceTokens): string {
+  return Object.entries(tokens)
+    .map(([k, v]) => `--kp-${k}: ${v};`)
+    .join(" ");
 }
