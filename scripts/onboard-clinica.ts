@@ -38,7 +38,7 @@ import {
   ESPECIALIDADES_REGISTRY,
   validateConfig,
   type ModuleId,
-  type EspecialidadId,
+  type EspecialidadCodigo,
 } from "../src/lib/modules/registry";
 
 // ============================================================================
@@ -76,7 +76,7 @@ const direccion = values.direccion ?? "";
 const modulosArg = values.modulos.split(",").filter(Boolean) as ModuleId[];
 const especialidadesArg = (values.especialidades ?? "")
   .split(",")
-  .filter(Boolean) as EspecialidadId[];
+  .filter(Boolean) as EspecialidadCodigo[];
 
 if (modulosArg.length === 0) {
   fail("Error: --modulos no puede estar vacío.");
@@ -202,7 +202,7 @@ function buildClaudeMd(opts: {
   slug: string;
   direccion: string;
   modulos: ModuleId[];
-  especialidades: EspecialidadId[];
+  especialidades: EspecialidadCodigo[];
 }): string {
   const modsActivos = opts.modulos.map((id) => MODULE_REGISTRY[id]);
   const modsInactivos = (Object.keys(MODULE_REGISTRY) as ModuleId[])
@@ -228,7 +228,7 @@ function buildClaudeMd(opts: {
   md += `\n### Especialidades (${esp.length})\n`;
   if (esp.length === 0) md += `- (ninguna)\n`;
   else esp.forEach((e) => {
-    md += `- ✅ \`${e.id}\`${e.tieneContraindicaciones ? " — requiere hard-stop contraindicaciones" : ""}\n`;
+    md += `- ✅ \`${e.codigo}\`${e.tieneContraindicaciones ? " — requiere hard-stop contraindicaciones" : ""}\n`;
   });
 
   md += `\n## Reglas específicas\n\n`;

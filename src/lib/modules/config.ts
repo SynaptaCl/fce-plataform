@@ -9,6 +9,7 @@
  */
 
 import { createClient } from "@/lib/supabase/server";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import type { ModuleId, EspecialidadCodigo, FceTokens, BrandingConfig } from "./registry";
 import { mapBrandingToTokens, DEFAULT_FCE_TOKENS } from "./registry";
 
@@ -37,8 +38,11 @@ export interface ClinicaConfig {
  * Lee config completa combinando clinicas + clinicas_fce_config.
  * Retorna null si la clínica no existe o si no tiene config FCE.
  */
-export async function getClinicaConfig(idClinica: string): Promise<ClinicaConfig | null> {
-  const supabase = await createClient();
+export async function getClinicaConfig(
+  idClinica: string,
+  supabaseClient?: SupabaseClient
+): Promise<ClinicaConfig | null> {
+  const supabase = supabaseClient ?? (await createClient());
 
   // Query 1: datos base + branding desde clinicas
   const { data: clinica, error: errClinica } = await supabase
