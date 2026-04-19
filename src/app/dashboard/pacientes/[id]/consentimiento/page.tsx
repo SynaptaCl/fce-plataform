@@ -2,6 +2,8 @@ import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { ChevronLeft, FileSignature } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { requireModule } from "@/lib/modules/guards";
+import { getClinicaConfigFromSession } from "@/lib/modules/config";
 import { getPatientById } from "@/app/actions/patients";
 import { getConsentimientos } from "@/app/actions/consentimiento";
 import { Card } from "@/components/ui/Card";
@@ -26,6 +28,9 @@ export default async function ConsentimientoPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+
+  const { config } = await getClinicaConfigFromSession();
+  requireModule(config, "M5_consentimiento");
 
   const supabase = await createClient();
   const {

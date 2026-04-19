@@ -2,6 +2,8 @@ import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { ChevronLeft, Stethoscope } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { requireModule } from "@/lib/modules/guards";
+import { getClinicaConfigFromSession } from "@/lib/modules/config";
 import { getPatientById } from "@/app/actions/patients";
 import { getEvaluaciones } from "@/app/actions/evaluacion";
 import { Card } from "@/components/ui/Card";
@@ -43,6 +45,9 @@ export default async function EvaluacionPage({
 }) {
   const { id } = await params;
   const { esp } = await searchParams;
+
+  const { config } = await getClinicaConfigFromSession();
+  requireModule(config, "M3_evaluacion");
 
   // Obtener sesión y especialidad del profesional
   const supabase = await createClient();

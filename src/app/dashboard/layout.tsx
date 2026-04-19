@@ -2,9 +2,11 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { DashboardShell } from "@/components/layout/DashboardShell";
 import { BrandingInjector, type BrandingConfig } from "@/components/layout/BrandingInjector";
-import type { Especialidad, Rol } from "@/lib/constants";
-import { canAccessFCE } from "@/lib/permissions";
-import type { UserContext } from "@/lib/permissions";
+import type { Especialidad, Rol as LegacyRol } from "@/lib/constants";
+import { ClinicaSessionProvider } from "@/lib/modules/provider";
+import { getClinicaConfig } from "@/lib/modules/config";
+import { requireAccesoFCE } from "@/lib/modules/guards";
+import type { Rol } from "@/lib/modules/registry";
 
 export default async function DashboardLayout({
   children,
@@ -13,7 +15,6 @@ export default async function DashboardLayout({
 }) {
   const supabase = await createClient();
 
-  // Verificar sesión — siempre getUser(), nunca getSession() en Server
   const {
     data: { user },
     error: authError,
@@ -23,67 +24,70 @@ export default async function DashboardLayout({
     redirect("/login");
   }
 
-  // Fetch profesional + admin_user en paralelo
-  const [profesionalRes, adminRes] = await Promise.all([
-    supabase
-      .from("profesionales")
-      .select("nombre, apellidos, especialidad, rol")
-      .eq("auth_id", user.id)
-      .maybeSingle(),
+  // Fetch admin_users (rol autoritativo) + profesionales (display) en paralelo
+  const [adminRes, profesionalRes] = await Promise.all([
     supabase
       .from("admin_users")
-      .select("id_clinica")
+      .select("id_clinica, rol, nombre, activo")
+      .eq("auth_id", user.id)
+      .single(),
+    supabase
+      .from("profesionales")
+      .select("nombre, especialidad")
       .eq("auth_id", user.id)
       .maybeSingle(),
   ]);
 
-  const profesional = profesionalRes.data;
-  const idClinica = adminRes.data?.id_clinica ?? null;
+  const adminRow = adminRes.data;
+  if (!adminRow || !adminRow.activo) {
+    redirect("/login?error=sin-perfil");
+  }
 
-  // Fetch branding si hay clínica asociada
-  let branding: BrandingConfig | null = null;
-  if (idClinica) {
-    const { data: clinica } = await supabase
+  const rol = adminRow.rol as Rol;
+
+  // Bloquear recepcionistas — no tienen acceso al FCE
+  requireAccesoFCE(rol);
+
+  // Config FCE + branding raw en paralelo (branding needed for BrandingInjector/DashboardShell)
+  const [config, clinicaRes] = await Promise.all([
+    getClinicaConfig(adminRow.id_clinica, supabase),
+    supabase
       .from("clinicas")
       .select("config")
-      .eq("id", idClinica)
-      .single();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    branding = (clinica?.config as any)?.branding ?? null;
+      .eq("id", adminRow.id_clinica)
+      .single(),
+  ]);
+
+  if (!config) {
+    redirect("/login?error=sin-config");
   }
 
-  const nombre    = profesional?.nombre   ?? user.email?.split("@")[0] ?? "Usuario";
-  const apellidos = profesional?.apellidos ?? "";
-  const especialidad = (profesional?.especialidad as Especialidad) ?? "kinesiologia";
-  const rol          = (profesional?.rol          as Rol)          ?? "profesional";
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const branding: BrandingConfig | null = (clinicaRes.data?.config as any)?.branding ?? null;
 
-  // Bloquear recepcionistas — no tienen acceso a la FCE
-  const userCtx: UserContext = {
-    userId: user.id,
-    idClinica,
-    rol,
-    idProfesional: null,
-    especialidad: null,
-  };
-  if (!canAccessFCE(userCtx)) {
-    redirect("/login");
-  }
+  // Datos de display del profesional (best-effort — columna especialidad es texto libre)
+  const profesional = profesionalRes.data;
+  const nombre =
+    profesional?.nombre ?? adminRow.nombre ?? user.email?.split("@")[0] ?? "Usuario";
+  const rawEsp = profesional?.especialidad as string | undefined;
+  const especialidad: Especialidad = rawEsp
+    ? (rawEsp.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") as Especialidad)
+    : "kinesiologia";
 
-  const practitionerName = apellidos ? `${nombre} ${apellidos}` : nombre;
-  const initials = [nombre[0], apellidos[0]].filter(Boolean).join("").toUpperCase() || "U";
+  const initials = (nombre[0] ?? "U").toUpperCase();
 
   return (
-    <>
+    <ClinicaSessionProvider session={{ config, rol, userId: user.id }}>
       <BrandingInjector branding={branding} />
       <DashboardShell
-        practitionerName={practitionerName}
+        practitionerName={nombre}
         practitionerInitials={initials}
         especialidad={especialidad}
-        rol={rol}
+        rol={rol as unknown as LegacyRol}
         branding={branding}
       >
         {children}
       </DashboardShell>
-    </>
+    </ClinicaSessionProvider>
   );
 }

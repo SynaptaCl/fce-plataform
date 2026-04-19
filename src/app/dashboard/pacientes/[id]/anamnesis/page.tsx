@@ -1,6 +1,8 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ChevronLeft, ClipboardList, Activity } from "lucide-react";
+import { requireModule } from "@/lib/modules/guards";
+import { getClinicaConfigFromSession } from "@/lib/modules/config";
 import { getPatientById } from "@/app/actions/patients";
 import { getAnamnesis, getLatestVitalSigns } from "@/app/actions/anamnesis";
 import { Card } from "@/components/ui/Card";
@@ -28,6 +30,9 @@ export default async function AnamnesisPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
+
+  const { config } = await getClinicaConfigFromSession();
+  requireModule(config, "M2_anamnesis");
 
   const [patientResult, anamnesisResult, vitalSignsResult] = await Promise.all([
     getPatientById(id),

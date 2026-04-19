@@ -2,6 +2,8 @@ import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { ChevronLeft, FileText, Plus, Lock, Clock } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { requireModule } from "@/lib/modules/guards";
+import { getClinicaConfigFromSession } from "@/lib/modules/config";
 import { getPatientById, getUserContext } from "@/app/actions/patients";
 import { getSoapNotes } from "@/app/actions/soap";
 import { getEvaluaciones } from "@/app/actions/evaluacion";
@@ -51,6 +53,9 @@ export default async function EvolucionPage({
 }) {
   const { id } = await params;
   const { nueva, nota: notaId } = await searchParams;
+
+  const { config } = await getClinicaConfigFromSession();
+  requireModule(config, "M4_soap");
 
   const supabase = await createClient();
   const { data: { user }, error: authError } = await supabase.auth.getUser();

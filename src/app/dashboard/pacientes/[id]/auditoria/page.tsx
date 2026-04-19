@@ -2,6 +2,9 @@ import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { ChevronLeft, ShieldCheck } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { requireModule, assertPuedeConfigurar } from "@/lib/modules/guards";
+import { getClinicaConfigFromSession } from "@/lib/modules/config";
+import type { Rol } from "@/lib/modules/registry";
 import { getPatientById } from "@/app/actions/patients";
 import { getAuditLogs } from "@/app/actions/auditoria";
 import { Card } from "@/components/ui/Card";
@@ -28,6 +31,9 @@ export default async function AuditoriaPage({
 }) {
   const { id } = await params;
 
+  const { config } = await getClinicaConfigFromSession();
+  requireModule(config, "M6_auditoria");
+
   const supabase = await createClient();
   const {
     data: { user },
@@ -35,14 +41,15 @@ export default async function AuditoriaPage({
   } = await supabase.auth.getUser();
   if (authError || !user) redirect("/login");
 
-  // Guard: solo admin (rol en admin_users, NO en profesionales)
+  // Guard: solo admin / director / superadmin pueden ver auditoría
   const { data: adminUser } = await supabase
     .from("admin_users")
     .select("rol")
     .eq("auth_id", user.id)
     .maybeSingle();
 
-  if (adminUser?.rol !== "admin") redirect(`/dashboard/pacientes/${id}`);
+  const rolCheck = assertPuedeConfigurar(adminUser?.rol as Rol | null);
+  if (!rolCheck.success) redirect(`/dashboard/pacientes/${id}`);
 
   const [patientResult, logsResult] = await Promise.all([
     getPatientById(id),
