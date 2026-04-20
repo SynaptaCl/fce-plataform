@@ -7,7 +7,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Activity, Lock, Mail, ShieldCheck, AlertCircle } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { CLINIC_FULL_NAME } from "@/lib/constants";
 
 const loginSchema = z.object({
   email: z.string().email("Ingresa un email válido"),
@@ -63,7 +62,7 @@ export default function LoginPage() {
             </span>
           </div>
           <h1 className="text-white text-xl font-bold leading-tight">
-            {CLINIC_FULL_NAME}
+            {"Synapta FCE"}
           </h1>
           <p className="text-kp-accent-lt/70 text-xs mt-1">
             Ficha Clínica Electrónica — Acceso profesional
@@ -98,7 +97,7 @@ export default function LoginPage() {
                 id="email"
                 type="email"
                 autoComplete="email"
-                placeholder="profesional@korporis.cl"
+                placeholder="usuario@clinica.cl"
                 {...register("email")}
                 className="w-full pl-10 pr-4 py-2.5 text-sm border border-kp-border rounded-lg bg-surface-0 text-ink-1 placeholder:text-ink-4 focus:outline-none focus:ring-2 focus:ring-kp-accent focus:border-transparent transition-colors"
               />
@@ -150,7 +149,7 @@ export default function LoginPage() {
       </div>
 
       <p className="mt-6 text-xs text-white/30">
-        Acceso restringido a personal autorizado de {CLINIC_FULL_NAME}
+        Acceso restringido a personal autorizado de {"Synapta FCE"}
       </p>
     </div>
   );

@@ -2,18 +2,16 @@ import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { ChevronLeft, FileText, Plus, Lock, Clock } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { requireModule } from "@/lib/modules/guards";
+import { requireModule, assertPuedeEscribir } from "@/lib/modules/guards";
 import { getClinicaConfigFromSession } from "@/lib/modules/config";
-import { getPatientById, getUserContext } from "@/app/actions/patients";
+import { getPatientById } from "@/app/actions/patients";
 import { getSoapNotes } from "@/app/actions/soap";
 import { getEvaluaciones } from "@/app/actions/evaluacion";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { SoapForm } from "@/components/modules/SoapForm";
 import { calculateAge, formatRut } from "@/lib/utils";
-import { canWrite } from "@/lib/permissions";
-import type { UserContext } from "@/lib/permissions";
-import type { Especialidad } from "@/lib/constants";
+import type { Rol } from "@/lib/modules/registry";
 import type { SoapNote } from "@/types";
 
 export async function generateMetadata({
@@ -55,16 +53,22 @@ export default async function EvolucionPage({
   const { nueva, nota: notaId } = await searchParams;
 
   const { config } = await getClinicaConfigFromSession();
+  if (!config) notFound();
   requireModule(config, "M4_soap");
 
   const supabase = await createClient();
   const { data: { user }, error: authError } = await supabase.auth.getUser();
   if (authError || !user) redirect("/login");
 
-  const userCtx = await getUserContext(supabase, user.id);
-  const puedeEscribir = userCtx
-    ? canWrite(userCtx, (userCtx.especialidad ?? "kinesiologia") as Especialidad)
-    : false;
+  const adminRes = await supabase
+    .from("admin_users")
+    .select("rol")
+    .eq("auth_id", user.id)
+    .single();
+
+  const rol = adminRes.data?.rol as Rol;
+  const writeCheck = assertPuedeEscribir(rol);
+  const puedeEscribir = writeCheck.success;
 
   const [patientResult, notesResult, objetivoHint] = await Promise.all([
     getPatientById(id),

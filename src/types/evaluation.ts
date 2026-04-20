@@ -1,4 +1,4 @@
-import type { Especialidad } from "@/lib/constants";
+import type { EspecialidadCodigo } from "@/lib/modules/registry";
 
 // ── Kinesiología ──
 
@@ -129,7 +129,7 @@ export interface Evaluation {
   id: string;
   id_encuentro: string | null;
   id_paciente: string;
-  especialidad: Especialidad;
+  especialidad: EspecialidadCodigo;
   sub_area: string;
   data: Record<string, unknown>;
   contraindicaciones_certificadas: boolean | null;

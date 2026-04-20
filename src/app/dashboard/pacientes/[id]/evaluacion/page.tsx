@@ -1,9 +1,11 @@
+import type React from "react";
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { ChevronLeft, Stethoscope } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requireModule } from "@/lib/modules/guards";
 import { getClinicaConfigFromSession } from "@/lib/modules/config";
+import { getProfesionalActivo } from "@/lib/fce/profesional";
 import { getPatientById } from "@/app/actions/patients";
 import { getEvaluaciones } from "@/app/actions/evaluacion";
 import { Card } from "@/components/ui/Card";
@@ -11,9 +13,10 @@ import { Badge } from "@/components/ui/Badge";
 import { KinesiologiaEval } from "@/components/modules/KinesiologiaEval";
 import { FonoaudiologiaEval } from "@/components/modules/FonoaudiologiaEval";
 import { MasoterapiaEval } from "@/components/modules/MasoterapiaEval";
+import { GenericEval } from "@/components/modules/GenericEval";
 import { calculateAge, formatRut } from "@/lib/utils";
-import { ESPECIALIDAD_LABELS } from "@/lib/constants";
-import type { Especialidad } from "@/lib/constants";
+import { ESPECIALIDADES_REGISTRY } from "@/lib/modules/registry";
+import type { EspecialidadCodigo } from "@/lib/modules/registry";
 import type { Evaluation } from "@/types";
 
 export async function generateMetadata({
@@ -28,13 +31,20 @@ export async function generateMetadata({
   return { title: `Evaluación — ${p.apellido_paterno} ${p.nombre}` };
 }
 
-// ── Especialidad tabs ──────────────────────────────────────────────────────
+// ── EVAL_COMPONENTS map ────────────────────────────────────────────────────
 
-const ESPECIALIDAD_TABS: { key: Especialidad; label: string }[] = [
-  { key: "kinesiologia", label: "Kinesiología" },
-  { key: "fonoaudiologia", label: "Fonoaudiología" },
-  { key: "masoterapia", label: "Masoterapia" },
-];
+type EvalComponentProps = {
+  patientId: string;
+  evaluaciones: Evaluation[];
+  readOnly?: boolean;
+  especialidad: string;
+};
+
+const EVAL_COMPONENTS: Partial<Record<EspecialidadCodigo, React.ComponentType<EvalComponentProps>>> = {
+  "Kinesiología": KinesiologiaEval as React.ComponentType<EvalComponentProps>,
+  "Fonoaudiología": FonoaudiologiaEval as React.ComponentType<EvalComponentProps>,
+  "Masoterapia": MasoterapiaEval as React.ComponentType<EvalComponentProps>,
+};
 
 export default async function EvaluacionPage({
   params,
@@ -46,33 +56,49 @@ export default async function EvaluacionPage({
   const { id } = await params;
   const { esp } = await searchParams;
 
-  const { config } = await getClinicaConfigFromSession();
-  requireModule(config, "M3_evaluacion");
-
-  // Obtener sesión y especialidad del profesional
+  // Obtener sesión
   const supabase = await createClient();
   const { data: { user }, error: authError } = await supabase.auth.getUser();
   if (authError || !user) redirect("/login");
 
-  const { data: profesional } = await supabase
-    .from("profesionales")
-    .select("especialidad")
-    .eq("auth_id", user.id)
-    .maybeSingle();
+  // Fetch config de clínica y id_clinica en paralelo
+  const [sessionResult, adminRes] = await Promise.all([
+    getClinicaConfigFromSession(),
+    supabase.from("admin_users").select("id_clinica, rol").eq("auth_id", user.id).single(),
+  ]);
 
-  const rawEspecialidad = profesional?.especialidad ?? "kinesiologia";
-  const isAdminUser = rawEspecialidad === "Administración Clínica";
-  // Normalizar a Especialidad type: la DB guarda "Kinesiología" (con tilde/mayúscula),
-  // el type espera "kinesiologia" (sin tilde, minúscula).
-  const profEspecialidad: Especialidad = isAdminUser
-    ? "kinesiologia"
-    : (rawEspecialidad.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") as Especialidad);
+  const { config } = sessionResult;
+  if (!config) notFound();
+  requireModule(config, "M3_evaluacion");
 
-  // Determinar tab activa (default: especialidad del profesional)
-  const validEsp = ESPECIALIDAD_TABS.map((t) => t.key);
-  const activeEsp: Especialidad = validEsp.includes(esp as Especialidad)
-    ? (esp as Especialidad)
-    : profEspecialidad;
+  const idClinica = adminRes.data?.id_clinica ?? undefined;
+
+  // Usar getProfesionalActivo — maneja correctamente el caso 1 auth_id → N profesionales
+  const profesionalActivo = await getProfesionalActivo(supabase, user.id, idClinica);
+  const rawEspecialidad = profesionalActivo?.especialidad ?? null;
+
+  // Si rawEspecialidad es null: usuario es admin puro (sin perfil en profesionales)
+  const isAdminUser = rawEspecialidad === null || rawEspecialidad === "Administración Clínica";
+  // DB guarda el codigo exacto con tilde — usarlo directamente como EspecialidadCodigo.
+  const profEspecialidad: EspecialidadCodigo | null = isAdminUser
+    ? null
+    : (rawEspecialidad as EspecialidadCodigo);
+
+  // Tabs dinámicas desde config.especialidadesActivas (filtra Administración Clínica)
+  const especialidadesTabs = config.especialidadesActivas
+    .filter((codigo) => codigo !== "Administración Clínica")
+    .map((codigo) => ({
+      key: codigo,
+      label: ESPECIALIDADES_REGISTRY[codigo]?.label ?? codigo,
+    }));
+
+  // Determinar tab activa (default: especialidad del profesional, o primera tab si admin puro)
+  const validEsp = especialidadesTabs.map((t) => t.key as EspecialidadCodigo);
+  const defaultEsp: EspecialidadCodigo =
+    profEspecialidad ?? (especialidadesTabs[0]?.key ?? "Kinesiología");
+  const activeEsp: EspecialidadCodigo = validEsp.includes(esp as EspecialidadCodigo)
+    ? (esp as EspecialidadCodigo)
+    : defaultEsp;
 
   // Fetch data en paralelo
   const [patientResult, evalResult] = await Promise.all([
@@ -90,6 +116,7 @@ export default async function EvaluacionPage({
 
   const fullName = [p.nombre, p.apellido_paterno, p.apellido_materno].filter(Boolean).join(" ") || "Sin nombre";
   const age = calculateAge(p.fecha_nacimiento);
+  const EvalComponent = EVAL_COMPONENTS[activeEsp] ?? GenericEval;
 
   return (
     <div className="max-w-3xl space-y-5">
@@ -117,14 +144,16 @@ export default async function EvaluacionPage({
         </div>
         <div className="ml-auto">
           <Badge variant="teal">
-            {isAdminUser ? "Acceso completo — Admin" : `${ESPECIALIDAD_LABELS[profEspecialidad]} — edición activa`}
+            {isAdminUser
+              ? "Acceso completo — Admin"
+              : `${profEspecialidad ? (ESPECIALIDADES_REGISTRY[profEspecialidad]?.label ?? profEspecialidad) : ""} — edición activa`}
           </Badge>
         </div>
       </div>
 
       {/* Especialidad tabs */}
       <div className="flex gap-2 border-b border-kp-border pb-0">
-        {ESPECIALIDAD_TABS.map((tab) => {
+        {especialidadesTabs.map((tab) => {
           const hasData = allEvals.some((e) => e.especialidad === tab.key);
           const isActive = activeEsp === tab.key;
           return (
@@ -149,30 +178,15 @@ export default async function EvaluacionPage({
 
       {/* Specialty panel */}
       <Card
-        title={`${ESPECIALIDAD_LABELS[activeEsp]}`}
+        title={`${ESPECIALIDADES_REGISTRY[activeEsp]?.label ?? activeEsp}`}
         icon={<Stethoscope className="w-4 h-4" />}
       >
-        {activeEsp === "kinesiologia" && (
-          <KinesiologiaEval
-            patientId={id}
-            evaluaciones={evalsByEsp("kinesiologia")}
-            readOnly={!isAdminUser && profEspecialidad !== "kinesiologia"}
-          />
-        )}
-        {activeEsp === "fonoaudiologia" && (
-          <FonoaudiologiaEval
-            patientId={id}
-            evaluaciones={evalsByEsp("fonoaudiologia")}
-            readOnly={!isAdminUser && profEspecialidad !== "fonoaudiologia"}
-          />
-        )}
-        {activeEsp === "masoterapia" && (
-          <MasoterapiaEval
-            patientId={id}
-            evaluaciones={evalsByEsp("masoterapia")}
-            readOnly={!isAdminUser && profEspecialidad !== "masoterapia"}
-          />
-        )}
+        <EvalComponent
+          patientId={id}
+          evaluaciones={evalsByEsp(activeEsp)}
+          readOnly={!isAdminUser && profEspecialidad !== activeEsp}
+          especialidad={activeEsp}
+        />
       </Card>
     </div>
   );

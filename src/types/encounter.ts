@@ -1,4 +1,4 @@
-import type { Especialidad } from "@/lib/constants";
+import type { EspecialidadCodigo } from "@/lib/modules/registry";
 
 export type EncounterStatus = "planificado" | "en_progreso" | "finalizado" | "cancelado";
 export type Modalidad = "presencial" | "domicilio" | "virtual";
@@ -7,7 +7,7 @@ export interface Encounter {
   id: string;
   id_paciente: string;
   id_profesional: string;
-  especialidad: Especialidad;
+  especialidad: EspecialidadCodigo;
   modalidad: Modalidad;
   status: EncounterStatus;
   started_at?: string;

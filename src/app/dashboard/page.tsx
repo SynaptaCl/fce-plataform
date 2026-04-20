@@ -1,6 +1,5 @@
 import { Calendar, Clock, Users } from "lucide-react";
 import { formatDate } from "@/lib/utils";
-import { CLINIC_FULL_NAME } from "@/lib/constants";
 import { getAgendaDiaria } from "@/app/actions/patients";
 import { AgendaTable } from "@/components/modules/AgendaTable";
 import { AlertBanner } from "@/components/ui/AlertBanner";
@@ -59,7 +58,7 @@ export default async function DashboardPage() {
       <AgendaTable citas={citas} />
 
       <p className="text-xs text-ink-3">
-        {CLINIC_FULL_NAME} · Ficha Clínica Electrónica
+        Ficha Clínica Electrónica
       </p>
     </div>
   );
