@@ -45,7 +45,7 @@ function NavItem({ icon, text, active = false, collapsed = false, onClick }: Nav
 interface SidebarProps {
   practitionerName: string;
   practitionerInitials: string;
-  especialidad: EspecialidadCodigo;
+  especialidad: string | null;
   activeSection: string;
   onNavigate: (section: string) => void;
   onLogout: () => void;
@@ -70,7 +70,9 @@ export function Sidebar({
 
   const roleLabel =
     rol === "profesional"
-      ? (ESPECIALIDADES_REGISTRY[especialidad]?.label ?? especialidad)
+      ? (especialidad
+          ? (ESPECIALIDADES_REGISTRY[especialidad as EspecialidadCodigo]?.label ?? especialidad)
+          : "Profesional")
       : rol === "admin"
         ? "Administración Clínica"
         : rol === "director"

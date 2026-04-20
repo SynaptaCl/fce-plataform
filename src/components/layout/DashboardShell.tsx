@@ -5,13 +5,12 @@ import { useRouter, usePathname } from "next/navigation";
 import { Sidebar } from "./Sidebar";
 import { TopBar } from "./TopBar";
 import { createClient } from "@/lib/supabase/client";
-import type { EspecialidadCodigo } from "@/lib/modules/registry";
 
 interface DashboardShellProps {
   children: React.ReactNode;
   practitionerName: string;
   practitionerInitials: string;
-  especialidad: EspecialidadCodigo;
+  especialidad: string | null;
 }
 
 const SECTION_TITLES: Record<string, string> = {
