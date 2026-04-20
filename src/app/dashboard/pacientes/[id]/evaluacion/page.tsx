@@ -4,6 +4,7 @@ import { ChevronLeft, Stethoscope } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { requireModule } from "@/lib/modules/guards";
 import { getClinicaConfigFromSession } from "@/lib/modules/config";
+import { getProfesionalActivo } from "@/lib/fce/profesional";
 import { getPatientById } from "@/app/actions/patients";
 import { getEvaluaciones } from "@/app/actions/evaluacion";
 import { Card } from "@/components/ui/Card";
@@ -46,32 +47,39 @@ export default async function EvaluacionPage({
   const { id } = await params;
   const { esp } = await searchParams;
 
-  const { config } = await getClinicaConfigFromSession();
-  requireModule(config, "M3_evaluacion");
-
-  // Obtener sesión y especialidad del profesional
+  // Obtener sesión
   const supabase = await createClient();
   const { data: { user }, error: authError } = await supabase.auth.getUser();
   if (authError || !user) redirect("/login");
 
-  const { data: profesional } = await supabase
-    .from("profesionales")
-    .select("especialidad")
-    .eq("auth_id", user.id)
-    .maybeSingle();
+  // Fetch config de clínica y id_clinica en paralelo
+  const [sessionResult, adminRes] = await Promise.all([
+    getClinicaConfigFromSession(),
+    supabase.from("admin_users").select("id_clinica, rol").eq("auth_id", user.id).single(),
+  ]);
 
-  const rawEspecialidad = profesional?.especialidad ?? "Kinesiología";
-  const isAdminUser = rawEspecialidad === "Administración Clínica";
+  const { config } = sessionResult;
+  requireModule(config, "M3_evaluacion");
+
+  const idClinica = adminRes.data?.id_clinica ?? undefined;
+
+  // Usar getProfesionalActivo — maneja correctamente el caso 1 auth_id → N profesionales
+  const profesionalActivo = await getProfesionalActivo(supabase, user.id, idClinica);
+  const rawEspecialidad = profesionalActivo?.especialidad ?? null;
+
+  // Si rawEspecialidad es null: usuario es admin puro (sin perfil en profesionales)
+  const isAdminUser = rawEspecialidad === null || rawEspecialidad === "Administración Clínica";
   // DB guarda el codigo exacto con tilde — usarlo directamente como EspecialidadCodigo.
-  const profEspecialidad: EspecialidadCodigo = isAdminUser
-    ? "Kinesiología"
+  const profEspecialidad: EspecialidadCodigo | null = isAdminUser
+    ? null
     : (rawEspecialidad as EspecialidadCodigo);
 
-  // Determinar tab activa (default: especialidad del profesional)
+  // Determinar tab activa (default: especialidad del profesional, o primera tab si admin puro)
   const validEsp = ESPECIALIDAD_TABS.map((t) => t.key);
+  const defaultEsp: EspecialidadCodigo = profEspecialidad ?? ESPECIALIDAD_TABS[0].key;
   const activeEsp: EspecialidadCodigo = validEsp.includes(esp as EspecialidadCodigo)
     ? (esp as EspecialidadCodigo)
-    : profEspecialidad;
+    : defaultEsp;
 
   // Fetch data en paralelo
   const [patientResult, evalResult] = await Promise.all([
@@ -116,7 +124,9 @@ export default async function EvaluacionPage({
         </div>
         <div className="ml-auto">
           <Badge variant="teal">
-            {isAdminUser ? "Acceso completo — Admin" : `${ESPECIALIDADES_REGISTRY[profEspecialidad]?.label ?? profEspecialidad} — edición activa`}
+            {isAdminUser
+              ? "Acceso completo — Admin"
+              : `${profEspecialidad ? (ESPECIALIDADES_REGISTRY[profEspecialidad]?.label ?? profEspecialidad) : ""} — edición activa`}
           </Badge>
         </div>
       </div>
