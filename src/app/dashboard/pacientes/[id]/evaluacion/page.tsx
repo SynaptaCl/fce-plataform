@@ -1,3 +1,4 @@
+import type React from "react";
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { ChevronLeft, Stethoscope } from "lucide-react";
@@ -12,6 +13,7 @@ import { Badge } from "@/components/ui/Badge";
 import { KinesiologiaEval } from "@/components/modules/KinesiologiaEval";
 import { FonoaudiologiaEval } from "@/components/modules/FonoaudiologiaEval";
 import { MasoterapiaEval } from "@/components/modules/MasoterapiaEval";
+import { GenericEval } from "@/components/modules/GenericEval";
 import { calculateAge, formatRut } from "@/lib/utils";
 import { ESPECIALIDADES_REGISTRY } from "@/lib/modules/registry";
 import type { EspecialidadCodigo } from "@/lib/modules/registry";
@@ -29,13 +31,20 @@ export async function generateMetadata({
   return { title: `Evaluación — ${p.apellido_paterno} ${p.nombre}` };
 }
 
-// ── Especialidad tabs ──────────────────────────────────────────────────────
+// ── EVAL_COMPONENTS map ────────────────────────────────────────────────────
 
-const ESPECIALIDAD_TABS: { key: EspecialidadCodigo; label: string }[] = [
-  { key: "Kinesiología", label: "Kinesiología" },
-  { key: "Fonoaudiología", label: "Fonoaudiología" },
-  { key: "Masoterapia", label: "Masoterapia" },
-];
+type EvalComponentProps = {
+  patientId: string;
+  evaluaciones: Evaluation[];
+  readOnly?: boolean;
+  especialidad: string;
+};
+
+const EVAL_COMPONENTS: Partial<Record<EspecialidadCodigo, React.ComponentType<EvalComponentProps>>> = {
+  "Kinesiología": KinesiologiaEval as React.ComponentType<EvalComponentProps>,
+  "Fonoaudiología": FonoaudiologiaEval as React.ComponentType<EvalComponentProps>,
+  "Masoterapia": MasoterapiaEval as React.ComponentType<EvalComponentProps>,
+};
 
 export default async function EvaluacionPage({
   params,
@@ -59,6 +68,7 @@ export default async function EvaluacionPage({
   ]);
 
   const { config } = sessionResult;
+  if (!config) notFound();
   requireModule(config, "M3_evaluacion");
 
   const idClinica = adminRes.data?.id_clinica ?? undefined;
@@ -74,9 +84,18 @@ export default async function EvaluacionPage({
     ? null
     : (rawEspecialidad as EspecialidadCodigo);
 
+  // Tabs dinámicas desde config.especialidadesActivas (filtra Administración Clínica)
+  const especialidadesTabs = config.especialidadesActivas
+    .filter((codigo) => codigo !== "Administración Clínica")
+    .map((codigo) => ({
+      key: codigo,
+      label: ESPECIALIDADES_REGISTRY[codigo]?.label ?? codigo,
+    }));
+
   // Determinar tab activa (default: especialidad del profesional, o primera tab si admin puro)
-  const validEsp = ESPECIALIDAD_TABS.map((t) => t.key);
-  const defaultEsp: EspecialidadCodigo = profEspecialidad ?? ESPECIALIDAD_TABS[0].key;
+  const validEsp = especialidadesTabs.map((t) => t.key as EspecialidadCodigo);
+  const defaultEsp: EspecialidadCodigo =
+    profEspecialidad ?? (especialidadesTabs[0]?.key ?? "Kinesiología");
   const activeEsp: EspecialidadCodigo = validEsp.includes(esp as EspecialidadCodigo)
     ? (esp as EspecialidadCodigo)
     : defaultEsp;
@@ -133,7 +152,7 @@ export default async function EvaluacionPage({
 
       {/* Especialidad tabs */}
       <div className="flex gap-2 border-b border-kp-border pb-0">
-        {ESPECIALIDAD_TABS.map((tab) => {
+        {especialidadesTabs.map((tab) => {
           const hasData = allEvals.some((e) => e.especialidad === tab.key);
           const isActive = activeEsp === tab.key;
           return (
@@ -161,27 +180,17 @@ export default async function EvaluacionPage({
         title={`${ESPECIALIDADES_REGISTRY[activeEsp]?.label ?? activeEsp}`}
         icon={<Stethoscope className="w-4 h-4" />}
       >
-        {activeEsp === "Kinesiología" && (
-          <KinesiologiaEval
-            patientId={id}
-            evaluaciones={evalsByEsp("Kinesiología")}
-            readOnly={!isAdminUser && profEspecialidad !== "Kinesiología"}
-          />
-        )}
-        {activeEsp === "Fonoaudiología" && (
-          <FonoaudiologiaEval
-            patientId={id}
-            evaluaciones={evalsByEsp("Fonoaudiología")}
-            readOnly={!isAdminUser && profEspecialidad !== "Fonoaudiología"}
-          />
-        )}
-        {activeEsp === "Masoterapia" && (
-          <MasoterapiaEval
-            patientId={id}
-            evaluaciones={evalsByEsp("Masoterapia")}
-            readOnly={!isAdminUser && profEspecialidad !== "Masoterapia"}
-          />
-        )}
+        {(() => {
+          const EvalComponent = EVAL_COMPONENTS[activeEsp] ?? GenericEval;
+          return (
+            <EvalComponent
+              patientId={id}
+              evaluaciones={evalsByEsp(activeEsp)}
+              readOnly={!isAdminUser && profEspecialidad !== activeEsp}
+              especialidad={activeEsp}
+            />
+          );
+        })()}
       </Card>
     </div>
   );
