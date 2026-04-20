@@ -116,6 +116,7 @@ export default async function EvaluacionPage({
 
   const fullName = [p.nombre, p.apellido_paterno, p.apellido_materno].filter(Boolean).join(" ") || "Sin nombre";
   const age = calculateAge(p.fecha_nacimiento);
+  const EvalComponent = EVAL_COMPONENTS[activeEsp] ?? GenericEval;
 
   return (
     <div className="max-w-3xl space-y-5">
@@ -180,17 +181,12 @@ export default async function EvaluacionPage({
         title={`${ESPECIALIDADES_REGISTRY[activeEsp]?.label ?? activeEsp}`}
         icon={<Stethoscope className="w-4 h-4" />}
       >
-        {(() => {
-          const EvalComponent = EVAL_COMPONENTS[activeEsp] ?? GenericEval;
-          return (
-            <EvalComponent
-              patientId={id}
-              evaluaciones={evalsByEsp(activeEsp)}
-              readOnly={!isAdminUser && profEspecialidad !== activeEsp}
-              especialidad={activeEsp}
-            />
-          );
-        })()}
+        <EvalComponent
+          patientId={id}
+          evaluaciones={evalsByEsp(activeEsp)}
+          readOnly={!isAdminUser && profEspecialidad !== activeEsp}
+          especialidad={activeEsp}
+        />
       </Card>
     </div>
   );

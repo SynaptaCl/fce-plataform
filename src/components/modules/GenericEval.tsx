@@ -22,9 +22,8 @@ export function GenericEval({
   especialidad,
 }: GenericEvalProps) {
   const existing = evaluaciones.find((e) => e.sub_area === "general");
-  const [notas, setNotas] = useState<string>(
-    ((existing?.data as Record<string, string> | null)?.notas) ?? ""
-  );
+  const rawNotas = (existing?.data as Record<string, unknown> | null)?.notas;
+  const [notas, setNotas] = useState<string>(typeof rawNotas === "string" ? rawNotas : "");
   const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
 
   const handleSave = async () => {
