@@ -67,7 +67,7 @@ export async function getUserContext(supabase: any, userId: string): Promise<Use
       .maybeSingle(),
     supabase
       .from("profesionales")
-      .select("id, especialidad, rol")
+      .select("id, especialidad")
       .eq("auth_id", userId)
       .maybeSingle(),
   ]);

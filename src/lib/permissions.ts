@@ -1,5 +1,5 @@
 // src/lib/permissions.ts
-// Control de acceso para la FCE de Korporis.
+// Control de acceso para la FCE (legacy — ver guards.ts para implementación v2).
 // No modifica la base de datos — solo evalúa permisos en base al contexto del usuario.
 
 import type { EspecialidadCodigo, Rol } from "@/lib/modules/registry";
