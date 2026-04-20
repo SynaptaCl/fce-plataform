@@ -13,7 +13,7 @@ import { SoapForm } from "@/components/modules/SoapForm";
 import { calculateAge, formatRut } from "@/lib/utils";
 import { canWrite } from "@/lib/permissions";
 import type { UserContext } from "@/lib/permissions";
-import type { Especialidad } from "@/lib/constants";
+import type { EspecialidadCodigo } from "@/lib/modules/registry";
 import type { SoapNote } from "@/types";
 
 export async function generateMetadata({
@@ -63,7 +63,7 @@ export default async function EvolucionPage({
 
   const userCtx = await getUserContext(supabase, user.id);
   const puedeEscribir = userCtx
-    ? canWrite(userCtx, (userCtx.especialidad ?? "kinesiologia") as Especialidad)
+    ? canWrite(userCtx, (userCtx.especialidad ?? "Kinesiología") as EspecialidadCodigo)
     : false;
 
   const [patientResult, notesResult, objetivoHint] = await Promise.all([

@@ -12,8 +12,8 @@ import { KinesiologiaEval } from "@/components/modules/KinesiologiaEval";
 import { FonoaudiologiaEval } from "@/components/modules/FonoaudiologiaEval";
 import { MasoterapiaEval } from "@/components/modules/MasoterapiaEval";
 import { calculateAge, formatRut } from "@/lib/utils";
-import { ESPECIALIDAD_LABELS } from "@/lib/constants";
-import type { Especialidad } from "@/lib/constants";
+import { ESPECIALIDADES_REGISTRY } from "@/lib/modules/registry";
+import type { EspecialidadCodigo } from "@/lib/modules/registry";
 import type { Evaluation } from "@/types";
 
 export async function generateMetadata({
@@ -30,10 +30,10 @@ export async function generateMetadata({
 
 // ── Especialidad tabs ──────────────────────────────────────────────────────
 
-const ESPECIALIDAD_TABS: { key: Especialidad; label: string }[] = [
-  { key: "kinesiologia", label: "Kinesiología" },
-  { key: "fonoaudiologia", label: "Fonoaudiología" },
-  { key: "masoterapia", label: "Masoterapia" },
+const ESPECIALIDAD_TABS: { key: EspecialidadCodigo; label: string }[] = [
+  { key: "Kinesiología", label: "Kinesiología" },
+  { key: "Fonoaudiología", label: "Fonoaudiología" },
+  { key: "Masoterapia", label: "Masoterapia" },
 ];
 
 export default async function EvaluacionPage({
@@ -60,18 +60,17 @@ export default async function EvaluacionPage({
     .eq("auth_id", user.id)
     .maybeSingle();
 
-  const rawEspecialidad = profesional?.especialidad ?? "kinesiologia";
+  const rawEspecialidad = profesional?.especialidad ?? "Kinesiología";
   const isAdminUser = rawEspecialidad === "Administración Clínica";
-  // Normalizar a Especialidad type: la DB guarda "Kinesiología" (con tilde/mayúscula),
-  // el type espera "kinesiologia" (sin tilde, minúscula).
-  const profEspecialidad: Especialidad = isAdminUser
-    ? "kinesiologia"
-    : (rawEspecialidad.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") as Especialidad);
+  // DB guarda el codigo exacto con tilde — usarlo directamente como EspecialidadCodigo.
+  const profEspecialidad: EspecialidadCodigo = isAdminUser
+    ? "Kinesiología"
+    : (rawEspecialidad as EspecialidadCodigo);
 
   // Determinar tab activa (default: especialidad del profesional)
   const validEsp = ESPECIALIDAD_TABS.map((t) => t.key);
-  const activeEsp: Especialidad = validEsp.includes(esp as Especialidad)
-    ? (esp as Especialidad)
+  const activeEsp: EspecialidadCodigo = validEsp.includes(esp as EspecialidadCodigo)
+    ? (esp as EspecialidadCodigo)
     : profEspecialidad;
 
   // Fetch data en paralelo
@@ -117,7 +116,7 @@ export default async function EvaluacionPage({
         </div>
         <div className="ml-auto">
           <Badge variant="teal">
-            {isAdminUser ? "Acceso completo — Admin" : `${ESPECIALIDAD_LABELS[profEspecialidad]} — edición activa`}
+            {isAdminUser ? "Acceso completo — Admin" : `${ESPECIALIDADES_REGISTRY[profEspecialidad]?.label ?? profEspecialidad} — edición activa`}
           </Badge>
         </div>
       </div>
@@ -149,28 +148,28 @@ export default async function EvaluacionPage({
 
       {/* Specialty panel */}
       <Card
-        title={`${ESPECIALIDAD_LABELS[activeEsp]}`}
+        title={`${ESPECIALIDADES_REGISTRY[activeEsp]?.label ?? activeEsp}`}
         icon={<Stethoscope className="w-4 h-4" />}
       >
-        {activeEsp === "kinesiologia" && (
+        {activeEsp === "Kinesiología" && (
           <KinesiologiaEval
             patientId={id}
-            evaluaciones={evalsByEsp("kinesiologia")}
-            readOnly={!isAdminUser && profEspecialidad !== "kinesiologia"}
+            evaluaciones={evalsByEsp("Kinesiología")}
+            readOnly={!isAdminUser && profEspecialidad !== "Kinesiología"}
           />
         )}
-        {activeEsp === "fonoaudiologia" && (
+        {activeEsp === "Fonoaudiología" && (
           <FonoaudiologiaEval
             patientId={id}
-            evaluaciones={evalsByEsp("fonoaudiologia")}
-            readOnly={!isAdminUser && profEspecialidad !== "fonoaudiologia"}
+            evaluaciones={evalsByEsp("Fonoaudiología")}
+            readOnly={!isAdminUser && profEspecialidad !== "Fonoaudiología"}
           />
         )}
-        {activeEsp === "masoterapia" && (
+        {activeEsp === "Masoterapia" && (
           <MasoterapiaEval
             patientId={id}
-            evaluaciones={evalsByEsp("masoterapia")}
-            readOnly={!isAdminUser && profEspecialidad !== "masoterapia"}
+            evaluaciones={evalsByEsp("Masoterapia")}
+            readOnly={!isAdminUser && profEspecialidad !== "Masoterapia"}
           />
         )}
       </Card>

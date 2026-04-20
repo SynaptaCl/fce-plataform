@@ -2,11 +2,10 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { DashboardShell } from "@/components/layout/DashboardShell";
 import { BrandingInjector } from "@/components/layout/BrandingInjector";
-import type { Especialidad } from "@/lib/constants";
 import { ClinicaSessionProvider } from "@/lib/modules/provider";
 import { getClinicaConfig } from "@/lib/modules/config";
 import { requireAccesoFCE } from "@/lib/modules/guards";
-import type { Rol } from "@/lib/modules/registry";
+import type { EspecialidadCodigo, Rol } from "@/lib/modules/registry";
 
 export default async function DashboardLayout({
   children,
@@ -58,9 +57,10 @@ export default async function DashboardLayout({
   const nombre =
     profesional?.nombre ?? adminRow.nombre ?? user.email?.split("@")[0] ?? "Usuario";
   const rawEsp = profesional?.especialidad as string | undefined;
-  const especialidad: Especialidad = rawEsp
-    ? (rawEsp.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "") as Especialidad)
-    : "kinesiologia";
+  // DB guarda el codigo exacto ("Kinesiología"). Usar directamente como EspecialidadCodigo.
+  const especialidad: EspecialidadCodigo = rawEsp
+    ? (rawEsp as EspecialidadCodigo)
+    : "Kinesiología";
 
   const initials = (nombre[0] ?? "U").toUpperCase();
 

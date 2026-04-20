@@ -11,10 +11,9 @@ import {
   LogOut,
   ChevronLeft,
 } from "lucide-react";
-import { ESPECIALIDAD_LABELS } from "@/lib/constants";
-import type { Especialidad } from "@/lib/constants";
 import { useClinicaConfig, useRol } from "@/lib/modules/provider";
-import { ROLES_QUE_CONFIGURAN } from "@/lib/modules/registry";
+import { ROLES_QUE_CONFIGURAN, ESPECIALIDADES_REGISTRY } from "@/lib/modules/registry";
+import type { EspecialidadCodigo } from "@/lib/modules/registry";
 
 interface NavItemProps {
   icon: React.ReactNode;
@@ -46,7 +45,7 @@ function NavItem({ icon, text, active = false, collapsed = false, onClick }: Nav
 interface SidebarProps {
   practitionerName: string;
   practitionerInitials: string;
-  especialidad: Especialidad;
+  especialidad: EspecialidadCodigo;
   activeSection: string;
   onNavigate: (section: string) => void;
   onLogout: () => void;
@@ -71,7 +70,7 @@ export function Sidebar({
 
   const roleLabel =
     rol === "profesional"
-      ? (ESPECIALIDAD_LABELS[especialidad] ?? especialidad)
+      ? (ESPECIALIDADES_REGISTRY[especialidad]?.label ?? especialidad)
       : rol === "admin"
         ? "Administración Clínica"
         : rol === "director"
