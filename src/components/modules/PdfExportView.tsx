@@ -97,8 +97,9 @@ export function PdfExportView({ data, generatedAt }: PdfExportViewProps) {
     }
   }
 
-  // Auto-generate al montar
+  // Auto-generate al montar — setState ocurre dentro del async, no sincrónicamente
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     generatePdf();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

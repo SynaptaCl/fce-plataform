@@ -8,11 +8,14 @@
 import { createContext, useContext, type ReactNode } from "react";
 import type { ClinicaConfig } from "./config";
 import type { Rol } from "./registry";
+import type { ProfesionalPerfil } from "@/lib/fce/profesional";
 
 export interface ClinicaSession {
   config: ClinicaConfig;
   rol: Rol;
   userId: string;
+  profesionalActivo?: ProfesionalPerfil | null;
+  perfilesDisponibles?: ProfesionalPerfil[];
 }
 
 const ClinicaSessionContext = createContext<ClinicaSession | null>(null);
@@ -44,6 +47,10 @@ export function useClinicaConfig(): ClinicaConfig {
 
 export function useRol(): Rol {
   return useClinicaSession().rol;
+}
+
+export function useProfesionalActivo(): ProfesionalPerfil | null {
+  return useClinicaSession().profesionalActivo;
 }
 
 /** Variante opcional para componentes que pueden usarse fuera del dashboard. */

@@ -11,7 +11,7 @@
 import { createClient } from "@/lib/supabase/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { ModuleId, EspecialidadCodigo, FceTokens, BrandingConfig } from "./registry";
-import { mapBrandingToTokens, DEFAULT_FCE_TOKENS } from "./registry";
+import { mapBrandingToTokens } from "./registry";
 
 // ============================================================================
 // TIPO DE CONFIG RUNTIME
