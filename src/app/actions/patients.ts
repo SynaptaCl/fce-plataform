@@ -6,8 +6,6 @@ import { createClient } from "@/lib/supabase/server";
 import { patientSchema, type PatientSchemaType } from "@/lib/validations";
 import { formatRut } from "@/lib/run-validator";
 import type { Patient, PacienteClinico, CitaAgenda } from "@/types";
-import type { UserContext } from "@/lib/permissions";
-import type { EspecialidadCodigo, Rol } from "@/lib/modules/registry";
 
 // ── Tipos de respuesta ─────────────────────────────────────────────────────
 
@@ -49,45 +47,6 @@ export async function getProfesionalId(supabase: any, authId: string): Promise<s
     .eq("auth_id", authId)
     .maybeSingle();
   return (data?.id as string) ?? null;
-}
-
-// ── Helper: user context ───────────────────────────────────────────────────
-
-/**
- * Resuelve el contexto completo del usuario autenticado para verificar permisos.
- * Consulta admin_users (id_clinica, rol) y profesionales (id, especialidad, rol) en paralelo.
- */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function getUserContext(supabase: any, userId: string): Promise<UserContext | null> {
-  const [adminRes, profRes] = await Promise.all([
-    supabase
-      .from("admin_users")
-      .select("id_clinica, rol")
-      .eq("auth_id", userId)
-      .maybeSingle(),
-    supabase
-      .from("profesionales")
-      .select("id, especialidad")
-      .eq("auth_id", userId)
-      .maybeSingle(),
-  ]);
-
-  const idClinica = (adminRes.data?.id_clinica as string) ?? null;
-
-  // El rol autoritativo viene de admin_users; fallback a "profesional"
-  const rol = ((adminRes.data?.rol ?? "profesional") as Rol);
-
-  // DB guarda "Kinesiología" (con tilde) — usar directamente como EspecialidadCodigo
-  const rawEsp = profRes.data?.especialidad as string | undefined;
-  const especialidad = rawEsp ? (rawEsp as EspecialidadCodigo) : null;
-
-  return {
-    userId,
-    idClinica,
-    rol,
-    idProfesional: (profRes.data?.id as string) ?? null,
-    especialidad,
-  };
 }
 
 // ── Helper: audit log ──────────────────────────────────────────────────────
