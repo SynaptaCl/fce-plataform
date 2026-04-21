@@ -1,7 +1,7 @@
 # CLAUDE.md — FCE Platform (fce-plataform)
 
 > Última actualización: 2026-04-21
-> Actualizado tras sesión: Sprints R2, R3 y R4 completados. R2: 3 tablas nuevas + seed instrumentos. R3: registry con ModeloClinico + router de encuentro + EncuentroLauncher. R4: nota clínica (NotaClinicaForm, server actions, clinico/page.tsx, clinics/renata/CLAUDE.md). Build 0 errores tras cada sprint.
+> Actualizado tras sesión: Sprint R6 completado. Timeline unificado: TimelineEntryType con 6 tipos, TimelineEntry.encuentroId, getPatientTimeline con fetch paralelo de 7 tablas (fce_notas_clinicas + instrumentos_aplicados), ClinicalTimeline con cards nota_clinica + instrumento + links a encuentro, exportar-pdf con notasClinicas + instrumentosAplicados, smoke test 27/27. Renata MVP listo para go-live. Build 0 errores.
 > Este documento es la fuente de verdad para Claude Code. Leerlo antes de cualquier cambio.
 
 ---
@@ -1114,8 +1114,8 @@ Reemplaza el Sprint 5 legacy. Docs en `docs/plan-redisenio/`.
 | R2 — Migrations DB + seed | 3 tablas nuevas + 10 instrumentos | ✅ | Tablas listas |
 | R3 — Registry + router encuentro | Campo modelo + helpers + EncuentroLauncher | ✅ | Bifurcación funcionando |
 | R4 — Nota clínica | NotaClinicaForm + CRUD + firma | ✅ | Renata puede escribir notas |
-| R5 — Sistema instrumentos | Catálogo + renderers + cálculo + panel | 🔜 | Renata aplica instrumentos |
-| R6 — Timeline unificado | Timeline mixto + integración | 🔜 | **Renata MVP en producción** |
+| R5 — Sistema instrumentos | Catálogo + renderers + cálculo + panel | ✅ | Renata aplica instrumentos |
+| R6 — Timeline unificado | Timeline mixto + integración | ✅ | **Renata MVP en producción** |
 | R7 — Migración Korporis | Mover rehab a estructura encuentro | 🔜 | Korporis misma arquitectura |
 | R8 — Switch DNS | Deploy + archive legacy | 🔜 | Repo viejo archivado |
 
