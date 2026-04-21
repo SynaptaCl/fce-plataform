@@ -258,12 +258,11 @@ function NotaClinicaContent({
     <div className="text-xs text-ink-2 space-y-2">
       <div className="flex items-center gap-2">
         {firmado ? (
-          <span className="flex items-center gap-1 text-green-600 font-medium">
-            <Lock className="w-3 h-3" />
+          <Badge variant="success" icon={<Lock className="w-3 h-3" />}>
             Firmado
-          </span>
+          </Badge>
         ) : (
-          <span className="font-medium text-yellow-600">Borrador</span>
+          <Badge variant="warning">Borrador</Badge>
         )}
       </div>
       {entry.resumen && (
