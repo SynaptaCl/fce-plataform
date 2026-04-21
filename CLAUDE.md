@@ -1,7 +1,7 @@
 # CLAUDE.md — FCE Platform (fce-plataform)
 
 > Última actualización: 2026-04-21
-> Actualizado tras sesión: Sprint R6 completado. Timeline unificado: TimelineEntryType con 6 tipos, TimelineEntry.encuentroId, getPatientTimeline con fetch paralelo de 7 tablas (fce_notas_clinicas + instrumentos_aplicados), ClinicalTimeline con cards nota_clinica + instrumento + links a encuentro, exportar-pdf con notasClinicas + instrumentosAplicados, smoke test 27/27. Renata MVP listo para go-live. Build 0 errores.
+> Actualizado tras sesión: Sprint R7 completado. Korporis migrado al flujo de encuentro explícito: rehab/page.tsx con SoapForm+EvalComponent, components/rehab/ (6 componentes), actions/rehab/soap.ts + evaluacion.ts, rutas legacy evolucion/evaluacion eliminadas, redirects 302 en next.config.ts, test-sprint-r7.ts 33/33. Build 0 errores.
 > Este documento es la fuente de verdad para Claude Code. Leerlo antes de cualquier cambio.
 
 ---
@@ -203,23 +203,26 @@ src/
 │           └── [id]/
 │               ├── page.tsx              → Ficha resumen (redirige a /anamnesis)
 │               ├── anamnesis/page.tsx    → M2: Anamnesis + Red Flags + Signos Vitales
-│               ├── evaluacion/page.tsx   → M3: Evaluación por especialidad
-│               ├── evolucion/page.tsx    → M4: Evolución SOAP + CIF Mapper
 │               ├── consentimiento/page.tsx → M5: Consentimiento informado + firma canvas
 │               ├── auditoria/page.tsx    → M6: Auditoría (solo admin+)
 │               ├── exportar-pdf/page.tsx → Exportar ficha a PDF
 │               ├── fhir/page.tsx         → Vista FHIR R4
-│               └── editar/page.tsx       → Editar datos paciente (M1)
+│               ├── editar/page.tsx       → Editar datos paciente (M1)
+│               └── encuentro/[encuentroId]/
+│                   ├── page.tsx          → Redirect al modelo correspondiente
+│                   ├── rehab/page.tsx    → Modelo rehabilitación: SoapForm + EvalComponent (R7)
+│                   └── clinico/page.tsx  → Modelo clínico general: NotaClinicaForm + InstrumentosPanel (R4)
 │   └── actions/                          → Server Actions (lógica de negocio)
 │       ├── patients.ts                   → CRUD pacientes, helpers auth/contexto
 │       ├── anamnesis.ts                  → Anamnesis + signos vitales
-│       ├── evaluacion.ts                 → Evaluaciones por especialidad
-│       ├── soap.ts                       → Notas SOAP + firma + encuentros
 │       ├── consentimiento.ts             → Consentimientos + firma canvas
 │       ├── auditoria.ts                  → Logs auditoría (solo admin+)
 │       ├── timeline.ts                   → Timeline clínico + resumen paciente
 │       ├── exportar-pdf.ts               → Fetch completo para generación PDF
 │       ├── encuentros.ts                 → createEncuentro (R3) — walk-in + check-in
+│       ├── rehab/                        ← Acciones modelo rehabilitación (R7)
+│       │   ├── soap.ts                   → getSoapNotes, upsertSoapNote, signSoapNote, getOrCreateEncounter
+│       │   └── evaluacion.ts             → getEvaluaciones, upsertEvaluacion
 │       └── clinico/
 │           └── nota-clinica.ts           → getNotaClinica, upsertNotaClinica, signNotaClinica (R4)
 ├── components/
@@ -228,18 +231,13 @@ src/
 │   │                                        LoadingSpinner, LoadingPage
 │   ├── layout/                           → Sidebar, TopBar, DashboardShell,
 │   │                                        PatientHeader, BrandingInjector
-│   ├── modules/                          → Módulos clínicos M1–M6:
+│   ├── modules/                          → Módulos clínicos M1–M6 (NO rehab, NO clinico):
 │   │   ├── PatientForm.tsx               → M1: Formulario identificación
 │   │   ├── PatientList.tsx               → Lista pacientes con filtros
 │   │   ├── AnamnesisForm.tsx             → M2: Anamnesis
 │   │   ├── RedFlagsChecklist.tsx         → M2: Red flags clínicas
 │   │   ├── VitalSignsPanel.tsx           → M2: Signos vitales
-│   │   ├── KinesiologiaEval.tsx          → M3: Evaluación kine
-│   │   ├── FonoaudiologiaEval.tsx        → M3: Evaluación fono
-│   │   ├── MasoterapiaEval.tsx           → M3: Evaluación maso + hard-stop
 │   │   ├── OdontologiaEval.tsx           → M3: Evaluación odonto (futuro, para Nuvident)
-│   │   ├── SoapForm.tsx                  → M4: Formulario SOAP
-│   │   ├── CifMapper.tsx                 → M4: Clasificación CIF
 │   │   ├── ClinicalTimeline.tsx          → M4/resumen: Timeline clínico
 │   │   ├── SummaryPanel.tsx              → Panel resumen paciente
 │   │   ├── ConsentManager.tsx            → M5: Gestor consentimientos
@@ -247,8 +245,17 @@ src/
 │   │   ├── AgendaTable.tsx               → Dashboard: Agenda diaria (lee vistas)
 │   │   ├── FhirPreview.tsx               → Vista FHIR R4
 │   │   └── PdfExportView.tsx             → Vista para exportación PDF
+│   ├── rehab/                            ← Componentes modelo rehabilitación (R7)
+│   │   ├── SoapForm.tsx                  → Formulario SOAP + firma
+│   │   ├── CifMapper.tsx                 → Clasificación CIF
+│   │   ├── KinesiologiaEval.tsx          → Evaluación kinesiología
+│   │   ├── FonoaudiologiaEval.tsx        → Evaluación fonoaudiología
+│   │   ├── MasoterapiaEval.tsx           → Evaluación masoterapia + hard-stop
+│   │   ├── GenericEval.tsx               → Evaluación genérica (otras especialidades)
+│   │   └── index.ts                      → Barrel exports
 │   ├── clinico/                          ← Componentes modelo clinico_general (R4+)
-│   │   └── NotaClinicaForm.tsx           → Formulario nota clínica + firma + readOnly
+│   │   ├── NotaClinicaForm.tsx           → Formulario nota clínica + firma + readOnly
+│   │   └── InstrumentosPanel.tsx         → Panel lateral de instrumentos de valoración
 │   └── shared/
 │       ├── BodyMap.tsx                   → Mapa corporal interactivo
 │       ├── EncuentroLauncher.tsx         → Botón iniciar atención (R3) — client component
@@ -816,14 +823,14 @@ Este archivo convive hasta que los server actions que lo usan sean migrados (Spr
 | `getLatestVitalSigns(patientId)` | `fce_signos_vitales` | — | Último por `recorded_at` desc |
 | `saveVitalSigns(patientId, formData)` | `profesionales` | `fce_signos_vitales`, `logs_auditoria` | `id_encuentro: null` en M2 |
 
-### 14.3 `evaluacion.ts` — M3
+### 14.3 `actions/rehab/evaluacion.ts` — M3 (rehab)
 
 | Función | Tablas leídas | Tablas escritas | Notas |
 |---|---|---|---|
 | `getEvaluaciones(patientId)` | `fce_evaluaciones` | — | Todas, desc |
 | `upsertEvaluacion(patientId, especialidad, subArea, data)` | `fce_evaluaciones`, `profesionales` | `fce_evaluaciones`, `logs_auditoria` | Upsert por `(id_paciente, especialidad, sub_area)`. **`especialidad` debe ser el código EXACTO del catálogo**. `id_clinica` ausente (tabla no la tiene). `data` es jsonb libre |
 
-### 14.4 `soap.ts` — M4
+### 14.4 `actions/rehab/soap.ts` — M4 (rehab)
 
 | Función | Tablas leídas | Tablas escritas | Notas |
 |---|---|---|---|
@@ -1027,6 +1034,7 @@ npm run dev              # Desarrollo local (Turbopack)
 npm run build            # Build producción (0 errores obligatorio)
 npm run lint             # Linting
 npm run test:sprint-1    # Tests de integración Sprint 1 (8 casos)
+npm run test:sprint-r7   # Tests de regresión Sprint R7: Korporis + Renata (33 checks)
 npm run onboard-clinica  # CLI para agregar clínica nueva (post Sprint 4)
 ```
 
@@ -1116,10 +1124,10 @@ Reemplaza el Sprint 5 legacy. Docs en `docs/plan-redisenio/`.
 | R4 — Nota clínica | NotaClinicaForm + CRUD + firma | ✅ | Renata puede escribir notas |
 | R5 — Sistema instrumentos | Catálogo + renderers + cálculo + panel | ✅ | Renata aplica instrumentos |
 | R6 — Timeline unificado | Timeline mixto + integración | ✅ | **Renata MVP en producción** |
-| R7 — Migración Korporis | Mover rehab a estructura encuentro | 🔜 | Korporis misma arquitectura |
+| R7 — Migración Korporis | Mover rehab a estructura encuentro | ✅ | Korporis misma arquitectura |
 | R8 — Switch DNS | Deploy + archive legacy | 🔜 | Repo viejo archivado |
 
-**Nota**: R2 se completó antes que R1 porque las migrations no tienen dependencia de código. R1 sigue pendiente (limpieza de Korporis-isms). R3 y R4 se completaron sobre R2 sin R1 porque sus dependencias de código son independientes del cleanup.
+**Nota**: R2 se completó antes que R1 porque las migrations no tienen dependencia de código. R1 sigue pendiente (limpieza de Korporis-isms). R3 y R4 se completaron sobre R2 sin R1 porque sus dependencias de código son independientes del cleanup. R7 se completó antes que R1 porque la migración de Korporis no dependía de la limpieza R1.
 
 ### Cambios DB aplicados (fuera de sprints)
 
