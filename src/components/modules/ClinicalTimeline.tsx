@@ -253,7 +253,7 @@ function NotaClinicaContent({
   entry: TimelineEntry;
   patientId: string;
 }) {
-  const firmado = entry.data?.firmado ?? entry.firmado;
+  const firmado = entry.firmado;
   return (
     <div className="text-xs text-ink-2 space-y-2">
       <div className="flex items-center gap-2">
@@ -271,7 +271,7 @@ function NotaClinicaContent({
       {entry.encuentroId && (
         <Link
           href={`/dashboard/pacientes/${patientId}/encuentro/${entry.encuentroId}/clinico`}
-          className="inline-flex items-center gap-1 text-[var(--kp-accent)] font-medium hover:underline"
+          className="inline-flex items-center gap-1 text-kp-accent font-medium hover:underline"
         >
           Ver nota →
         </Link>
@@ -301,7 +301,7 @@ function InstrumentoContent({
       {entry.encuentroId && (
         <Link
           href={`/dashboard/pacientes/${patientId}/encuentro/${entry.encuentroId}/clinico`}
-          className="inline-flex items-center gap-1 text-[var(--kp-accent)] font-medium hover:underline"
+          className="inline-flex items-center gap-1 text-kp-accent font-medium hover:underline"
         >
           Ver encuentro →
         </Link>
