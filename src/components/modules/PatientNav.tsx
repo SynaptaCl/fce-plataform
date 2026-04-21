@@ -2,8 +2,6 @@ import Link from "next/link";
 import {
   User,
   ClipboardList,
-  Stethoscope,
-  FileText,
   FileSignature,
   ShieldCheck,
 } from "lucide-react";
@@ -38,20 +36,6 @@ const NAV_ITEMS: NavItem[] = [
     sublabel: "Anamnesis",
     icon: <ClipboardList className="w-4 h-4" />,
     href: "anamnesis",
-  },
-  {
-    id: "m3",
-    label: "M3",
-    sublabel: "Evaluación",
-    icon: <Stethoscope className="w-4 h-4" />,
-    href: "evaluacion",
-  },
-  {
-    id: "m4",
-    label: "M4",
-    sublabel: "Evolución SOAP",
-    icon: <FileText className="w-4 h-4" />,
-    href: "evolucion",
   },
   {
     id: "m5",

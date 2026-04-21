@@ -4,11 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Activity,
-  Stethoscope,
-  FileText,
   FileSignature,
   ShieldCheck,
-  Plus,
   FileDown,
   Share2,
   Pencil,
@@ -51,25 +48,6 @@ function buildNav(patientId: string): NavEntry[] {
           icon: <Activity className="w-4 h-4" />,
           href: `${base}/anamnesis`,
           moduleId: "M2_anamnesis",
-        },
-        {
-          id: "evaluacion",
-          label: "Evaluación Kine/Fono/Maso",
-          icon: <Stethoscope className="w-4 h-4" />,
-          href: `${base}/evaluacion`,
-          moduleId: "M3_evaluacion",
-        },
-      ],
-    },
-    {
-      title: "Evolución",
-      items: [
-        {
-          id: "soap",
-          label: "Notas SOAP",
-          icon: <FileText className="w-4 h-4" />,
-          href: `${base}/evolucion`,
-          moduleId: "M4_soap",
         },
       ],
     },
@@ -170,16 +148,6 @@ export function PatientActionNav({
         <p className="text-[0.6rem] font-bold text-ink-3 uppercase tracking-widest">
           Acciones
         </p>
-        {modulosActivos.includes("M4_soap") && (
-          <Link
-            href={`/dashboard/pacientes/${patientId}/evolucion?nueva=1`}
-            className="flex items-center gap-1 min-h-[44px] px-2 text-[0.65rem] font-semibold text-kp-accent hover:text-kp-primary transition-colors"
-            title="Nueva nota SOAP"
-          >
-            <Plus className="w-3 h-3" />
-            Nueva nota
-          </Link>
-        )}
       </div>
 
       {/* Nav entries */}

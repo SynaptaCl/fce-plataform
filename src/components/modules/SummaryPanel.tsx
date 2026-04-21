@@ -165,7 +165,6 @@ export function SummaryPanel({ summary, patientId }: SummaryPanelProps) {
           title="Plan Actual"
           icon={<ClipboardList className="w-3.5 h-3.5" />}
           className="pt-4"
-          editHref={`${base}/evolucion`}
         >
           {summary.plan_actual ? (
             <p className="text-xs text-ink-2 leading-relaxed line-clamp-6">
