@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 import {
+  Activity,
   Calendar,
   User,
   Settings,
@@ -10,9 +11,17 @@ import {
   LogOut,
   ChevronLeft,
 } from "lucide-react";
-import { useClinicaConfig, useRol } from "@/lib/modules/provider";
-import { ROLES_QUE_CONFIGURAN, ESPECIALIDADES_REGISTRY } from "@/lib/modules/registry";
-import type { EspecialidadCodigo } from "@/lib/modules/registry";
+import type { BrandingConfig } from "@/lib/modules/registry";
+
+/** Roles que tienen acceso a configuración */
+const ROLES_CON_CONFIG = ["admin", "director", "superadmin"];
+
+/** Labels legibles para roles no-profesionales */
+const ROL_DISPLAY: Record<string, string> = {
+  admin: "Administración Clínica",
+  director: "Dirección Clínica",
+  superadmin: "Synapta Admin",
+};
 
 interface NavItemProps {
   icon: React.ReactNode;
@@ -45,40 +54,31 @@ interface SidebarProps {
   practitionerName: string;
   practitionerInitials: string;
   especialidad: string | null;
+  rol: string;
   activeSection: string;
   onNavigate: (section: string) => void;
   onLogout: () => void;
+  branding: BrandingConfig | null;
 }
 
 export function Sidebar({
   practitionerName,
   practitionerInitials,
   especialidad,
+  rol,
   activeSection,
   onNavigate,
   onLogout,
+  branding,
 }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
-  const config = useClinicaConfig();
-  const rol = useRol();
 
-  const clinicName = config.nombreDisplay;
-  const logoUrl    = config.logoUrl;
-  const clinicInitials = config.clinicInitials;
-  const puedeConfigurar = ROLES_QUE_CONFIGURAN.includes(rol);
+  const clinicName = branding?.clinic_short_name ?? "FCE";
+  const logoUrl    = branding?.logo_url ?? null;
 
-  const roleLabel =
-    rol === "profesional"
-      ? (especialidad
-          ? (ESPECIALIDADES_REGISTRY[especialidad as EspecialidadCodigo]?.label ?? especialidad)
-          : "Profesional")
-      : rol === "admin"
-        ? "Administración Clínica"
-        : rol === "director"
-          ? "Director Clínico"
-          : rol === "superadmin"
-            ? "Super Admin"
-            : "Administración";
+  // Para roles admin/director/superadmin muestra el label del rol
+  // Para profesionales muestra la especialidad raw del catálogo
+  const subtitleDisplay = ROL_DISPLAY[rol] ?? especialidad ?? "Profesional";
 
   return (
     <aside
@@ -100,9 +100,7 @@ export function Sidebar({
               className="shrink-0 object-contain"
             />
           ) : (
-            <div className="w-7 h-7 rounded-md bg-kp-accent flex items-center justify-center text-white text-xs font-bold shrink-0">
-              {clinicInitials}
-            </div>
+            <Activity className="text-kp-accent w-6 h-6 shrink-0" />
           )}
           {!collapsed && (
             <span className="text-white font-bold tracking-wider ml-3 text-sm truncate">
@@ -132,7 +130,7 @@ export function Sidebar({
             </div>
             <div className="ml-3 min-w-0">
               <div className="text-sm font-bold text-white truncate">{practitionerName}</div>
-              <div className="text-xs text-kp-accent">{roleLabel}</div>
+              <div className="text-xs text-kp-accent">{subtitleDisplay}</div>
             </div>
           </div>
         </div>
@@ -154,7 +152,7 @@ export function Sidebar({
           collapsed={collapsed}
           onClick={() => onNavigate("pacientes")}
         />
-        {puedeConfigurar && (
+        {ROLES_CON_CONFIG.includes(rol) && (
           <NavItem
             icon={<Settings />}
             text="Configuración"

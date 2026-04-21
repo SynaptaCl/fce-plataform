@@ -1,3 +1,7 @@
+// ── Constantes universales de la plataforma FCE ──
+// Datos específicos de clínica vienen de DB (clinicas.config.branding)
+// Especialidades y roles vienen de registry.ts
+
 export const PREVISIONES = [
   "FONASA A",
   "FONASA B",

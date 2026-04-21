@@ -8,6 +8,8 @@ import { getClinicaConfigFromSession } from "@/lib/modules/config";
 import { getProfesionalActivo } from "@/lib/fce/profesional";
 import { getPatientById } from "@/app/actions/patients";
 import { getEvaluaciones } from "@/app/actions/evaluacion";
+import { getTimelineClinico } from "@/app/actions/timeline";
+import { EvaluacionTimeline } from "@/components/modules/EvaluacionTimeline";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { KinesiologiaEval } from "@/components/modules/KinesiologiaEval";
@@ -101,15 +103,17 @@ export default async function EvaluacionPage({
     : defaultEsp;
 
   // Fetch data en paralelo
-  const [patientResult, evalResult] = await Promise.all([
+  const [patientResult, evalResult, timelineResult] = await Promise.all([
     getPatientById(id),
     getEvaluaciones(id),
+    idClinica ? getTimelineClinico(id, idClinica) : Promise.resolve(null),
   ]);
 
   if (!patientResult.success) notFound();
 
   const p = patientResult.data;
   const allEvals = evalResult.success ? evalResult.data : [];
+  const timelineEntries = timelineResult?.success ? timelineResult.data : [];
 
   const evalsByEsp = (esp: string): Evaluation[] =>
     allEvals.filter((e) => e.especialidad === esp);
@@ -149,6 +153,21 @@ export default async function EvaluacionPage({
               : `${profEspecialidad ? (ESPECIALIDADES_REGISTRY[profEspecialidad]?.label ?? profEspecialidad) : ""} — edición activa`}
           </Badge>
         </div>
+      </div>
+
+      {/* Clinical timeline */}
+      <EvaluacionTimeline
+        entries={timelineEntries}
+        especialidadesActivas={config.especialidadesActivas}
+      />
+
+      {/* Section separator */}
+      <div className="flex items-center gap-3">
+        <div className="h-px flex-1 bg-kp-border" />
+        <span className="text-xs font-semibold text-ink-3 uppercase tracking-widest">
+          Tu evaluación
+        </span>
+        <div className="h-px flex-1 bg-kp-border" />
       </div>
 
       {/* Especialidad tabs */}

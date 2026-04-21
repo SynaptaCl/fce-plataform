@@ -38,7 +38,14 @@ export type EspecialidadCodigo =
   | "Psicología"
   | "Nutrición"
   | "Terapia Ocupacional"
-  | "Podología";
+  | "Podología"
+  | "Enfermería";
+
+// ============================================================================
+// Modelo clínico (bifurcación por especialidad)
+// ============================================================================
+
+export type ModeloClinico = "rehabilitacion" | "clinico_general" | "ninguno";
 
 // ============================================================================
 // Roles (coinciden con admin_users.rol check constraint)
@@ -84,11 +91,11 @@ export interface ModuleDefinition {
 // Definición de especialidad
 // ============================================================================
 
-export interface EspecialidadDefinition {
-  codigo: EspecialidadCodigo;
+export interface EspecialidadRegistro {
+  codigo: string;
   label: string;
-  /** Componente de evaluación específico (referencia) */
-  componenteEval: string;
+  /** Modelo clínico que aplica: determina qué módulos se ofrecen en el encuentro */
+  modelo: ModeloClinico;
   /** Si true, requiere hard-stop de contraindicaciones antes de iniciar */
   tieneContraindicaciones: boolean;
   /** Si true, tiene escalas funcionales (Barthel, etc.) */
@@ -96,6 +103,9 @@ export interface EspecialidadDefinition {
   /** Estado de implementación en el repo fce-plataform */
   estado: "estable" | "beta" | "roadmap";
 }
+
+/** @deprecated Usar EspecialidadRegistro */
+export type EspecialidadDefinition = EspecialidadRegistro;
 
 // ============================================================================
 // CATÁLOGO DE MÓDULOS
@@ -197,87 +207,23 @@ export const MODULE_REGISTRY: Record<ModuleId, ModuleDefinition> = {
 // CATÁLOGO DE ESPECIALIDADES (espejo de especialidades_catalogo en DB)
 // ============================================================================
 
-export const ESPECIALIDADES_REGISTRY: Record<EspecialidadCodigo, EspecialidadDefinition> = {
-  "Kinesiología": {
-    codigo: "Kinesiología",
-    label: "Kinesiología",
-    componenteEval: "KinesiologiaEval",
-    tieneContraindicaciones: false,
-    tieneEscalaFuncional: true,
-    estado: "estable",
-  },
-  "Fonoaudiología": {
-    codigo: "Fonoaudiología",
-    label: "Fonoaudiología",
-    componenteEval: "FonoaudiologiaEval",
-    tieneContraindicaciones: false,
-    tieneEscalaFuncional: true,
-    estado: "estable",
-  },
-  "Masoterapia": {
-    codigo: "Masoterapia",
-    label: "Masoterapia",
-    componenteEval: "MasoterapiaEval",
-    tieneContraindicaciones: true,
-    tieneEscalaFuncional: false,
-    estado: "estable",
-  },
-  "Administración Clínica": {
-    codigo: "Administración Clínica",
-    label: "Administración Clínica",
-    componenteEval: "AdministracionEval",
-    tieneContraindicaciones: false,
-    tieneEscalaFuncional: false,
-    estado: "estable",
-  },
-  "Odontología": {
-    codigo: "Odontología",
-    label: "Odontología",
-    componenteEval: "OdontologiaEval",
-    tieneContraindicaciones: true,
-    tieneEscalaFuncional: false,
-    estado: "beta",
-  },
-  "Medicina General": {
-    codigo: "Medicina General",
-    label: "Medicina General",
-    componenteEval: "MedicinaGeneralEval",
-    tieneContraindicaciones: false,
-    tieneEscalaFuncional: false,
-    estado: "roadmap",
-  },
-  "Psicología": {
-    codigo: "Psicología",
-    label: "Psicología",
-    componenteEval: "PsicologiaEval",
-    tieneContraindicaciones: false,
-    tieneEscalaFuncional: false,
-    estado: "roadmap",
-  },
-  "Nutrición": {
-    codigo: "Nutrición",
-    label: "Nutrición",
-    componenteEval: "NutricionEval",
-    tieneContraindicaciones: false,
-    tieneEscalaFuncional: false,
-    estado: "roadmap",
-  },
-  "Terapia Ocupacional": {
-    codigo: "Terapia Ocupacional",
-    label: "Terapia Ocupacional",
-    componenteEval: "TerapiaOcupacionalEval",
-    tieneContraindicaciones: false,
-    tieneEscalaFuncional: true,
-    estado: "roadmap",
-  },
-  "Podología": {
-    codigo: "Podología",
-    label: "Podología",
-    componenteEval: "PodologiaEval",
-    tieneContraindicaciones: true,
-    tieneEscalaFuncional: false,
-    estado: "roadmap",
-  },
+export const ESPECIALIDADES_REGISTRY: Record<string, EspecialidadRegistro> = {
+  // Modelo rehabilitación
+  "Kinesiología":        { codigo: "Kinesiología",        label: "Kinesiología",        modelo: "rehabilitacion",  tieneContraindicaciones: false, tieneEscalaFuncional: true,  estado: "estable" },
+  "Fonoaudiología":      { codigo: "Fonoaudiología",      label: "Fonoaudiología",      modelo: "rehabilitacion",  tieneContraindicaciones: false, tieneEscalaFuncional: true,  estado: "estable" },
+  "Masoterapia":         { codigo: "Masoterapia",         label: "Masoterapia",         modelo: "rehabilitacion",  tieneContraindicaciones: true,  tieneEscalaFuncional: false, estado: "estable" },
+  "Terapia Ocupacional": { codigo: "Terapia Ocupacional", label: "Terapia Ocupacional", modelo: "rehabilitacion",  tieneContraindicaciones: false, tieneEscalaFuncional: true,  estado: "roadmap" },
+  "Podología":           { codigo: "Podología",           label: "Podología",           modelo: "rehabilitacion",  tieneContraindicaciones: true,  tieneEscalaFuncional: false, estado: "roadmap" },
+
+  // Modelo clínico general
+  "Medicina General":    { codigo: "Medicina General",    label: "Medicina General",    modelo: "clinico_general", tieneContraindicaciones: false, tieneEscalaFuncional: false, estado: "estable" },
+  "Enfermería":          { codigo: "Enfermería",          label: "Enfermería",          modelo: "clinico_general", tieneContraindicaciones: false, tieneEscalaFuncional: false, estado: "estable" },
+  "Psicología":          { codigo: "Psicología",          label: "Psicología",          modelo: "clinico_general", tieneContraindicaciones: false, tieneEscalaFuncional: false, estado: "estable" },
+  "Nutrición":           { codigo: "Nutrición",           label: "Nutrición",           modelo: "clinico_general", tieneContraindicaciones: false, tieneEscalaFuncional: false, estado: "estable" },
+  "Odontología":         { codigo: "Odontología",         label: "Odontología",         modelo: "clinico_general", tieneContraindicaciones: true,  tieneEscalaFuncional: false, estado: "beta"    },
+
+  // Modelo ninguno
+  "Administración Clínica": { codigo: "Administración Clínica", label: "Administración Clínica", modelo: "ninguno", tieneContraindicaciones: false, tieneEscalaFuncional: false, estado: "estable" },
 };
 
 // ============================================================================

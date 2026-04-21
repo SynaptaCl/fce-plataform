@@ -20,22 +20,17 @@ import type { TimelineEntry } from "@/app/actions/timeline";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
-type FilterTab = "todos" | "mis" | "kinesiologia" | "fonoaudiologia" | "masoterapia";
-
 interface ClinicalTimelineProps {
   entries: TimelineEntry[];
   currentUserId: string;
+  /** Especialidades activas de la clínica — códigos exactos del catálogo */
+  especialidadesActivas: string[];
 }
 
 // ── Config ─────────────────────────────────────────────────────────────────
 
-const FILTER_TABS: { key: FilterTab; label: string }[] = [
-  { key: "todos", label: "Todos" },
-  { key: "mis", label: "Mis Atenciones" },
-  { key: "kinesiologia", label: "Kinesiología" },
-  { key: "fonoaudiologia", label: "Fonoaudiología" },
-  { key: "masoterapia", label: "Masoterapia" },
-];
+/** Especialidades que no generan actividad clínica en el timeline */
+const ESPECIALIDADES_SIN_TIMELINE = ["Administración Clínica"];
 
 type BadgeVariant = "teal" | "info" | "warning" | "success";
 
@@ -79,13 +74,15 @@ const TYPE_CONFIG: Record<
   },
 };
 
-const ESPECIALIDAD_LABELS: Record<string, string> = {
-  kinesiologia: "Kinesiología",
-  fonoaudiologia: "Fonoaudiología",
-  masoterapia: "Masoterapia",
-};
-
 // ── Helpers ────────────────────────────────────────────────────────────────
+
+/** Normaliza un código de especialidad para comparación interna */
+function normalizeEsp(esp: string): string {
+  return esp
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
 
 function formatDateTime(iso: string) {
   if (!iso) return "—";
@@ -150,9 +147,8 @@ function SoapContent({ data }: { data: TimelineEntry["data"] }) {
 }
 
 function EvaluacionContent({ data }: { data: TimelineEntry["data"] }) {
-  const esp = data.especialidad
-    ? (ESPECIALIDAD_LABELS[data.especialidad] ?? data.especialidad)
-    : null;
+  // Mostrar especialidad tal cual viene (código del catálogo con tildes)
+  const esp = data.especialidad ?? null;
   const area = data.sub_area
     ? String(data.sub_area).replace(/_/g, " ")
     : null;
@@ -259,9 +255,8 @@ function TimelineCard({
 }) {
   const cfg = TYPE_CONFIG[entry.type];
   const TypeIcon = cfg.icon;
-  const espLabel = entry.especialidad
-    ? (ESPECIALIDAD_LABELS[entry.especialidad] ?? entry.especialidad)
-    : null;
+  // Mostrar especialidad tal cual (código del catálogo)
+  const espLabel = entry.especialidad ?? null;
 
   return (
     <div
@@ -271,13 +266,11 @@ function TimelineCard({
         cfg.borderClass
       )}
     >
-      {/* Header row — clickable */}
       <button
         onClick={onToggle}
         className="w-full flex items-start gap-3 px-4 py-3 text-left group cursor-pointer"
         aria-expanded={expanded}
       >
-        {/* Type icon */}
         <div
           className={cn(
             "mt-0.5 w-7 h-7 rounded-lg flex items-center justify-center shrink-0",
@@ -287,7 +280,6 @@ function TimelineCard({
           <TypeIcon className="w-3.5 h-3.5 text-ink-2" />
         </div>
 
-        {/* Main content */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-sm font-semibold text-ink-1">{entry.titulo}</span>
@@ -315,7 +307,6 @@ function TimelineCard({
           )}
         </div>
 
-        {/* Expand toggle */}
         <div className="shrink-0 text-ink-4 group-hover:text-kp-accent transition-colors mt-0.5">
           {expanded ? (
             <ChevronUp className="w-4 h-4" />
@@ -325,7 +316,6 @@ function TimelineCard({
         </div>
       </button>
 
-      {/* Expanded content */}
       {expanded && (
         <div className="px-4 pb-4 pt-1 border-t border-kp-border bg-surface-0/40">
           <EntryContent entry={entry} />
@@ -340,39 +330,51 @@ function TimelineCard({
 export function ClinicalTimeline({
   entries,
   currentUserId,
+  especialidadesActivas,
 }: ClinicalTimelineProps) {
-  const [activeTab, setActiveTab] = useState<FilterTab>("todos");
+  const [activeTab, setActiveTab] = useState<string>("todos");
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+
+  // Construir tabs dinámicamente desde config de la clínica
+  const filterTabs = useMemo(() => {
+    const base = [
+      { key: "todos", label: "Todos" },
+      { key: "mis", label: "Mis Atenciones" },
+    ];
+    // Agregar tab por cada especialidad activa que tenga sentido clínico
+    const espTabs = especialidadesActivas
+      .filter((esp) => !ESPECIALIDADES_SIN_TIMELINE.includes(esp))
+      .map((esp) => ({ key: esp, label: esp }));
+    return [...base, ...espTabs];
+  }, [especialidadesActivas]);
 
   // ── Filtering ─────────────────────────────────────────────────────────
   const filtered = useMemo(() => {
-    switch (activeTab) {
-      case "todos":
-        return entries;
-      case "mis":
-        return entries.filter((e) => e.autor_id === currentUserId);
-      case "kinesiologia":
-        return entries.filter((e) => e.especialidad === "kinesiologia");
-      case "fonoaudiologia":
-        return entries.filter((e) => e.especialidad === "fonoaudiologia");
-      case "masoterapia":
-        return entries.filter((e) => e.especialidad === "masoterapia");
-      default:
-        return entries;
-    }
+    if (activeTab === "todos") return entries;
+    if (activeTab === "mis") return entries.filter((e) => e.autor_id === currentUserId);
+    // Filtrar por especialidad — comparar normalizado para tolerar diferencias
+    const tabNorm = normalizeEsp(activeTab);
+    return entries.filter((e) => {
+      if (!e.especialidad) return false;
+      return normalizeEsp(e.especialidad) === tabNorm;
+    });
   }, [entries, activeTab, currentUserId]);
 
   // ── Tab counts ────────────────────────────────────────────────────────
-  const tabCounts = useMemo(
-    () => ({
+  const tabCounts = useMemo(() => {
+    const counts: Record<string, number> = {
       todos: entries.length,
       mis: entries.filter((e) => e.autor_id === currentUserId).length,
-      kinesiologia: entries.filter((e) => e.especialidad === "kinesiologia").length,
-      fonoaudiologia: entries.filter((e) => e.especialidad === "fonoaudiologia").length,
-      masoterapia: entries.filter((e) => e.especialidad === "masoterapia").length,
-    }),
-    [entries, currentUserId]
-  );
+    };
+    for (const tab of filterTabs) {
+      if (tab.key === "todos" || tab.key === "mis") continue;
+      const tabNorm = normalizeEsp(tab.key);
+      counts[tab.key] = entries.filter(
+        (e) => e.especialidad && normalizeEsp(e.especialidad) === tabNorm
+      ).length;
+    }
+    return counts;
+  }, [entries, currentUserId, filterTabs]);
 
   // ── Expand/collapse ───────────────────────────────────────────────────
   const allExpanded =
@@ -420,10 +422,10 @@ export function ClinicalTimeline({
         </button>
       </div>
 
-      {/* Filter tabs */}
+      {/* Filter tabs — dinámicos desde config */}
       <div className="flex border-b border-kp-border overflow-x-auto">
-        {FILTER_TABS.map((tab) => {
-          const count = tabCounts[tab.key];
+        {filterTabs.map((tab) => {
+          const count = tabCounts[tab.key] ?? 0;
           return (
             <button
               key={tab.key}

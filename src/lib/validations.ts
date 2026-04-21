@@ -139,6 +139,19 @@ export const masoContraindicacionesSchema = z.object({
   fiebre_aguda: z.literal(false, { message: "Contraindicación activa: fiebre" }),
 });
 
+// ── Nota clínica (modelo clinico_general) ──
+
+export const notaClinicaSchema = z.object({
+  motivo_consulta: z.string().max(500).optional().or(z.literal("")),
+  contenido: z.string().min(10, "La nota debe tener al menos 10 caracteres").max(10000),
+  diagnostico: z.string().max(1000).optional().or(z.literal("")),
+  cie10_codigos: z.array(z.string()).optional(),
+  plan: z.string().max(5000).optional().or(z.literal("")),
+  proxima_sesion: z.string().max(500).optional().or(z.literal("")),
+});
+
+export type NotaClinicaSchemaType = z.infer<typeof notaClinicaSchema>;
+
 // ── Consentimiento ──
 
 export const consentSchema = z.object({

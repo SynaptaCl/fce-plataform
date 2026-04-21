@@ -1,10 +1,19 @@
 # CLAUDE.md — FCE Platform (fce-plataform)
 
-> Última actualización: 2026-04-19
-> Actualizado tras sesión: Vínculo usuario ↔ profesional — nueva tabla `admin_user_profesionales` (junction N:N), drop UNIQUE en `profesionales.auth_id`, refactor resolución de identidad clínica del usuario.
+> Última actualización: 2026-04-21
+> Actualizado tras sesión: Sprints R2, R3 y R4 completados. R2: 3 tablas nuevas + seed instrumentos. R3: registry con ModeloClinico + router de encuentro + EncuentroLauncher. R4: nota clínica (NotaClinicaForm, server actions, clinico/page.tsx, clinics/renata/CLAUDE.md). Build 0 errores tras cada sprint.
 > Este documento es la fuente de verdad para Claude Code. Leerlo antes de cualquier cambio.
 
 ---
+
+Este repo está en proceso de rediseño multi-modelo (rehab + clínico general).
+Antes de cualquier cambio, leer:
+- `docs/plan-redisenio/00-vision-general.md`
+- `docs/plan-redisenio/04-criterios-tecnicos.md`
+- El sprint en curso: `docs/plan-redisenio/sprints/R{N}-*.md`
+
+Sprints en orden: R1 → R2 → R3 → R4 → R5 → R6 → R7 → R8.
+
 
 ## 1. QUÉ ES ESTE PROYECTO
 
@@ -17,7 +26,7 @@
 
 **Alcance**: cubre SOLO los módulos FCE (M1–M6). Agenda, pagos, chatbot y recordatorios viven en otros repos del ecosistema Synapta.
 
-**Estado**: en construcción — Sprints 0-4 completados. Sprint 5 (migración Korporis) es el próximo (requiere coordinación explícita).
+**Estado**: en construcción — Sprints legacy 0-4 completados. Plan de rediseño multi-modelo en curso (R1–R8). Sprints R2, R3 y R4 completados. Próximo: R5 (sistema de instrumentos).
 
 ---
 
@@ -28,12 +37,12 @@ Hay **3 repos** compartiendo la misma DB Supabase `Synapta Product` (ref `vigyhf
 | Repo | Rol actual | Dominio | Estado |
 |---|---|---|---|
 | `synapta` | Landing + onboarding + chatbot + panel admin + agenda | synapta.cl | Producción |
-| `korporis-fce` | FCE legacy de Korporis (original) | fce.korporis.cl | Producción · será reemplazado por fce-plataform en Sprint 5 |
+| `korporis-fce` | FCE legacy de Korporis (original) | fce.korporis.cl | Producción · será reemplazado por fce-plataform en R7-R8 |
 | `fce-plataform` | **Este repo** — FCE genérico multi-clínica | fce.<slug>.cl (futuro) | En construcción |
 
 **Crítico**: este repo SOLO gestiona módulos FCE. No agregar funcionalidad de agenda, pagos, chatbot o recordatorios aquí — eso pertenece a los otros repos.
 
-**Fecha objetivo de migración Korporis → fce-plataform**: Sprint 5 (último sprint del roadmap).
+**Fecha objetivo de migración Korporis → fce-plataform**: Sprint R7-R8 del plan de rediseño.
 
 ---
 
@@ -42,10 +51,11 @@ Hay **3 repos** compartiendo la misma DB Supabase `Synapta Product` (ref `vigyhf
 Leer EN ESTE ORDEN antes de implementar:
 
 1. `CLAUDE.md` (este archivo) — reglas, patrones, arquitectura
-2. `docs/schema-real.md` — mapa completo del schema actual de Synapta Product
-3. `docs/plan-multi-tenant.md` — decisiones arquitectónicas, las 4 capas
-4. `docs/sprints.md` — roadmap de 5 sprints con criterios de aceptación
-5. `clinics/<slug>/CLAUDE.md` — contexto específico por clínica (korporis, nuvident)
+2. `docs/plan-redisenio/00-vision-general.md` — visión del rediseño multi-modelo
+3. `docs/plan-redisenio/04-criterios-tecnicos.md` — reglas no negociables
+4. `docs/plan-redisenio/sprints/R{N}-*.md` — sprint en curso
+5. `docs/schema-real.md` — mapa completo del schema actual de Synapta Product
+6. `clinics/<slug>/CLAUDE.md` — contexto específico por clínica (korporis, nuvident, renata)
 
 **Documentos legacy heredados** de korporis-fce (si aún existen en el repo):
 
@@ -128,6 +138,7 @@ kp-border-md     #CBD5E1   Bordes con mayor contraste
 12. **NUNCA modificar `registry.ts` para "adaptar a una clínica"** — el registry es universal. Para deshabilitar módulos en una clínica, se edita `clinicas_fce_config`.
 13. **Especialidades en DB usan strings EXACTOS** con tilde y capitalización (`Kinesiología`, `Fonoaudiología`, `Masoterapia`, `Odontología`, etc.). El registry las tipa así, la tabla `especialidades_catalogo` las valida vía trigger, el código NUNCA escribe versiones normalizadas a DB.
 14. **`profesionales.auth_id` NO tiene UNIQUE constraint.** Un auth_id puede mapear a N profesionales (médico con múltiples especialidades). Nunca usar `.eq('auth_id', userId).single()` sobre `profesionales` — puede retornar múltiples filas. Usar el helper `getProfesionalActivo()` de `src/lib/fce/profesional.ts`.
+15. **Claude Code NO aplica migrations ni DDL sobre Supabase.** Genera los archivos SQL en `supabase/migrations/`, los presenta para revisión, y espera. Las migrations se aplican manualmente vía MCP Supabase o dashboard.
 
 ---
 
@@ -207,7 +218,10 @@ src/
 │       ├── consentimiento.ts             → Consentimientos + firma canvas
 │       ├── auditoria.ts                  → Logs auditoría (solo admin+)
 │       ├── timeline.ts                   → Timeline clínico + resumen paciente
-│       └── exportar-pdf.ts               → Fetch completo para generación PDF
+│       ├── exportar-pdf.ts               → Fetch completo para generación PDF
+│       ├── encuentros.ts                 → createEncuentro (R3) — walk-in + check-in
+│       └── clinico/
+│           └── nota-clinica.ts           → getNotaClinica, upsertNotaClinica, signNotaClinica (R4)
 ├── components/
 │   ├── ui/                               → Átomos: Button, Input, Card, Badge, Select,
 │   │                                        Textarea, AlertBanner, SignatureBlock,
@@ -233,8 +247,11 @@ src/
 │   │   ├── AgendaTable.tsx               → Dashboard: Agenda diaria (lee vistas)
 │   │   ├── FhirPreview.tsx               → Vista FHIR R4
 │   │   └── PdfExportView.tsx             → Vista para exportación PDF
+│   ├── clinico/                          ← Componentes modelo clinico_general (R4+)
+│   │   └── NotaClinicaForm.tsx           → Formulario nota clínica + firma + readOnly
 │   └── shared/
 │       ├── BodyMap.tsx                   → Mapa corporal interactivo
+│       ├── EncuentroLauncher.tsx         → Botón iniciar atención (R3) — client component
 │       └── ScaleSlider.tsx               → Escalas numéricas (dolor, función)
 ├── lib/
 │   ├── supabase/
@@ -242,9 +259,10 @@ src/
 │   │   ├── server.ts                     → createServerClient con cookies
 │   │   └── types.ts                      → Database type stub
 │   ├── modules/                          ← Core de multi-tenant
-│   │   ├── registry.ts                   → Catálogo inmutable + validaciones + mapBrandingToTokens
+│   │   ├── registry.ts                   → Catálogo inmutable + validaciones + mapBrandingToTokens + ModeloClinico
 │   │   ├── config.ts                     → getClinicaConfig() con cliente inyectable
 │   │   ├── guards.ts                     → requireModule, assertModuleEnabled, etc.
+│   │   ├── modelos.ts                    → getModeloDeEspecialidad, getRutaEncuentro, getModulosDelModelo (R3)
 │   │   └── provider.tsx                  → ClinicaSessionProvider + useClinicaSession
 │   ├── constants.ts                      → Constantes clínica, Especialidad, Rol, PREVISIONES
 │   ├── utils.ts                          → cn(), calculateAge(), formatRut (display)
@@ -265,10 +283,12 @@ src/
 │   ├── audit.ts                          → AuditEntry, AuditAction
 │   ├── cif.ts                            → CIF types
 │   ├── practitioner.ts                   → Practitioner
+│   ├── nota-clinica.ts                   → NotaClinica (fce_notas_clinicas) (R4)
 │   └── html2pdf.d.ts                     → Type declaration para html2pdf.js
 clinics/
 ├── korporis/CLAUDE.md                    → Contexto Korporis
-└── nuvident/CLAUDE.md                    → Contexto Nuvident
+├── nuvident/CLAUDE.md                    → Contexto Nuvident
+└── renata/CLAUDE.md                      → Contexto Renata — clínica piloto modelo clinico_general (R4)
 docs/
 ├── plan-multi-tenant.md                  → Arquitectura v2
 ├── sprints.md                            → Roadmap 5 sprints
@@ -370,6 +390,9 @@ Todas las especialidades listadas aquí están en `especialidades_catalogo` con 
 | `fce_evaluaciones` | Evaluación clínica por especialidad (M3) | ❌ (filtrar vía JOIN) | **sí** |
 | `fce_notas_soap` | Notas SOAP + CIF (M4) | ❌ (filtrar vía JOIN) | no |
 | `fce_consentimientos` | Consentimientos informados (M5) | ✅ | no |
+| `instrumentos_valoracion` | Catálogo universal de instrumentos clínicos (R2) | N/A (compartido) | no |
+| `instrumentos_aplicados` | Resultados de instrumentos aplicados a pacientes (R2) | ✅ | no |
+| `fce_notas_clinicas` | Notas clínicas libres modelo clinico_general (R2) | ✅ | no (trigger inmutabilidad post-firma) |
 
 #### Tablas de auditoría, agenda y vistas
 
@@ -426,6 +449,42 @@ data, contraindicaciones_certificadas, created_by, created_at
 
 **NO tiene**: `id_clinica`. La columna `especialidad` es validada por trigger contra catálogo.
 
+### 11.6b Schema `instrumentos_valoracion` (columnas exactas, R2)
+
+```
+id, codigo (UNIQUE), nombre, descripcion, version,
+especialidades (text[]), tipo_renderer ('escala_simple'|'componente_custom'),
+schema_items (jsonb), componente_id, interpretacion (jsonb),
+activo, orden, created_at, updated_at
+```
+
+**RLS**: SELECT cualquier autenticado, manage solo superadmin. Catálogo compartido entre clínicas.
+
+### 11.6c Schema `instrumentos_aplicados` (columnas exactas, R2)
+
+```
+id, id_clinica, id_paciente, id_encuentro (nullable),
+id_instrumento (FK instrumentos_valoracion),
+respuestas (jsonb), puntaje_total (numeric), interpretacion (text),
+notas, aplicado_por, aplicado_at,
+mostrar_en_timeline (boolean, default true), created_at
+```
+
+**Tiene `id_clinica`**. RLS: tenant isolation. Puntaje e interpretación se calculan server-side.
+
+### 11.6d Schema `fce_notas_clinicas` (columnas exactas, R2)
+
+```
+id, id_clinica, id_paciente, id_encuentro,
+motivo_consulta, contenido (NOT NULL),
+diagnostico, cie10_codigos (text[]),
+plan, proxima_sesion,
+firmado, firmado_at, firmado_por,
+created_by, created_at, updated_at
+```
+
+**Tiene `id_clinica`**. RLS: tenant isolation. Trigger `trg_block_update_signed_nota` bloquea UPDATE de campos clínicos cuando `firmado=true`.
+
 ### 11.7 RLS — solo las tablas CON `id_clinica` la requieren en INSERT
 
 Obtener con `getIdClinica(supabase, user.id)`. Si retorna null → hard-fail con mensaje al usuario, no insertar.
@@ -466,6 +525,11 @@ Las tablas YA EXISTEN en Synapta Product. **NUNCA usar `apply_migration` ni DDL 
 | `20260411_add_id_paciente_auditoria.sql` (heredado) | Agrega `id_paciente` a `logs_auditoria` + índice | Aplicado antes de este repo |
 | `20260417_01_especialidades_catalogo.sql` | Catálogo + trigger + reemplaza check viejo | Aplicado 2026-04-17 |
 | `20260417_02_clinicas_fce_config.sql` | Config FCE + RLS + seed Korporis/Nuvident | Aplicado 2026-04-17 |
+| `20260421_01_instrumentos_valoracion.sql` | Catálogo universal de instrumentos clínicos + RLS | Aplicado 2026-04-21 (R2) |
+| `20260421_02_instrumentos_aplicados.sql` | Resultados de instrumentos aplicados + RLS tenant + 3 índices | Aplicado 2026-04-21 (R2) |
+| `20260421_03_fce_notas_clinicas.sql` | Notas clínicas modelo clinico_general + trigger inmutabilidad + RLS | Aplicado 2026-04-21 (R2) |
+| `20260421_04_add_enfermeria_catalogo.sql` | INSERT Enfermería en especialidades_catalogo | Aplicado 2026-04-21 (R2) |
+| `20260421_05_seed_instrumentos.sql` | 10 instrumentos: 8 escala_simple + 2 componente_custom (Braden y EVA validados) | Aplicado 2026-04-21 (R2) |
 
 ---
 
@@ -640,6 +704,7 @@ export default async function DashboardLayout({ children }) {
 
 ### 12.11 Guard de módulo en ruta (Sprint 2+)
 
+
 ```typescript
 import { requireModule } from "@/lib/modules/guards";
 import { getClinicaConfigFromSession } from "@/lib/modules/config";
@@ -659,6 +724,39 @@ export default async function AnamnesisPage({ params }: ...) {
 - `auditoria/page.tsx` → `requireModule(config, "M6_auditoria")`
 
 **`getClinicaConfigFromSession()`** hace su propio fetch (auth + admin_users + clinicas_fce_config). Es independiente del layout — los Server Components en page.tsx no reciben datos del layout directamente.
+
+### 12.12 Router de encuentro por modelo (R3)
+
+`getModeloDeEspecialidad` y `getRutaEncuentro` viven en `src/lib/modules/modelos.ts`.
+
+```typescript
+import { getModeloDeEspecialidad, getRutaEncuentro } from "@/lib/modules/modelos";
+
+// Al crear un encuentro, determinar ruta de destino:
+const modelo = getModeloDeEspecialidad(especialidad); // → "rehabilitacion" | "clinico_general" | "ninguno"
+const url = getRutaEncuentro(modelo, patientId, encuentroId);
+// → /dashboard/pacientes/{id}/encuentro/{enc}/rehab
+// → /dashboard/pacientes/{id}/encuentro/{enc}/clinico
+```
+
+`createEncuentro` (en `src/app/actions/encuentros.ts`) es el punto de entrada desde `EncuentroLauncher`. Realiza walk-in o check-in y retorna `{ encuentroId, modelo }`.
+
+### 12.13 Nota clínica (R4) — patrón de server actions
+
+Las acciones para `fce_notas_clinicas` están en `src/app/actions/clinico/nota-clinica.ts`:
+
+```typescript
+// Una nota por encuentro (relación 1:1)
+const result = await getNotaClinica(encuentroId);          // maybeSingle
+const result = await upsertNotaClinica(encuentroId, patientId, formData); // INSERT o UPDATE si no firmada
+const result = await signNotaClinica(notaId, patientId);   // firma + finaliza encuentro
+```
+
+**Invariantes críticas**:
+- `upsertNotaClinica` hace upsert por `id_encuentro` (no por `id`) — un encuentro tiene max 1 nota.
+- `signNotaClinica` actualiza `fce_notas_clinicas.firmado=true` + `fce_encuentros.status='finalizado'` en la misma acción.
+- El trigger DB `trg_block_update_signed_nota` bloquea UPDATE de campos clínicos post-firma a nivel de DB.
+- `NotaClinicaForm` recibe `readOnly=true` cuando `nota.firmado=true` o `encuentro.status='finalizado'`.
 
 ---
 
@@ -871,9 +969,9 @@ id_clinica       uuid nullable
 ### 16.5 Tablas FCE — columna `id_clinica`
 
 ```
-CON id_clinica:    pacientes, fce_anamnesis, fce_encuentros, fce_consentimientos, clinicas_fce_config
+CON id_clinica:    pacientes, fce_anamnesis, fce_encuentros, fce_consentimientos, clinicas_fce_config, instrumentos_aplicados, fce_notas_clinicas
 CON id_clinica NULLABLE:  fce_signos_vitales (requerido en nuevos INSERTs)
-SIN id_clinica:    fce_evaluaciones, fce_notas_soap
+SIN id_clinica:    fce_evaluaciones, fce_notas_soap, instrumentos_valoracion (catálogo compartido)
 ```
 
 NO agregar `id_clinica` a tablas que no la tienen — provoca error de columna inexistente. Para filtrar estas tablas por tenant, JOIN con `fce_encuentros.id_clinica` o `pacientes.id_clinica`.
@@ -958,9 +1056,9 @@ Prefijos de scope útiles: `(registry)`, `(config)`, `(guards)`, `(branding)`, `
 
 **NO TOCAR el repo original `korporis-fce`** (`fce.korporis.cl`). Este repo (`fce-plataform`) está separado a propósito.
 
-Korporis se migrará en Sprint 5. Hasta entonces, vive en su repo original y ESTE repo NO afecta esa producción. Cambios destructivos aquí son relativamente seguros **mientras las tablas FCE en DB sigan vacías** (hoy 0 filas).
+Korporis se migrará en Sprint R7-R8. Hasta entonces, vive en su repo original y ESTE repo NO afecta esa producción. Cambios destructivos aquí son relativamente seguros **mientras las tablas FCE en DB sigan vacías** (hoy 0 filas).
 
-**Cuando llegue Sprint 5** (migración Korporis → plataforma):
+**Cuando llegue Sprint R7-R8** (migración Korporis → plataforma):
 1. Coordinación explícita con el usuario humano
 2. Backup de DB Supabase completo
 3. Deploy a staging primero
@@ -968,12 +1066,13 @@ Korporis se migrará en Sprint 5. Hasta entonces, vive en su repo original y EST
 5. Switch de DNS `fce.korporis.cl` al nuevo deploy
 6. Repo viejo `korporis-fce` → read-only archive
 
-**No hacer nada del Sprint 5 sin que el usuario lo pida explícitamente.**
+**No hacer nada de R7-R8 sin que el usuario lo pida explícitamente.**
 
 ### 20.2 DB compartida con otros repos
 
 Synapta Product es compartido por 3 repos (synapta, korporis-fce, fce-plataform). Si este repo hace DDL (migration) sobre tablas que comparten otros repos:
 
+- **Claude Code NO aplica migrations** — genera SQL, presenta para revisión, y espera. Las migrations se aplican vía MCP Supabase o dashboard manual.
 - **Confirmar con usuario** antes de aplicar
 - **Revisar qué otros repos usan esa tabla** (ver CLAUDE.md de synapta si existe, o preguntar)
 - **Usar Supabase MCP** para SELECT de verificación antes y después
@@ -987,13 +1086,15 @@ Synapta Product es compartido por 3 repos (synapta, korporis-fce, fce-plataform)
 
 El repo korporis-fce tenía un bug que escribía strings normalizados a DB. El trigger nuevo del catálogo lo rechaza. **Claude Code corrigió el bug en korporis-fce en sesión previa.**
 
-Este repo es copia de korporis-fce ANTES del fix → **tiene el mismo bug latente**. El fix se aplicará en el sprint correspondiente (probablemente Sprint 2 cuando se toque `patients.ts` `getUserContext`, o en un sprint dedicado).
+Este repo es copia de korporis-fce ANTES del fix → **tiene el mismo bug latente**. El fix se aplica en Sprint R1 (limpieza de Korporis-isms).
 
 **Si un sprint toca un server action que escribe a `fce_encuentros.especialidad` o `fce_evaluaciones.especialidad`**: aplicar el mismo fix que korporis-fce (separar `rawEsp` para DB del `especialidadInternal` normalizado para routing).
 
 ---
 
 ## 21. ESTADO ACTUAL DEL PROYECTO
+
+### Sprints legacy (completados)
 
 | Sprint | Repo | Estado | Commit | Qué logró |
 |---|---|---|---|---|
@@ -1002,7 +1103,23 @@ Este repo es copia de korporis-fce ANTES del fix → **tiene el mismo bug latent
 | Sprint 2 — Provider + guards | fce-plataform | ✅ | `8205626` | ClinicaSessionProvider en layout, requireModule en 5 rutas, fix rol recepcionista, fix rol autoritativo |
 | Sprint 3 — Sidebar + branding | fce-plataform | ✅ | `93b65a6` | Sidebar dinámico (logo/nombre/módulos desde DB), BrandingInjector reescrito con --color-kp-*, PatientActionNav condicional, 31 tests Sprint 3 + 45 regresión |
 | Sprint 4 — Config FCE en synapta-admin | **synapta** | ✅ | `c9960fa` | Página /synapta-admin/[slug]/fce, API fce-config GET/PATCH, columna FCE en lista de clínicas, auto-INSERT clinicas_fce_config en wizard onboarding, dropdown especialidad desde catálogo |
-| Sprint 5 — Migración Korporis | fce-plataform | 🔜 | — | Switch DNS, archive repo legacy. **Requiere coordinación explícita con usuario humano.** |
+
+### Plan de rediseño multi-modelo (R1–R8)
+
+Reemplaza el Sprint 5 legacy. Docs en `docs/plan-redisenio/`.
+
+| Sprint | Foco | Estado | Hito |
+|---|---|---|---|
+| R1 — Limpieza Korporis-isms | Eliminar tipos legacy, reorganizar components | 🔜 | Repo limpio para modelo nuevo |
+| R2 — Migrations DB + seed | 3 tablas nuevas + 10 instrumentos | ✅ | Tablas listas |
+| R3 — Registry + router encuentro | Campo modelo + helpers + EncuentroLauncher | ✅ | Bifurcación funcionando |
+| R4 — Nota clínica | NotaClinicaForm + CRUD + firma | ✅ | Renata puede escribir notas |
+| R5 — Sistema instrumentos | Catálogo + renderers + cálculo + panel | 🔜 | Renata aplica instrumentos |
+| R6 — Timeline unificado | Timeline mixto + integración | 🔜 | **Renata MVP en producción** |
+| R7 — Migración Korporis | Mover rehab a estructura encuentro | 🔜 | Korporis misma arquitectura |
+| R8 — Switch DNS | Deploy + archive legacy | 🔜 | Repo viejo archivado |
+
+**Nota**: R2 se completó antes que R1 porque las migrations no tienen dependencia de código. R1 sigue pendiente (limpieza de Korporis-isms). R3 y R4 se completaron sobre R2 sin R1 porque sus dependencias de código son independientes del cleanup.
 
 ### Cambios DB aplicados (fuera de sprints)
 
@@ -1017,6 +1134,8 @@ Este repo es copia de korporis-fce ANTES del fix → **tiene el mismo bug latent
 |---|---|---|
 | Bug normalización especialidad | korporis-fce | `soap.ts` + `evaluacion.ts` — separar rawEsp de normalizado |
 | Rol `recepcion` → `recepcionista` | fce-plataform | Sprint 2 |
+| `BrandingConfig` importado de `BrandingInjector.tsx` (incorrecto) | fce-plataform | R3 — corregido en `layout.tsx`, `DashboardShell.tsx`, `Sidebar.tsx` → importar desde `@/lib/modules/registry` |
+| `AlertBanner` props incorrectas en `EncuentroLauncher` | fce-plataform | R3 — `type="error"` → `variant="danger"` + children |
 | Rol autoritativo desde admin_users | fce-plataform | Sprint 2 — antes hardcodeaba "profesional" |
 | Guard auditoría expandido | fce-plataform | Sprint 2 — ahora admin+director+superadmin |
 | BrandingInjector era no-op | fce-plataform | Sprint 3 — inyectaba --clinic-* que nada usaba |
@@ -1029,11 +1148,13 @@ Este repo es copia de korporis-fce ANTES del fix → **tiene el mismo bug latent
 
 | Item | Impacto | Prioridad |
 |---|---|---|
-| Bug normalización en fce-plataform | Latente (tablas FCE vacías) | Media — resolver antes de Sprint 5 |
+| Bug normalización en fce-plataform | Latente (tablas FCE vacías) | Alta — resolver en R1 |
 | 9 hex hardcoded en PdfExportView.tsx | PDF necesita valores absolutos | Baja |
 | Nuvident profesional con "Odontología general y estética" | Inconsistente con catálogo | Baja — datos pre-existentes |
-| `permissions.ts` legacy con roles viejos | Convive con guards.ts nuevo | Media — migrar en sprint de limpieza |
+| `permissions.ts` legacy con roles viejos | Convive con guards.ts nuevo | Alta — eliminar en R1 |
 | TODO selector perfil activo | Fase 2 — pendiente | Media — implementar en UI cuando haya 2+ perfiles en producción |
+| Instrumentos con `"validado": false` en seed | 8 de 10 instrumentos requieren validación clínica humana | Media — validar antes de R5 go-live |
+| MMSE bajo licencia PAR Inc. | Posible restricción de uso | Baja — evaluar alternativa si es necesario |
 
 ---
 

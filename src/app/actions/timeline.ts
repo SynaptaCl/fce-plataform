@@ -13,7 +13,7 @@ export type TimelineEntryType = "soap" | "evaluacion" | "signos_vitales" | "cons
 export interface TimelineEntry {
   id: string;
   type: TimelineEntryType;
-  date: string; // ISO
+  date: string;
   especialidad?: string;
   autor_id?: string;
   profesional_nombre?: string;
@@ -52,7 +52,6 @@ export async function getPatientTimeline(
 ): Promise<ActionResult<{ entries: TimelineEntry[]; summary: PatientSummary }>> {
   const { supabase } = await requireAuth();
 
-  // Fetch all data in parallel
   const [soapRes, evalRes, vitalsRes, consentRes, anamnesisRes] = await Promise.all([
     supabase
       .from("fce_notas_soap")
@@ -81,7 +80,7 @@ export async function getPatientTimeline(
       .maybeSingle(),
   ]);
 
-  // Collect all professional IDs for name batch lookup
+  // Batch lookup de profesionales — solo columna 'nombre' (no existe 'apellidos')
   const profIds = new Set<string>();
   for (const s of soapRes.data ?? []) {
     if (s.firmado_por) profIds.add(s.firmado_por);
@@ -97,10 +96,10 @@ export async function getPatientTimeline(
   if (profIds.size > 0) {
     const { data: profs } = await supabase
       .from("profesionales")
-      .select("id, nombre, apellidos")
+      .select("id, nombre")
       .in("id", Array.from(profIds));
     for (const p of profs ?? []) {
-      profMap.set(p.id, `${p.nombre} ${p.apellidos ?? ""}`.trim());
+      profMap.set(p.id, p.nombre ?? "Profesional");
     }
   }
 
@@ -136,7 +135,7 @@ export async function getPatientTimeline(
     });
   }
 
-  // Evaluaciones
+  // Evaluaciones — especialidad viene como código exacto del catálogo desde DB
   for (const ev of (evalRes.data ?? []) as Evaluation[]) {
     const subAreaLabel = String(ev.sub_area ?? "").replace(/_/g, " ");
     entries.push({
@@ -147,9 +146,7 @@ export async function getPatientTimeline(
       autor_id: ev.created_by,
       profesional_nombre: ev.created_by ? profMap.get(ev.created_by) : undefined,
       titulo: `Evaluación — ${ev.especialidad ?? "Sin especialidad"}`,
-      resumen: subAreaLabel
-        ? `Área: ${subAreaLabel}`
-        : "Evaluación registrada",
+      resumen: subAreaLabel ? `Área: ${subAreaLabel}` : "Evaluación registrada",
       data: {
         especialidad: ev.especialidad,
         sub_area: ev.sub_area,
@@ -181,7 +178,10 @@ export async function getPatientTimeline(
   // Consentimientos
   for (const c of consentRes.data ?? []) {
     const tipo = String(c.tipo ?? "");
-    const tipoLabel = tipo === "general" ? "General" : tipo === "menores" ? "Menores" : tipo === "teleconsulta" ? "Teleconsulta" : tipo;
+    const tipoLabel =
+      tipo === "general" ? "General" :
+      tipo === "menores" ? "Menores" :
+      tipo === "teleconsulta" ? "Teleconsulta" : tipo;
     entries.push({
       id: c.id,
       type: "consentimiento",
@@ -193,10 +193,7 @@ export async function getPatientTimeline(
     });
   }
 
-  // Sort by date descending
-  entries.sort(
-    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
-  );
+  entries.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   // ── Summary ──────────────────────────────────────────────────────────────
 
@@ -242,4 +239,174 @@ export async function getPatientTimeline(
   };
 
   return { success: true, data: { entries, summary } };
+}
+
+// ── TimelineEntryClinico ────────────────────────────────────────────────────
+
+export interface TimelineEntryClinico {
+  id: string;
+  tipo: "evaluacion" | "soap" | "signos_vitales";
+  fecha: string;
+  autorNombre: string;
+  autorEspecialidad: string;
+  especialidad: string;
+  firmado?: boolean;
+  resumen: string;
+  data?: Record<string, unknown>;
+}
+
+// ── getTimelineClinico ─────────────────────────────────────────────────────
+
+export async function getTimelineClinico(
+  patientId: string,
+  idClinica: string
+): Promise<ActionResult<TimelineEntryClinico[]>> {
+  const { supabase } = await requireAuth();
+
+  const [evalsRes, soapsRes, vitalsRes] = await Promise.all([
+    supabase
+      .from("fce_evaluaciones")
+      .select("id, especialidad, sub_area, data, created_at, created_by")
+      .eq("id_paciente", patientId)
+      .order("created_at", { ascending: false })
+      .limit(50),
+    supabase
+      .from("fce_notas_soap")
+      .select("id, subjetivo, firmado, firmado_por, created_at, id_encuentro")
+      .eq("id_paciente", patientId)
+      .order("created_at", { ascending: false })
+      .limit(50),
+    supabase
+      .from("fce_signos_vitales")
+      .select(
+        "id, presion_arterial, frecuencia_cardiaca, spo2, temperatura, frecuencia_respiratoria, recorded_at, recorded_by"
+      )
+      .eq("id_paciente", patientId)
+      .eq("id_clinica", idClinica)
+      .order("recorded_at", { ascending: false })
+      .limit(20),
+  ]);
+
+  type EncRow = {
+    id: string;
+    id_clinica: string;
+    especialidad: string | null;
+    id_profesional: string | null;
+  };
+  type SoapRow = {
+    id: string;
+    subjetivo: string | null;
+    firmado: boolean;
+    firmado_por: string | null;
+    created_at: string;
+    id_encuentro: string | null;
+  };
+
+  const encounterIds = ((soapsRes.data ?? []) as SoapRow[])
+    .map((s) => s.id_encuentro)
+    .filter((id): id is string => Boolean(id));
+
+  const encMap = new Map<string, EncRow>();
+  if (encounterIds.length > 0) {
+    const { data: encs } = await supabase
+      .from("fce_encuentros")
+      .select("id, id_clinica, especialidad, id_profesional")
+      .in("id", encounterIds)
+      .eq("id_clinica", idClinica);
+    for (const enc of (encs ?? []) as EncRow[]) {
+      encMap.set(enc.id, enc);
+    }
+  }
+
+  // Batch lookup — solo columna 'nombre' (no existe 'apellidos')
+  const profIds = new Set<string>();
+  for (const e of (evalsRes.data ?? []) as Evaluation[]) {
+    if (e.created_by) profIds.add(e.created_by);
+  }
+  for (const s of (soapsRes.data ?? []) as SoapRow[]) {
+    if (s.firmado_por) profIds.add(s.firmado_por);
+    const enc = s.id_encuentro ? encMap.get(s.id_encuentro) : null;
+    if (enc?.id_profesional) profIds.add(enc.id_profesional);
+  }
+  for (const v of (vitalsRes.data ?? []) as VitalSigns[]) {
+    if (v.recorded_by) profIds.add(v.recorded_by);
+  }
+
+  type ProfRow = { id: string; nombre: string | null; especialidad: string | null; id_clinica: string };
+  const profMap = new Map<string, ProfRow>();
+  if (profIds.size > 0) {
+    const { data: profs } = await supabase
+      .from("profesionales")
+      .select("id, nombre, especialidad, id_clinica")
+      .in("id", Array.from(profIds));
+    for (const p of (profs ?? []) as ProfRow[]) {
+      profMap.set(p.id, p);
+    }
+  }
+
+  const entries: TimelineEntryClinico[] = [];
+
+  // Evaluaciones
+  for (const e of (evalsRes.data ?? []) as Evaluation[]) {
+    const prof = e.created_by ? profMap.get(e.created_by) : null;
+    if (e.created_by && prof && prof.id_clinica !== idClinica) continue;
+    const subArea = e.sub_area ? String(e.sub_area).replace(/_/g, " ") : "";
+    const resumen =
+      [String(e.especialidad ?? ""), subArea].filter(Boolean).join(" — ").slice(0, 120) ||
+      "Evaluación registrada";
+    entries.push({
+      id: e.id,
+      tipo: "evaluacion",
+      fecha: e.created_at,
+      autorNombre: prof?.nombre ?? "Profesional",
+      autorEspecialidad: prof?.especialidad ?? String(e.especialidad ?? ""),
+      especialidad: String(e.especialidad ?? ""),
+      resumen,
+      data: { especialidad: e.especialidad, sub_area: e.sub_area, campos: e.data },
+    });
+  }
+
+  // SOAP notes
+  for (const s of (soapsRes.data ?? []) as SoapRow[]) {
+    const enc = s.id_encuentro ? encMap.get(s.id_encuentro) : null;
+    if (!enc) continue;
+    const authorId = s.firmado_por ?? enc.id_profesional;
+    const prof = authorId ? profMap.get(authorId) : null;
+    entries.push({
+      id: s.id,
+      tipo: "soap",
+      fecha: s.created_at,
+      autorNombre: prof?.nombre ?? "Profesional",
+      autorEspecialidad: prof?.especialidad ?? enc.especialidad ?? "",
+      especialidad: enc.especialidad ?? "",
+      firmado: Boolean(s.firmado),
+      resumen: s.subjetivo?.slice(0, 120) ?? "Sin descripción subjetiva",
+      data: { subjetivo: s.subjetivo },
+    });
+  }
+
+  // Signos vitales
+  for (const v of (vitalsRes.data ?? []) as VitalSigns[]) {
+    const prof = v.recorded_by ? profMap.get(v.recorded_by) : null;
+    entries.push({
+      id: v.id,
+      tipo: "signos_vitales",
+      fecha: v.recorded_at,
+      autorNombre: prof?.nombre ?? "Profesional",
+      autorEspecialidad: prof?.especialidad ?? "",
+      especialidad: "",
+      resumen: `PA ${v.presion_arterial ?? "—"} · FC ${v.frecuencia_cardiaca ?? "—"} bpm · SpO₂ ${v.spo2 ?? "—"}%`,
+      data: {
+        presion_arterial: v.presion_arterial,
+        frecuencia_cardiaca: v.frecuencia_cardiaca,
+        spo2: v.spo2,
+        temperatura: v.temperatura,
+        frecuencia_respiratoria: v.frecuencia_respiratoria,
+      },
+    });
+  }
+
+  entries.sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime());
+
+  return { success: true, data: entries.slice(0, 100) };
 }

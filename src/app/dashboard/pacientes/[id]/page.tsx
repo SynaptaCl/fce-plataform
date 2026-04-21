@@ -8,6 +8,8 @@ import { PatientHeader } from "@/components/layout/PatientHeader";
 import { PatientActionNav } from "@/components/modules/PatientActionNav";
 import { ClinicalTimeline } from "@/components/modules/ClinicalTimeline";
 import { SummaryPanel } from "@/components/modules/SummaryPanel";
+import { EncuentroLauncher } from "@/components/shared/EncuentroLauncher";
+import { getProfesionalActivo } from "@/lib/fce/profesional";
 import type { PatientSummary } from "@/app/actions/timeline";
 
 export async function generateMetadata({
@@ -40,28 +42,45 @@ export default async function PatientDetailPage({
   } = await supabase.auth.getUser();
   if (authError || !user) redirect("/login");
 
+  // ── id_clinica del usuario (para config) ──────────────────────────────
+  const adminRes = await supabase
+    .from("admin_users")
+    .select("id_clinica, rol")
+    .eq("auth_id", user.id)
+    .eq("activo", true)
+    .single();
+
+  const idClinica = adminRes.data?.id_clinica ?? null;
+  const rol = adminRes.data?.rol ?? "";
+  const isAdmin = ["admin", "director", "superadmin"].includes(rol);
+
   // ── Fetch paralelo ─────────────────────────────────────────────────────
-  const [patientResult, timelineResult, adminResult, consentResult] =
+  const [patientResult, timelineResult, consentResult, fceConfigRes, profesional] =
     await Promise.all([
       getPatientById(id),
       getPatientTimeline(id),
-      supabase
-        .from("admin_users")
-        .select("rol")
-        .eq("auth_id", user.id)
-        .maybeSingle(),
       supabase
         .from("fce_consentimientos")
         .select("id", { count: "exact", head: true })
         .eq("id_paciente", id)
         .eq("firmado", true),
+      idClinica
+        ? supabase
+            .from("clinicas_fce_config")
+            .select("especialidades_activas")
+            .eq("id_clinica", idClinica)
+            .single()
+        : Promise.resolve({ data: null }),
+      getProfesionalActivo(supabase, user.id, idClinica ?? undefined),
     ]);
 
   if (!patientResult.success) notFound();
 
   const p = patientResult.data;
-  const isAdmin = adminResult.data?.rol === "admin";
   const hasConsent = (consentResult.count ?? 0) > 0;
+  const especialidadesActivas: string[] =
+    fceConfigRes.data?.especialidades_activas ?? [];
+  const especialidadProfesional = rol === "profesional" ? (profesional?.especialidad ?? null) : null;
 
   const fullName =
     [p.nombre, p.apellido_paterno, p.apellido_materno]
@@ -100,6 +119,11 @@ export default async function PatientDetailPage({
       {/* PatientHeader — banner M1 */}
       <PatientHeader patient={p} hasConsent={hasConsent} patientId={id} />
 
+      {/* Iniciar atención — solo para profesionales con especialidad activa */}
+      {especialidadProfesional && (
+        <EncuentroLauncher patientId={id} especialidad={especialidadProfesional} />
+      )}
+
       {/*
         Grid 3 columnas:
           xl  (≥1280px): [220px  |  1fr  |  280px]
@@ -115,7 +139,11 @@ export default async function PatientDetailPage({
 
         {/* ── Columna 2: Timeline clínico ── */}
         <div className="min-w-0">
-          <ClinicalTimeline entries={entries} currentUserId={user.id} />
+          <ClinicalTimeline
+            entries={entries}
+            currentUserId={user.id}
+            especialidadesActivas={especialidadesActivas}
+          />
         </div>
 
         {/* ── Columna 3: Panel resumen (mobile+md: bajo timeline; lg: oculto; xl: col 3) ── */}

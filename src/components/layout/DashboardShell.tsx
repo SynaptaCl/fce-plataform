@@ -5,12 +5,15 @@ import { useRouter, usePathname } from "next/navigation";
 import { Sidebar } from "./Sidebar";
 import { TopBar } from "./TopBar";
 import { createClient } from "@/lib/supabase/client";
+import type { BrandingConfig } from "@/lib/modules/registry";
 
 interface DashboardShellProps {
   children: React.ReactNode;
   practitionerName: string;
   practitionerInitials: string;
   especialidad: string | null;
+  rol: string;
+  branding: BrandingConfig | null;
 }
 
 const SECTION_TITLES: Record<string, string> = {
@@ -47,6 +50,8 @@ export function DashboardShell({
   practitionerName,
   practitionerInitials,
   especialidad,
+  rol,
+  branding,
 }: DashboardShellProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -72,13 +77,15 @@ export function DashboardShell({
         practitionerName={practitionerName}
         practitionerInitials={practitionerInitials}
         especialidad={especialidad}
+        rol={rol}
         activeSection={activeSection}
         onNavigate={handleNavigate}
         onLogout={handleLogout}
+        branding={branding}
       />
 
       <div className="flex flex-1 flex-col overflow-hidden min-w-0">
-        <TopBar title={SECTION_TITLES[activeSection] ?? "FCE Platform"} />
+        <TopBar title={SECTION_TITLES[activeSection] ?? "Ficha Clínica Electrónica"} />
         <main className="flex-1 overflow-auto p-6">{children}</main>
       </div>
     </div>

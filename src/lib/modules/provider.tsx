@@ -50,7 +50,7 @@ export function useRol(): Rol {
 }
 
 export function useProfesionalActivo(): ProfesionalPerfil | null {
-  return useClinicaSession().profesionalActivo;
+  return useClinicaSession().profesionalActivo ?? null;
 }
 
 /** Variante opcional para componentes que pueden usarse fuera del dashboard. */
