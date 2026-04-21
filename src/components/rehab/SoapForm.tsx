@@ -12,7 +12,7 @@ import { Textarea } from "@/components/ui/Textarea";
 import { Input } from "@/components/ui/Input";
 import { AlertBanner } from "@/components/ui/AlertBanner";
 import { CifMapper } from "./CifMapper";
-import { upsertSoapNote, signSoapNote } from "@/app/actions/soap";
+import { upsertSoapNote, signSoapNote } from "@/app/actions/rehab/soap";
 import type { SoapNote, CifAssessment } from "@/types";
 
 // ── Types ──────────────────────────────────────────────────────────────────

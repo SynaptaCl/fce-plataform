@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/Textarea";
 import { Input } from "@/components/ui/Input";
 import { AlertBanner } from "@/components/ui/AlertBanner";
 import { BodyMap } from "@/components/shared/BodyMap";
-import { upsertEvaluacion } from "@/app/actions/evaluacion";
+import { upsertEvaluacion } from "@/app/actions/rehab/evaluacion";
 import type { Evaluation } from "@/types";
 import { cn } from "@/lib/utils";
 

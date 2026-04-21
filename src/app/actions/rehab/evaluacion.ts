@@ -3,8 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import type { ActionResult } from "./patients";
-import { getProfesionalId } from "./patients";
+import type { ActionResult } from "@/app/actions/patients";
+import { getProfesionalId } from "@/app/actions/patients";
 import type { Evaluation } from "@/types";
 
 // ── Helper ─────────────────────────────────────────────────────────────────

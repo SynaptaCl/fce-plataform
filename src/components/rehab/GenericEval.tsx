@@ -5,7 +5,7 @@ import { Save } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Textarea } from "@/components/ui/Textarea";
 import { AlertBanner } from "@/components/ui/AlertBanner";
-import { upsertEvaluacion } from "@/app/actions/evaluacion";
+import { upsertEvaluacion } from "@/app/actions/rehab/evaluacion";
 import type { Evaluation } from "@/types";
 
 interface GenericEvalProps {

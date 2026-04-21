@@ -7,7 +7,7 @@ import { requireModule } from "@/lib/modules/guards";
 import { getClinicaConfigFromSession } from "@/lib/modules/config";
 import { getProfesionalActivo } from "@/lib/fce/profesional";
 import { getPatientById } from "@/app/actions/patients";
-import { getEvaluaciones } from "@/app/actions/evaluacion";
+import { getEvaluaciones } from "@/app/actions/rehab/evaluacion";
 import { getTimelineClinico } from "@/app/actions/timeline";
 import { EvaluacionTimeline } from "@/components/modules/EvaluacionTimeline";
 import { Card } from "@/components/ui/Card";

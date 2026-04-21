@@ -4,8 +4,8 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { soapSchema } from "@/lib/validations";
-import type { ActionResult } from "./patients";
-import { getIdClinica } from "./patients";
+import type { ActionResult } from "@/app/actions/patients";
+import { getIdClinica } from "@/app/actions/patients";
 import type { SoapNote } from "@/types";
 
 // ── Helpers ─────────────────────────────────────────────────────────────────

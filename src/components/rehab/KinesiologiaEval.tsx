@@ -9,7 +9,7 @@ import { Textarea } from "@/components/ui/Textarea";
 import { AlertBanner } from "@/components/ui/AlertBanner";
 import { ScaleSlider } from "@/components/shared/ScaleSlider";
 import { BodyMap } from "@/components/shared/BodyMap";
-import { upsertEvaluacion } from "@/app/actions/evaluacion";
+import { upsertEvaluacion } from "@/app/actions/rehab/evaluacion";
 import type { Evaluation } from "@/types";
 
 // ── Sub-áreas ──────────────────────────────────────────────────────────────
