@@ -9,7 +9,7 @@ import { getSoapNotes } from "@/app/actions/soap";
 import { getEvaluaciones } from "@/app/actions/evaluacion";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
-import { SoapForm } from "@/components/modules/SoapForm";
+import { SoapForm } from "@/components/rehab/SoapForm";
 import { calculateAge, formatRut } from "@/lib/utils";
 import type { Rol } from "@/lib/modules/registry";
 import type { SoapNote } from "@/types";
