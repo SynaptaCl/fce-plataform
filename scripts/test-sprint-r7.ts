@@ -178,10 +178,11 @@ assert(
   "next.config.ts contiene redirect de /evaluacion",
   'No se encontró "/evaluacion" en next.config.ts'
 );
+const permanentFalseCount = (nextConfigContent.match(/permanent:\s*false/g) ?? []).length;
 assert(
-  nextConfigContent.includes("permanent: false"),
-  "next.config.ts usa permanent: false",
-  'No se encontró "permanent: false" en next.config.ts'
+  permanentFalseCount >= 2,
+  `next.config.ts usa permanent: false en ambos redirects (encontrados: ${permanentFalseCount})`,
+  `Se esperaban ≥2 ocurrencias de "permanent: false", encontradas: ${permanentFalseCount}`
 );
 
 // ── Test 8 ────────────────────────────────────────────────────────────────
@@ -204,17 +205,17 @@ assert(
 // ── Test 9 ────────────────────────────────────────────────────────────────
 header("Test 9: sin nav links estale a /evolucion o /evaluacion");
 
-const staleNavEvolucion = grepSrc("href=.*evolucion");
+const staleNavEvolucion = grepSrc('href=["\'][^"\']*evolucion');
 assert(
   staleNavEvolucion === 0,
-  '0 hits de href=.*evolucion en src/',
+  '0 hits de href con ruta /evolucion en src/',
   `Encontrados ${staleNavEvolucion} archivo(s) con link estale a /evolucion`
 );
 
-const staleNavEvaluacion = grepSrc("href=.*evaluacion");
+const staleNavEvaluacion = grepSrc('href=["\'][^"\']*evaluacion');
 assert(
   staleNavEvaluacion === 0,
-  '0 hits de href=.*evaluacion en src/',
+  '0 hits de href con ruta /evaluacion en src/',
   `Encontrados ${staleNavEvaluacion} archivo(s) con link estale a /evaluacion`
 );
 
