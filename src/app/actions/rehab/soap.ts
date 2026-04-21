@@ -185,7 +185,7 @@ export async function upsertSoapNote(
     await logAudit(supabase, user.id, "create", "soap_note", id, patientId);
   }
 
-  revalidatePath(`/dashboard/pacientes/${patientId}/evolucion`);
+  revalidatePath(`/dashboard/pacientes/${patientId}`);
   return { success: true, data: { id } };
 }
 
@@ -235,6 +235,6 @@ export async function signSoapNote(
 
   await logAudit(supabase, user.id, "sign", "soap_note", noteId, patientId);
 
-  revalidatePath(`/dashboard/pacientes/${patientId}/evolucion`);
+  revalidatePath(`/dashboard/pacientes/${patientId}`);
   return { success: true, data: undefined };
 }

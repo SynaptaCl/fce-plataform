@@ -99,6 +99,6 @@ export async function upsertEvaluacion(
     await logAudit(supabase, user.id, "create", id, patientId);
   }
 
-  revalidatePath(`/dashboard/pacientes/${patientId}/evaluacion`);
+  revalidatePath(`/dashboard/pacientes/${patientId}`);
   return { success: true, data: { id } };
 }
