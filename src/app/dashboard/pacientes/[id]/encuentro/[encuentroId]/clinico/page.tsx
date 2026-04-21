@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { notFound, redirect } from "next/navigation";
 import { PatientHeader } from "@/components/layout/PatientHeader";
 import { NotaClinicaForm } from "@/components/clinico/NotaClinicaForm";
+import { InstrumentosPanel } from "@/components/clinico/InstrumentosPanel";
 import { getPatientById } from "@/app/actions/patients";
 import { getNotaClinica } from "@/app/actions/clinico/nota-clinica";
 import { getProfesionalActivo } from "@/lib/fce/profesional";
@@ -90,18 +91,25 @@ export default async function ClinicoPage({
           </div>
         </div>
 
-        {/* Formulario */}
-        <div className="p-6">
-          <NotaClinicaForm
-            encuentroId={encuentroId}
-            patientId={id}
-            notaExistente={nota}
-            readOnly={readOnly}
-          />
+        {/* Workspace: 2/3 nota + 1/3 instrumentos */}
+        <div className="flex flex-col lg:flex-row">
+          <div className="flex-1 p-6 lg:border-r border-kp-border">
+            <NotaClinicaForm
+              encuentroId={encuentroId}
+              patientId={id}
+              notaExistente={nota}
+              readOnly={readOnly}
+            />
+          </div>
+          <div className="w-full lg:w-80 xl:w-96 p-6 bg-surface-0">
+            <InstrumentosPanel
+              encuentroId={encuentroId}
+              patientId={id}
+              especialidad={encuentro.especialidad}
+              encuentroFinalizado={encuentroFinalizado}
+            />
+          </div>
         </div>
-
-        {/* Espacio reservado para InstrumentosPanel — Sprint R5 */}
-        {/* <InstrumentosPanel encuentroId={encuentroId} profesional={profesional} /> */}
       </div>
 
       <div className="flex justify-start">

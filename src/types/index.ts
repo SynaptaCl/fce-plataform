@@ -37,3 +37,4 @@ export type {
   Medication,
   Allergy,
 } from "./anamnesis";
+export * from "./instrumento";
