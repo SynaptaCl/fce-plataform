@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import Link from "next/link";
 import {
   ChevronDown,
   ChevronUp,
@@ -13,6 +14,7 @@ import {
   ChevronsDownUp,
   User,
   Clock,
+  ClipboardList,
 } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { cn } from "@/lib/utils";
@@ -23,6 +25,7 @@ import type { TimelineEntry } from "@/app/actions/timeline";
 interface ClinicalTimelineProps {
   entries: TimelineEntry[];
   currentUserId: string;
+  patientId: string;
   /** Especialidades activas de la clínica — códigos exactos del catálogo */
   especialidadesActivas: string[];
 }
@@ -81,7 +84,7 @@ const TYPE_CONFIG: Record<
   },
   instrumento: {
     label: "Instrumento",
-    icon: Clock,
+    icon: ClipboardList,
     badgeVariant: "info",
     borderClass: "border-l-kp-info",
     bgClass: "bg-kp-info-lt",
@@ -243,7 +246,78 @@ function ConsentimientoContent({ data }: { data: TimelineEntry["data"] }) {
   );
 }
 
-function EntryContent({ entry }: { entry: TimelineEntry }) {
+function NotaClinicaContent({
+  entry,
+  patientId,
+}: {
+  entry: TimelineEntry;
+  patientId: string;
+}) {
+  const firmado = entry.data?.firmado ?? entry.firmado;
+  return (
+    <div className="text-xs text-ink-2 space-y-2">
+      <div className="flex items-center gap-2">
+        {firmado ? (
+          <span className="flex items-center gap-1 text-green-600 font-medium">
+            <Lock className="w-3 h-3" />
+            Firmado
+          </span>
+        ) : (
+          <span className="font-medium text-yellow-600">Borrador</span>
+        )}
+      </div>
+      {entry.resumen && (
+        <p className="leading-relaxed text-ink-2">{entry.resumen}</p>
+      )}
+      {entry.encuentroId && (
+        <Link
+          href={`/dashboard/pacientes/${patientId}/encuentro/${entry.encuentroId}/clinico`}
+          className="inline-flex items-center gap-1 text-[var(--kp-accent)] font-medium hover:underline"
+        >
+          Ver nota →
+        </Link>
+      )}
+    </div>
+  );
+}
+
+function InstrumentoContent({
+  entry,
+  patientId,
+}: {
+  entry: TimelineEntry;
+  patientId: string;
+}) {
+  const interpretacion = entry.data?.interpretacion as string | null | undefined;
+  return (
+    <div className="text-xs text-ink-2 space-y-2">
+      {interpretacion && (
+        <p>
+          <span className="font-semibold text-ink-1">Interpretación:</span>{" "}
+          <span className="inline-block px-1.5 py-0.5 rounded bg-surface-0 text-ink-2 border border-kp-border">
+            {interpretacion}
+          </span>
+        </p>
+      )}
+      {entry.encuentroId && (
+        <Link
+          href={`/dashboard/pacientes/${patientId}/encuentro/${entry.encuentroId}/clinico`}
+          className="inline-flex items-center gap-1 text-[var(--kp-accent)] font-medium hover:underline"
+        >
+          Ver encuentro →
+        </Link>
+      )}
+    </div>
+  );
+}
+
+function EntryContent({
+  entry,
+  patientId,
+}: {
+  entry: TimelineEntry;
+  patientId: string;
+}) {
   switch (entry.type) {
     case "soap":
       return <SoapContent data={entry.data} />;
@@ -253,6 +327,10 @@ function EntryContent({ entry }: { entry: TimelineEntry }) {
       return <SignosContent data={entry.data} />;
     case "consentimiento":
       return <ConsentimientoContent data={entry.data} />;
+    case "nota_clinica":
+      return <NotaClinicaContent entry={entry} patientId={patientId} />;
+    case "instrumento":
+      return <InstrumentoContent entry={entry} patientId={patientId} />;
   }
 }
 
@@ -262,10 +340,12 @@ function TimelineCard({
   entry,
   expanded,
   onToggle,
+  patientId,
 }: {
   entry: TimelineEntry;
   expanded: boolean;
   onToggle: () => void;
+  patientId: string;
 }) {
   const cfg = TYPE_CONFIG[entry.type];
   const TypeIcon = cfg.icon;
@@ -332,7 +412,7 @@ function TimelineCard({
 
       {expanded && (
         <div className="px-4 pb-4 pt-1 border-t border-kp-border bg-surface-0/40">
-          <EntryContent entry={entry} />
+          <EntryContent entry={entry} patientId={patientId} />
         </div>
       )}
     </div>
@@ -344,6 +424,7 @@ function TimelineCard({
 export function ClinicalTimeline({
   entries,
   currentUserId,
+  patientId,
   especialidadesActivas,
 }: ClinicalTimelineProps) {
   const [activeTab, setActiveTab] = useState<string>("todos");
@@ -491,6 +572,7 @@ export function ClinicalTimeline({
               entry={entry}
               expanded={expandedIds.has(entry.id)}
               onToggle={() => toggleEntry(entry.id)}
+              patientId={patientId}
             />
           ))
         )}
