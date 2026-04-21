@@ -72,6 +72,20 @@ const TYPE_CONFIG: Record<
     borderClass: "border-l-kp-success",
     bgClass: "bg-kp-success-lt",
   },
+  nota_clinica: {
+    label: "Nota Clínica",
+    icon: FileText,
+    badgeVariant: "teal",
+    borderClass: "border-l-kp-accent",
+    bgClass: "bg-kp-accent-xs",
+  },
+  instrumento: {
+    label: "Instrumento",
+    icon: Clock,
+    badgeVariant: "info",
+    borderClass: "border-l-kp-info",
+    bgClass: "bg-kp-info-lt",
+  },
 };
 
 // ── Helpers ────────────────────────────────────────────────────────────────

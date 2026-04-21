@@ -2,13 +2,20 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getIdClinica } from "./patients";
 import type { ActionResult } from "./patients";
 import type { SoapNote, VitalSigns } from "@/types";
 import type { Evaluation } from "@/types";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
-export type TimelineEntryType = "soap" | "evaluacion" | "signos_vitales" | "consentimiento";
+export type TimelineEntryType =
+  | "soap"
+  | "evaluacion"
+  | "signos_vitales"
+  | "consentimiento"
+  | "nota_clinica"
+  | "instrumento";
 
 export interface TimelineEntry {
   id: string;
@@ -20,6 +27,7 @@ export interface TimelineEntry {
   titulo: string;
   resumen: string;
   firmado?: boolean;
+  encuentroId?: string;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   data: Record<string, any>;
 }
@@ -45,14 +53,42 @@ async function requireAuth() {
   return { supabase, user };
 }
 
+// ── Local row types for clinical model tables ─────────────────────────────
+
+type NotaClinicaRow = {
+  id: string;
+  id_encuentro: string | null;
+  motivo_consulta: string | null;
+  contenido: string | null;
+  diagnostico: string | null;
+  plan: string | null;
+  firmado: boolean | null;
+  created_by: string | null;
+  created_at: string;
+};
+
+type InstrumentoAplicadoRow = {
+  id: string;
+  id_encuentro: string | null;
+  id_instrumento: string;
+  puntaje_total: number | null;
+  interpretacion: string | null;
+  mostrar_en_timeline: boolean | null;
+  aplicado_por: string | null;
+  aplicado_at: string;
+  instrumento: { nombre: string } | null;
+};
+
 // ── getPatientTimeline ─────────────────────────────────────────────────────
 
 export async function getPatientTimeline(
   patientId: string
 ): Promise<ActionResult<{ entries: TimelineEntry[]; summary: PatientSummary }>> {
-  const { supabase } = await requireAuth();
+  const { supabase, user } = await requireAuth();
 
-  const [soapRes, evalRes, vitalsRes, consentRes, anamnesisRes] = await Promise.all([
+  const idClinica = await getIdClinica(supabase, user.id);
+
+  const [soapRes, evalRes, vitalsRes, consentRes, anamnesisRes, notasRes, instrumentosRes] = await Promise.all([
     supabase
       .from("fce_notas_soap")
       .select("*")
@@ -78,6 +114,23 @@ export async function getPatientTimeline(
       .select("motivo_consulta, red_flags")
       .eq("id_paciente", patientId)
       .maybeSingle(),
+    idClinica
+      ? supabase
+          .from("fce_notas_clinicas")
+          .select("id, id_encuentro, motivo_consulta, contenido, diagnostico, plan, firmado, created_by, created_at")
+          .eq("id_paciente", patientId)
+          .eq("id_clinica", idClinica)
+          .order("created_at", { ascending: false })
+      : Promise.resolve({ data: [], error: null }),
+    idClinica
+      ? supabase
+          .from("instrumentos_aplicados")
+          .select("id, id_encuentro, id_instrumento, puntaje_total, interpretacion, mostrar_en_timeline, aplicado_por, aplicado_at, instrumento:instrumentos_valoracion(nombre)")
+          .eq("id_paciente", patientId)
+          .eq("id_clinica", idClinica)
+          .eq("mostrar_en_timeline", true)
+          .order("aplicado_at", { ascending: false })
+      : Promise.resolve({ data: [], error: null }),
   ]);
 
   // Batch lookup de profesionales — solo columna 'nombre' (no existe 'apellidos')
@@ -90,6 +143,12 @@ export async function getPatientTimeline(
   }
   for (const v of vitalsRes.data ?? []) {
     if (v.recorded_by) profIds.add(v.recorded_by);
+  }
+  for (const n of (notasRes.data ?? []) as NotaClinicaRow[]) {
+    if (n.created_by) profIds.add(n.created_by);
+  }
+  for (const i of (instrumentosRes.data ?? []) as unknown as InstrumentoAplicadoRow[]) {
+    if (i.aplicado_por) profIds.add(i.aplicado_por);
   }
 
   const profMap = new Map<string, string>();
@@ -190,6 +249,37 @@ export async function getPatientTimeline(
       resumen: c.firmado ? "Firmado por el paciente" : "Pendiente de firma",
       firmado: Boolean(c.firmado),
       data: { tipo: c.tipo, version: c.version },
+    });
+  }
+
+  // Notas clínicas (modelo clinico_general)
+  for (const nota of (notasRes.data ?? []) as NotaClinicaRow[]) {
+    entries.push({
+      id: nota.id,
+      type: "nota_clinica",
+      date: nota.created_at,
+      autor_id: nota.created_by ?? undefined,
+      profesional_nombre: nota.created_by ? profMap.get(nota.created_by) : undefined,
+      titulo: `Nota clínica${nota.motivo_consulta ? ` — ${nota.motivo_consulta}` : ""}`,
+      resumen: nota.contenido ? nota.contenido.slice(0, 150) : "",
+      firmado: nota.firmado ?? undefined,
+      encuentroId: nota.id_encuentro ?? undefined,
+      data: { firmado: nota.firmado },
+    });
+  }
+
+  // Instrumentos aplicados
+  for (const inst of (instrumentosRes.data ?? []) as unknown as InstrumentoAplicadoRow[]) {
+    entries.push({
+      id: inst.id,
+      type: "instrumento",
+      date: inst.aplicado_at,
+      autor_id: inst.aplicado_por ?? undefined,
+      profesional_nombre: inst.aplicado_por ? profMap.get(inst.aplicado_por) : undefined,
+      titulo: `${inst.instrumento?.nombre ?? "Instrumento"}: ${inst.puntaje_total ?? "—"} — ${inst.interpretacion ?? "sin interpretación"}`,
+      resumen: inst.interpretacion ?? "",
+      encuentroId: inst.id_encuentro ?? undefined,
+      data: { puntaje: inst.puntaje_total, interpretacion: inst.interpretacion },
     });
   }
 

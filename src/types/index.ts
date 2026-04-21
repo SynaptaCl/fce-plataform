@@ -38,3 +38,4 @@ export type {
   Allergy,
 } from "./anamnesis";
 export * from "./instrumento";
+export * from "./timeline";

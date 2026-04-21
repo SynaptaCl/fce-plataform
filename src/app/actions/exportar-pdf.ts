@@ -50,6 +50,29 @@ export interface PdfPatientData {
     firmado_at: string | null;
     created_at: string;
   }>;
+  notasClinicas: Array<{
+    id: string;
+    id_encuentro: string | null;
+    motivo_consulta: string | null;
+    contenido: string;
+    diagnostico: string | null;
+    plan: string | null;
+    firmado: boolean;
+    firmado_at: string | null;
+    created_at: string;
+  }>;
+  instrumentosAplicados: Array<{
+    id: string;
+    id_encuentro: string | null;
+    puntaje_total: number | null;
+    interpretacion: string | null;
+    notas: string | null;
+    aplicado_at: string;
+    instrumento: {
+      nombre: string;
+      descripcion: string | null;
+    } | null;
+  }>;
   branding: BrandingConfig | null;
   clinicName: string;
 }
@@ -78,7 +101,7 @@ export async function getPdfPatientData(
   const idClinica = adminRes.data?.id_clinica ?? null;
 
   // Fetch resto de datos en paralelo
-  const [anamnesisRes, vitalesRes, evaluacionesRes, soapsRes, consentimientosRes, clinicaRes] =
+  const [anamnesisRes, vitalesRes, evaluacionesRes, soapsRes, consentimientosRes, clinicaRes, notasClinicasRes, instrumentosRes] =
     await Promise.all([
       supabase
         .from("fce_anamnesis")
@@ -118,6 +141,41 @@ export async function getPdfPatientData(
       idClinica
         ? supabase.from("clinicas").select("config, nombre").eq("id", idClinica).single()
         : Promise.resolve({ data: null, error: null }),
+      idClinica
+        ? supabase
+            .from("fce_notas_clinicas")
+            .select("id, id_encuentro, motivo_consulta, contenido, diagnostico, plan, firmado, firmado_at, created_at")
+            .eq("id_paciente", patientId)
+            .eq("id_clinica", idClinica)
+            .eq("firmado", true)
+            .order("created_at", { ascending: false })
+        : Promise.resolve({ data: [] as Array<{
+            id: string;
+            id_encuentro: string | null;
+            motivo_consulta: string | null;
+            contenido: string;
+            diagnostico: string | null;
+            plan: string | null;
+            firmado: boolean;
+            firmado_at: string | null;
+            created_at: string;
+          }>, error: null }),
+      idClinica
+        ? supabase
+            .from("instrumentos_aplicados")
+            .select("id, id_encuentro, puntaje_total, interpretacion, notas, aplicado_at, instrumento:instrumentos_valoracion(nombre, descripcion)")
+            .eq("id_paciente", patientId)
+            .eq("id_clinica", idClinica)
+            .order("aplicado_at", { ascending: false })
+        : Promise.resolve({ data: [] as Array<{
+            id: string;
+            id_encuentro: string | null;
+            puntaje_total: number | null;
+            interpretacion: string | null;
+            notas: string | null;
+            aplicado_at: string;
+            instrumento: { nombre: string; descripcion: string | null } | null;
+          }>, error: null }),
     ]);
 
   // Registrar exportación en logs_auditoria
@@ -150,6 +208,8 @@ export async function getPdfPatientData(
       evaluaciones: evaluacionesRes.data ?? [],
       soaps: soapsRes.data ?? [],
       consentimientos: consentimientosRes.data ?? [],
+      notasClinicas: (notasClinicasRes.data ?? []) as PdfPatientData["notasClinicas"],
+      instrumentosAplicados: (instrumentosRes.data ?? []) as PdfPatientData["instrumentosAplicados"],
       branding,
       clinicName,
     },
