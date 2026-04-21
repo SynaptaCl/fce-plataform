@@ -6,8 +6,8 @@ import { getClinicaConfigFromSession } from "@/lib/modules/config";
 import { getPatientById } from "@/app/actions/patients";
 import { getAnamnesis, getLatestVitalSigns } from "@/app/actions/anamnesis";
 import { Card } from "@/components/ui/Card";
-import { AnamnesisForm } from "@/components/modules/AnamnesisForm";
-import { VitalSignsPanel } from "@/components/modules/VitalSignsPanel";
+import { AnamnesisForm } from "@/components/shared/AnamnesisForm";
+import { VitalSignsPanel } from "@/components/shared/VitalSignsPanel";
 import { calculateAge, formatRut } from "@/lib/utils";
 
 export async function generateMetadata({

@@ -16,11 +16,12 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { cn } from "@/lib/utils";
+import { ESPECIALIDADES_REGISTRY } from "@/lib/modules/registry";
 import type { TimelineEntry } from "@/app/actions/timeline";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
-type FilterTab = "todos" | "mis" | "kinesiologia" | "fonoaudiologia" | "masoterapia";
+type FilterTab = "todos" | "mis" | "Kinesiología" | "Fonoaudiología" | "Masoterapia";
 
 interface ClinicalTimelineProps {
   entries: TimelineEntry[];
@@ -32,9 +33,9 @@ interface ClinicalTimelineProps {
 const FILTER_TABS: { key: FilterTab; label: string }[] = [
   { key: "todos", label: "Todos" },
   { key: "mis", label: "Mis Atenciones" },
-  { key: "kinesiologia", label: "Kinesiología" },
-  { key: "fonoaudiologia", label: "Fonoaudiología" },
-  { key: "masoterapia", label: "Masoterapia" },
+  { key: "Kinesiología", label: "Kinesiología" },
+  { key: "Fonoaudiología", label: "Fonoaudiología" },
+  { key: "Masoterapia", label: "Masoterapia" },
 ];
 
 type BadgeVariant = "teal" | "info" | "warning" | "success";
@@ -77,12 +78,6 @@ const TYPE_CONFIG: Record<
     borderClass: "border-l-kp-success",
     bgClass: "bg-kp-success-lt",
   },
-};
-
-const ESPECIALIDAD_LABELS: Record<string, string> = {
-  kinesiologia: "Kinesiología",
-  fonoaudiologia: "Fonoaudiología",
-  masoterapia: "Masoterapia",
 };
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -151,7 +146,7 @@ function SoapContent({ data }: { data: TimelineEntry["data"] }) {
 
 function EvaluacionContent({ data }: { data: TimelineEntry["data"] }) {
   const esp = data.especialidad
-    ? (ESPECIALIDAD_LABELS[data.especialidad] ?? data.especialidad)
+    ? (ESPECIALIDADES_REGISTRY[data.especialidad as keyof typeof ESPECIALIDADES_REGISTRY]?.label ?? data.especialidad)
     : null;
   const area = data.sub_area
     ? String(data.sub_area).replace(/_/g, " ")
@@ -260,7 +255,7 @@ function TimelineCard({
   const cfg = TYPE_CONFIG[entry.type];
   const TypeIcon = cfg.icon;
   const espLabel = entry.especialidad
-    ? (ESPECIALIDAD_LABELS[entry.especialidad] ?? entry.especialidad)
+    ? (ESPECIALIDADES_REGISTRY[entry.especialidad as keyof typeof ESPECIALIDADES_REGISTRY]?.label ?? entry.especialidad)
     : null;
 
   return (
@@ -351,12 +346,12 @@ export function ClinicalTimeline({
         return entries;
       case "mis":
         return entries.filter((e) => e.autor_id === currentUserId);
-      case "kinesiologia":
-        return entries.filter((e) => e.especialidad === "kinesiologia");
-      case "fonoaudiologia":
-        return entries.filter((e) => e.especialidad === "fonoaudiologia");
-      case "masoterapia":
-        return entries.filter((e) => e.especialidad === "masoterapia");
+      case "Kinesiología":
+        return entries.filter((e) => e.especialidad === "Kinesiología");
+      case "Fonoaudiología":
+        return entries.filter((e) => e.especialidad === "Fonoaudiología");
+      case "Masoterapia":
+        return entries.filter((e) => e.especialidad === "Masoterapia");
       default:
         return entries;
     }
@@ -367,9 +362,9 @@ export function ClinicalTimeline({
     () => ({
       todos: entries.length,
       mis: entries.filter((e) => e.autor_id === currentUserId).length,
-      kinesiologia: entries.filter((e) => e.especialidad === "kinesiologia").length,
-      fonoaudiologia: entries.filter((e) => e.especialidad === "fonoaudiologia").length,
-      masoterapia: entries.filter((e) => e.especialidad === "masoterapia").length,
+      "Kinesiología": entries.filter((e) => e.especialidad === "Kinesiología").length,
+      "Fonoaudiología": entries.filter((e) => e.especialidad === "Fonoaudiología").length,
+      "Masoterapia": entries.filter((e) => e.especialidad === "Masoterapia").length,
     }),
     [entries, currentUserId]
   );

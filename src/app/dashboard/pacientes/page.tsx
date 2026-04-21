@@ -1,5 +1,5 @@
 import { getPatients } from "@/app/actions/patients";
-import { PatientList } from "@/components/modules/PatientList";
+import { PatientList } from "@/components/shared/PatientList";
 import { AlertBanner } from "@/components/ui/AlertBanner";
 
 export const metadata = { title: "Pacientes" };

@@ -12,7 +12,7 @@ import {
   type DbEncounter,
   type DbSoapNote,
 } from "@/lib/fhir-mapper";
-import { FhirPreview } from "@/components/modules/FhirPreview";
+import { FhirPreview } from "@/components/shared/FhirPreview";
 import type { VitalSigns } from "@/types";
 
 export const metadata = { title: "FHIR Preview — FCE Korporis" };

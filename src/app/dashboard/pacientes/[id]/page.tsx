@@ -6,8 +6,8 @@ import { getPatientById } from "@/app/actions/patients";
 import { getPatientTimeline } from "@/app/actions/timeline";
 import { PatientHeader } from "@/components/layout/PatientHeader";
 import { PatientActionNav } from "@/components/modules/PatientActionNav";
-import { ClinicalTimeline } from "@/components/modules/ClinicalTimeline";
-import { SummaryPanel } from "@/components/modules/SummaryPanel";
+import { ClinicalTimeline } from "@/components/shared/ClinicalTimeline";
+import { SummaryPanel } from "@/components/shared/SummaryPanel";
 import type { PatientSummary } from "@/app/actions/timeline";
 
 export async function generateMetadata({
