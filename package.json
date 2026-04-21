@@ -9,7 +9,8 @@
     "lint": "eslint",
     "test:sprint-1": "tsx scripts/test-sprint-1.ts",
     "test:sprint-3": "tsx scripts/test-sprint-3.ts",
-    "test:profesional": "tsx scripts/test-profesional.ts"
+    "test:profesional": "tsx scripts/test-profesional.ts",
+    "test:sprint-r7": "tsx scripts/test-sprint-r7.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
