@@ -142,6 +142,7 @@ export default async function PatientDetailPage({
           <ClinicalTimeline
             entries={entries}
             currentUserId={user.id}
+            patientId={id}
             especialidadesActivas={especialidadesActivas}
           />
         </div>
