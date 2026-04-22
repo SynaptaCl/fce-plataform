@@ -146,10 +146,11 @@ export async function getPatientTimeline(
 
   const soapEncMap = new Map<string, string>(); // encuentro_id → especialidad
   if (soapEncIds.length > 0) {
-    const { data: soapEncs } = await supabase
+    const soapEncsQuery = supabase
       .from("fce_encuentros")
       .select("id, especialidad")
       .in("id", soapEncIds);
+    const { data: soapEncs } = await (idClinica ? soapEncsQuery.eq("id_clinica", idClinica) : soapEncsQuery);
     for (const enc of soapEncs ?? []) {
       if (enc.especialidad) soapEncMap.set(enc.id, enc.especialidad as string);
     }
