@@ -61,8 +61,12 @@ type NotaClinicaRow = {
   motivo_consulta: string | null;
   contenido: string | null;
   diagnostico: string | null;
+  cie10_codigos: string[] | null;
   plan: string | null;
+  proxima_sesion: string | null;
   firmado: boolean | null;
+  firmado_at: string | null;
+  firmado_por: string | null;
   created_by: string | null;
   created_at: string;
 };
@@ -73,10 +77,12 @@ type InstrumentoAplicadoRow = {
   id_instrumento: string;
   puntaje_total: number | null;
   interpretacion: string | null;
+  respuestas: Record<string, unknown> | null;
+  notas: string | null;
   mostrar_en_timeline: boolean | null;
   aplicado_por: string | null;
   aplicado_at: string;
-  instrumento: { nombre: string } | null;
+  instrumento: { nombre: string; schema_items: unknown } | null;
 };
 
 // ── getPatientTimeline ─────────────────────────────────────────────────────
@@ -117,7 +123,7 @@ export async function getPatientTimeline(
     idClinica
       ? supabase
           .from("fce_notas_clinicas")
-          .select("id, id_encuentro, motivo_consulta, contenido, diagnostico, plan, firmado, created_by, created_at")
+          .select("id, id_encuentro, motivo_consulta, contenido, diagnostico, cie10_codigos, plan, proxima_sesion, firmado, firmado_at, firmado_por, created_by, created_at")
           .eq("id_paciente", patientId)
           .eq("id_clinica", idClinica)
           .order("created_at", { ascending: false })
@@ -125,13 +131,29 @@ export async function getPatientTimeline(
     idClinica
       ? supabase
           .from("instrumentos_aplicados")
-          .select("id, id_encuentro, id_instrumento, puntaje_total, interpretacion, mostrar_en_timeline, aplicado_por, aplicado_at, instrumento:instrumentos_valoracion(nombre)")
+          .select("id, id_encuentro, id_instrumento, puntaje_total, interpretacion, respuestas, notas, mostrar_en_timeline, aplicado_por, aplicado_at, instrumento:instrumentos_valoracion(nombre, schema_items)")
           .eq("id_paciente", patientId)
           .eq("id_clinica", idClinica)
           .eq("mostrar_en_timeline", true)
           .order("aplicado_at", { ascending: false })
       : Promise.resolve({ data: [], error: null }),
   ]);
+
+  // Batch-fetch encuentros for SOAP notes to get especialidad
+  const soapEncIds = ((soapRes.data ?? []) as SoapNote[])
+    .map((s) => s.id_encuentro)
+    .filter((id): id is string => Boolean(id));
+
+  const soapEncMap = new Map<string, string>(); // encuentro_id → especialidad
+  if (soapEncIds.length > 0) {
+    const { data: soapEncs } = await supabase
+      .from("fce_encuentros")
+      .select("id, especialidad")
+      .in("id", soapEncIds);
+    for (const enc of soapEncs ?? []) {
+      if (enc.especialidad) soapEncMap.set(enc.id, enc.especialidad as string);
+    }
+  }
 
   // Batch lookup de profesionales — solo columna 'nombre' (no existe 'apellidos')
   const profIds = new Set<string>();
@@ -146,6 +168,7 @@ export async function getPatientTimeline(
   }
   for (const n of (notasRes.data ?? []) as NotaClinicaRow[]) {
     if (n.created_by) profIds.add(n.created_by);
+    if (n.firmado_por) profIds.add(n.firmado_por);
   }
   for (const i of (instrumentosRes.data ?? []) as unknown as InstrumentoAplicadoRow[]) {
     if (i.aplicado_por) profIds.add(i.aplicado_por);
@@ -172,10 +195,13 @@ export async function getPatientTimeline(
       ...(soap.analisis_cif?.participacion ?? []),
       ...(soap.analisis_cif?.contexto ?? []),
     ];
+    const soapEsp = soap.id_encuentro ? soapEncMap.get(soap.id_encuentro) : undefined;
     entries.push({
       id: soap.id,
       type: "soap",
       date: soap.created_at,
+      especialidad: soapEsp,
+      encuentroId: soap.id_encuentro ?? undefined,
       autor_id: soap.firmado_por,
       profesional_nombre: soap.firmado_por ? profMap.get(soap.firmado_por) : undefined,
       titulo: "Nota SOAP",
@@ -184,11 +210,13 @@ export async function getPatientTimeline(
       data: {
         subjetivo: soap.subjetivo,
         objetivo: soap.objetivo,
+        analisis_cif: soap.analisis_cif,
         plan: soap.plan,
         proxima_sesion: soap.proxima_sesion,
         tareas_domiciliarias: soap.tareas_domiciliarias,
         intervenciones: soap.intervenciones ?? [],
         cif_count: cifItems.length,
+        firmado: soap.firmado,
         firmado_at: soap.firmado_at,
       },
     });
@@ -210,6 +238,7 @@ export async function getPatientTimeline(
         especialidad: ev.especialidad,
         sub_area: ev.sub_area,
         contraindicaciones_certificadas: ev.contraindicaciones_certificadas,
+        evData: ev.data ?? {},
       },
     });
   }
@@ -248,7 +277,7 @@ export async function getPatientTimeline(
       titulo: `Consentimiento ${tipoLabel}`,
       resumen: c.firmado ? "Firmado por el paciente" : "Pendiente de firma",
       firmado: Boolean(c.firmado),
-      data: { tipo: c.tipo, version: c.version },
+      data: { tipo: c.tipo, version: c.version, firmado: Boolean(c.firmado) },
     });
   }
 
@@ -264,7 +293,17 @@ export async function getPatientTimeline(
       resumen: nota.contenido ? nota.contenido.slice(0, 150) : "",
       firmado: nota.firmado ?? undefined,
       encuentroId: nota.id_encuentro ?? undefined,
-      data: { firmado: nota.firmado },
+      data: {
+        motivo_consulta: nota.motivo_consulta,
+        contenido: nota.contenido,
+        diagnostico: nota.diagnostico,
+        cie10_codigos: nota.cie10_codigos ?? [],
+        plan: nota.plan,
+        proxima_sesion: nota.proxima_sesion,
+        firmado: nota.firmado,
+        firmado_at: nota.firmado_at,
+        firmado_por_nombre: nota.firmado_por ? profMap.get(nota.firmado_por) : undefined,
+      },
     });
   }
 
@@ -279,7 +318,14 @@ export async function getPatientTimeline(
       titulo: `${inst.instrumento?.nombre ?? "Instrumento"}: ${inst.puntaje_total ?? "—"} — ${inst.interpretacion ?? "sin interpretación"}`,
       resumen: inst.interpretacion ?? "",
       encuentroId: inst.id_encuentro ?? undefined,
-      data: { puntaje: inst.puntaje_total, interpretacion: inst.interpretacion },
+      data: {
+        nombre: inst.instrumento?.nombre,
+        puntaje: inst.puntaje_total,
+        interpretacion: inst.interpretacion,
+        respuestas: inst.respuestas ?? {},
+        notas: inst.notas,
+        schema_items: inst.instrumento?.schema_items,
+      },
     });
   }
 
