@@ -6,6 +6,7 @@ import { requireAccesoFCE } from "@/lib/modules/guards";
 import { mapBrandingToTokens, type Rol, type BrandingConfig } from "@/lib/modules/registry";
 import { getClinicaConfig, type ClinicaConfig } from "@/lib/modules/config";
 import { ClinicaSessionProvider } from "@/lib/modules/provider";
+import { getProfesionalActivo } from "@/lib/fce/profesional";
 
 export default async function DashboardLayout({
   children,
@@ -24,20 +25,12 @@ export default async function DashboardLayout({
   }
 
   // admin_users = fuente autoritativa de rol e id_clinica
-  // profesionales = solo datos de display (nombre, especialidad)
-  const [adminRes, profesionalRes] = await Promise.all([
-    supabase
-      .from("admin_users")
-      .select("id_clinica, rol, nombre, activo")
-      .eq("auth_id", user.id)
-      .eq("activo", true)
-      .single(),
-    supabase
-      .from("profesionales")
-      .select("nombre, especialidad")
-      .eq("auth_id", user.id)
-      .maybeSingle(),
-  ]);
+  const adminRes = await supabase
+    .from("admin_users")
+    .select("id_clinica, rol, nombre, activo")
+    .eq("auth_id", user.id)
+    .eq("activo", true)
+    .single();
 
   const adminRow = adminRes.data;
   if (!adminRow) {
@@ -50,12 +43,13 @@ export default async function DashboardLayout({
   // Guard: recepcionista no accede a FCE
   requireAccesoFCE(rol);
 
-  // Fetch paralelo: branding (para Sidebar) + FCE config (para ClinicaSessionProvider)
-  const [brandingResult, fceConfig] = await Promise.all([
+  // Fetch paralelo: branding (para Sidebar) + FCE config (para ClinicaSessionProvider) + perfil profesional
+  const [brandingResult, fceConfig, profesionalActivo] = await Promise.all([
     idClinica
       ? supabase.from("clinicas").select("config").eq("id", idClinica).single()
       : Promise.resolve({ data: null }),
     idClinica ? getClinicaConfig(idClinica, supabase) : Promise.resolve(null),
+    getProfesionalActivo(supabase, user.id, idClinica ?? undefined),
   ]);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -75,16 +69,15 @@ export default async function DashboardLayout({
     updatedAt: null,
   };
 
-  const profesional = profesionalRes.data;
   // Nombre: preferir admin_users.nombre, fallback a profesionales.nombre, luego email
-  const nombre = adminRow.nombre || profesional?.nombre || user.email?.split("@")[0] || "Usuario";
+  const nombre = adminRow.nombre || profesionalActivo?.nombre || user.email?.split("@")[0] || "Usuario";
   // Especialidad raw — código exacto del catálogo, sin normalizar
-  const especialidadDisplay = profesional?.especialidad ?? null;
+  const especialidadDisplay = profesionalActivo?.especialidad ?? null;
 
   const initials = nombre.split(" ").map((w: string) => w[0]).filter(Boolean).slice(0, 2).join("").toUpperCase() || "U";
 
   return (
-    <ClinicaSessionProvider session={{ config: sessionConfig, rol, userId: user.id }}>
+    <ClinicaSessionProvider session={{ config: sessionConfig, rol, userId: user.id, profesionalActivo }}>
       <BrandingInjector tokens={mapBrandingToTokens(branding)} />
       <DashboardShell
         practitionerName={nombre}

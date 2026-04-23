@@ -11,6 +11,7 @@ import {
 } from "@/components/rehab";
 import { getPatientById } from "@/app/actions/patients";
 import { getProfesionalActivo } from "@/lib/fce/profesional";
+import { PrescripcionLauncher } from "@/components/shared/PrescripcionLauncher";
 import type { SoapNote } from "@/types";
 import type { Evaluation } from "@/types";
 
@@ -144,6 +145,7 @@ export default async function RehabPage({
                 En progreso
               </span>
             )}
+            <PrescripcionLauncher patientId={patient.id} encuentroId={encuentroId} />
           </div>
         </div>
 

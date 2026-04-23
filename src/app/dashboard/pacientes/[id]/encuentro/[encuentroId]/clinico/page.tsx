@@ -7,6 +7,7 @@ import { InstrumentosPanel } from "@/components/clinico/InstrumentosPanel";
 import { getPatientById } from "@/app/actions/patients";
 import { getNotaClinica } from "@/app/actions/clinico/nota-clinica";
 import { getProfesionalActivo } from "@/lib/fce/profesional";
+import { PrescripcionLauncher } from "@/components/shared/PrescripcionLauncher";
 
 export default async function ClinicoPage({
   params,
@@ -88,6 +89,7 @@ export default async function ClinicoPage({
                 En progreso
               </span>
             )}
+            <PrescripcionLauncher patientId={patient.id} encuentroId={encuentroId} />
           </div>
         </div>
 

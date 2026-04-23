@@ -109,6 +109,10 @@ const P1: ProfesionalPerfil = {
   color_agenda: null,
   activo: true,
   es_agendable: true,
+  rut: null,
+  numero_registro: null,
+  tipo_registro: null,
+  puede_prescribir: false,
 };
 
 const P2: ProfesionalPerfil = {
@@ -120,6 +124,10 @@ const P2: ProfesionalPerfil = {
   color_agenda: "#fff",
   activo: true,
   es_agendable: false,
+  rut: null,
+  numero_registro: null,
+  tipo_registro: null,
+  puede_prescribir: false,
 };
 
 const P3: ProfesionalPerfil = {
@@ -131,6 +139,10 @@ const P3: ProfesionalPerfil = {
   color_agenda: null,
   activo: true,
   es_agendable: true,
+  rut: null,
+  numero_registro: null,
+  tipo_registro: null,
+  puede_prescribir: false,
 };
 
 // ── Main ─────────────────────────────────────────────────────────────────────
