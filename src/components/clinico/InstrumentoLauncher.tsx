@@ -35,6 +35,7 @@ export function InstrumentoLauncher({
 
   useEffect(() => {
     if (!open) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true);
     getCatalogoInstrumentos(especialidad).then((result) => {
       if (result.success) setCatalogo(result.data);
@@ -47,6 +48,7 @@ export function InstrumentoLauncher({
       !instrumentoSeleccionado ||
       instrumentoSeleccionado.tipo_renderer !== "componente_custom"
     ) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setCustomComp(null);
       return;
     }

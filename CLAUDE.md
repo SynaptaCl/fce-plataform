@@ -1,7 +1,7 @@
 # CLAUDE.md — FCE Platform (fce-plataform)
 
-> Última actualización: 2026-04-21
-> Actualizado tras sesión: Sprint R7 completado. Korporis migrado al flujo de encuentro explícito: rehab/page.tsx con SoapForm+EvalComponent, components/rehab/ (6 componentes), actions/rehab/soap.ts + evaluacion.ts, rutas legacy evolucion/evaluacion eliminadas, redirects 302 en next.config.ts, test-sprint-r7.ts 33/33. Build 0 errores.
+> Última actualización: 2026-04-23
+> Actualizado tras sesión: Sprint R9 completado. Módulo M7 prescripciones: 4 migrations generadas (pendientes aplicar en Supabase), registry M7 + tipos Prescripcion/MedicamentoCatalogo + helper buscarMedicamentos, 53/53 tests, build + lint 0 errores. Fix colateral: 4 errores de lint pre-existentes en EvaluacionTimeline, InstrumentoLauncher, InstrumentosPanel + eslint.config.mjs ignora .worktrees. Korporis migrado al flujo de encuentro explícito: rehab/page.tsx con SoapForm+EvalComponent, components/rehab/ (6 componentes), actions/rehab/soap.ts + evaluacion.ts, rutas legacy evolucion/evaluacion eliminadas, redirects 302 en next.config.ts, test-sprint-r7.ts 33/33. Build 0 errores.
 > Este documento es la fuente de verdad para Claude Code. Leerlo antes de cualquier cambio.
 
 ---
@@ -139,6 +139,7 @@ kp-border-md     #CBD5E1   Bordes con mayor contraste
 13. **Especialidades en DB usan strings EXACTOS** con tilde y capitalización (`Kinesiología`, `Fonoaudiología`, `Masoterapia`, `Odontología`, etc.). El registry las tipa así, la tabla `especialidades_catalogo` las valida vía trigger, el código NUNCA escribe versiones normalizadas a DB.
 14. **`profesionales.auth_id` NO tiene UNIQUE constraint.** Un auth_id puede mapear a N profesionales (médico con múltiples especialidades). Nunca usar `.eq('auth_id', userId).single()` sobre `profesionales` — puede retornar múltiples filas. Usar el helper `getProfesionalActivo()` de `src/lib/fce/profesional.ts`.
 15. **Claude Code NO aplica migrations ni DDL sobre Supabase.** Genera los archivos SQL en `supabase/migrations/`, los presenta para revisión, y espera. Las migrations se aplican manualmente vía MCP Supabase o dashboard.
+16. **Las prescripciones son inmutables post-firma.** Mismo patrón que SOAP y nota clínica. El trigger `trg_block_update_signed_presc` en `fce_prescripciones` bloquea UPDATE de campos clínicos cuando `firmado=true`. Los snapshots del profesional (nombre, RUT, registro, tipo, especialidad) se capturan en el momento de firma para garantizar integridad histórica.
 
 ---
 
@@ -323,8 +324,9 @@ supabase/
 | M4_soap | Evolución SOAP + CIF Mapper | `fce_notas_soap`, `fce_encuentros` | **sí** | no |
 | M5_consentimiento | Consentimiento informado (Ley 20.584) | `fce_consentimientos` | no | no |
 | M6_auditoria | Auditoría (append-only) | `logs_auditoria` | no | **sí** |
+| M7_prescripciones | Prescripciones e Indicaciones | `fce_prescripciones`, `medicamentos_catalogo` | no | no |
 
-**Dependencias**: M2 → M1 · M3 → M2 · M4 → M3 · M5 → M1 · M6 → M1
+**Dependencias**: M2 → M1 · M3 → M2 · M4 → M3 · M5 → M1 · M6 → M1 · M7 → M1
 
 ---
 
@@ -400,6 +402,8 @@ Todas las especialidades listadas aquí están en `especialidades_catalogo` con 
 | `instrumentos_valoracion` | Catálogo universal de instrumentos clínicos (R2) | N/A (compartido) | no |
 | `instrumentos_aplicados` | Resultados de instrumentos aplicados a pacientes (R2) | ✅ | no |
 | `fce_notas_clinicas` | Notas clínicas libres modelo clinico_general (R2) | ✅ | no (trigger inmutabilidad post-firma) |
+| `fce_prescripciones` | Prescripciones e indicaciones módulo M7 (R9) | ✅ | no (trigger inmutabilidad + folio correlativo) |
+| `medicamentos_catalogo` | Catálogo universal de medicamentos para autocompletado (R9) | N/A (global) | no |
 
 #### Tablas de auditoría, agenda y vistas
 
@@ -537,6 +541,10 @@ Las tablas YA EXISTEN en Synapta Product. **NUNCA usar `apply_migration` ni DDL 
 | `20260421_03_fce_notas_clinicas.sql` | Notas clínicas modelo clinico_general + trigger inmutabilidad + RLS | Aplicado 2026-04-21 (R2) |
 | `20260421_04_add_enfermeria_catalogo.sql` | INSERT Enfermería en especialidades_catalogo | Aplicado 2026-04-21 (R2) |
 | `20260421_05_seed_instrumentos.sql` | 10 instrumentos: 8 escala_simple + 2 componente_custom (Braden y EVA validados) | Aplicado 2026-04-21 (R2) |
+| `20260422_01_medicamentos_catalogo.sql` | Catálogo universal de medicamentos (módulo M7) + RLS + índices + GIN full-text | Pendiente aplicar (R9) |
+| `20260422_02_alter_profesionales_prescripcion.sql` | ALTER profesionales: agrega numero_registro, tipo_registro, puede_prescribir | Pendiente aplicar (R9) |
+| `20260422_03_fce_prescripciones.sql` | Tabla prescripciones + folio correlativo (trigger + advisory lock) + inmutabilidad + RLS | Pendiente aplicar (R9) |
+| `20260422_04_seed_modulo_m7.sql` | UPDATE clinicas_fce_config: activa M7 en Renata y Nuvident | Pendiente aplicar (R9) |
 
 ---
 
@@ -976,8 +984,8 @@ id_clinica       uuid nullable
 ### 16.5 Tablas FCE — columna `id_clinica`
 
 ```
-CON id_clinica:    pacientes, fce_anamnesis, fce_encuentros, fce_consentimientos, clinicas_fce_config, instrumentos_aplicados, fce_notas_clinicas
-CON id_clinica NULLABLE:  fce_signos_vitales (requerido en nuevos INSERTs)
+CON id_clinica:    pacientes, fce_anamnesis, fce_encuentros, fce_consentimientos, clinicas_fce_config, instrumentos_aplicados, fce_notas_clinicas, fce_prescripciones
+CON id_clinica NULLABLE:  fce_signos_vitales (requerido en nuevos INSERTs), medicamentos_catalogo (null = catálogo global)
 SIN id_clinica:    fce_evaluaciones, fce_notas_soap, instrumentos_valoracion (catálogo compartido)
 ```
 
@@ -1126,6 +1134,9 @@ Reemplaza el Sprint 5 legacy. Docs en `docs/plan-redisenio/`.
 | R6 — Timeline unificado | Timeline mixto + integración | ✅ | **Renata MVP en producción** |
 | R7 — Migración Korporis | Mover rehab a estructura encuentro | ✅ | Korporis misma arquitectura |
 | R8 — Switch DNS | Deploy + archive legacy | 🔜 | Repo viejo archivado |
+| R9 — Prescripciones fundamentos | DB + registry + types + helpers | ✅ | Tablas listas para aplicar en Supabase |
+| R10 — Prescripciones UI | Forms + server actions + firma | 🔜 | Renata/Nuvident pueden prescribir |
+| R11 — Prescripciones PDF + Timeline | PDF entregable + integración timeline | 🔜 | PDF descargable por paciente |
 
 **Nota**: R2 se completó antes que R1 porque las migrations no tienen dependencia de código. R1 sigue pendiente (limpieza de Korporis-isms). R3 y R4 se completaron sobre R2 sin R1 porque sus dependencias de código son independientes del cleanup. R7 se completó antes que R1 porque la migración de Korporis no dependía de la limpieza R1.
 

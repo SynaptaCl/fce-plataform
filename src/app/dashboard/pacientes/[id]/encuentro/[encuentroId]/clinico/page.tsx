@@ -29,7 +29,7 @@ export default async function ClinicoPage({
   const idClinica = adminRes.data?.id_clinica ?? null;
   const rol = adminRes.data?.rol ?? "";
 
-  const [patientResult, encuentroRes, notaResult, profesional] = await Promise.all([
+  const [patientResult, encuentroRes, notaResult] = await Promise.all([
     getPatientById(id),
     supabase
       .from("fce_encuentros")

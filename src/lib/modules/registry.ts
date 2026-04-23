@@ -22,7 +22,8 @@ export type ModuleId =
   | "M3_evaluacion"
   | "M4_soap"
   | "M5_consentimiento"
-  | "M6_auditoria";
+  | "M6_auditoria"
+  | "M7_prescripciones";
 
 // ============================================================================
 // IDs de especialidades (coinciden con especialidades_catalogo.codigo)
@@ -198,6 +199,20 @@ export const MODULE_REGISTRY: Record<ModuleId, ModuleDefinition> = {
     tablasSupabase: ["logs_auditoria"],
     rutasApp: ["/dashboard/pacientes/[id]/auditoria"],
     componentes: ["AuditTimeline"],
+    requiereEspecialidad: false,
+    estado: "estable",
+  },
+
+  M7_prescripciones: {
+    id: "M7_prescripciones",
+    label: "Prescripciones e Indicaciones",
+    descripcion:
+      "Emisión de recetas farmacológicas e indicaciones generales con firma del profesional. Permiso individual por campo puede_prescribir en profesionales.",
+    obligatorio: false,
+    dependeDe: ["M1_identificacion"],
+    tablasSupabase: ["fce_prescripciones", "medicamentos_catalogo"],
+    rutasApp: ["/dashboard/pacientes/[id]/prescripciones"],
+    componentes: ["PrescripcionForm", "IndicacionForm"],
     requiereEspecialidad: false,
     estado: "estable",
   },

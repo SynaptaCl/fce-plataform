@@ -39,3 +39,11 @@ export type {
 } from "./anamnesis";
 export * from "./instrumento";
 export * from "./timeline";
+export type {
+  Prescripcion,
+  MedicamentoPrescrito,
+  ModoFirma,
+  TipoPrescripcion,
+  ViaAdministracion,
+} from "./prescripcion";
+export type { MedicamentoCatalogo } from "./medicamento";

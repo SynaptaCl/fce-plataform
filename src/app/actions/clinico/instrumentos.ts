@@ -17,7 +17,6 @@ async function requireAuth() {
   return { supabase, user };
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function logAudit(
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   supabase: any,

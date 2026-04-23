@@ -38,7 +38,7 @@ export default async function RehabPage({
   const idClinica = adminRes.data?.id_clinica ?? null;
   const rol = adminRes.data?.rol ?? "";
 
-  const [patientResult, encuentroRes, soapRes, evaluacionesRes, profesional] =
+  const [patientResult, encuentroRes, soapRes, evaluacionesRes] =
     await Promise.all([
       getPatientById(id),
       supabase

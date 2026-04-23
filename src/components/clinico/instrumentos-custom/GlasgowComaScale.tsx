@@ -39,7 +39,6 @@ const SUBESCALAS = [
   },
 ] as const;
 
-type SubescalaClave = (typeof SUBESCALAS)[number]["clave"];
 
 function getInterpretacion(puntaje: number): { label: string; colorClass: string } {
   if (puntaje >= 13) return { label: "Leve", colorClass: "bg-green-100 text-green-800" };

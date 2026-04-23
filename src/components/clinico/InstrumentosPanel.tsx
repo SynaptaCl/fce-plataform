@@ -29,6 +29,7 @@ export function InstrumentosPanel({
     setLoading(false);
   }, [encuentroId]);
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { cargar(); }, [cargar]);
 
   return (

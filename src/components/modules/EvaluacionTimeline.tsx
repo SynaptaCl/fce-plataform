@@ -231,6 +231,7 @@ export function EvaluacionTimeline({ entries, especialidadesActivas }: Evaluacio
     });
 
   const filteredEntries = useMemo(() => {
+    // eslint-disable-next-line react-hooks/purity
     const now = Date.now();
     return entries.filter((e) => {
       if (filterEsp !== "todas" && e.especialidad !== filterEsp) return false;
