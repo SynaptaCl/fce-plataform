@@ -79,7 +79,7 @@ export function MasoterapiaEval({ patientId, evaluaciones, readOnly = false }: M
     setContraError(null);
     setContraSaved(false);
     const result = await upsertEvaluacion(
-      patientId, "masoterapia", "contraindicaciones",
+      patientId, "Masoterapia", "contraindicaciones",
       { ...contraState, certificado_at: new Date().toISOString() }
     );
     if (!result.success) { setContraError(result.error); return; }
@@ -278,7 +278,7 @@ function TisularForm({ patientId, initialData, readOnly }: SubFormProps) {
 
   async function onSubmit(data: TisularFormData) {
     setServerError(null); setSaved(false);
-    const result = await upsertEvaluacion(patientId, "masoterapia", "tisular", data as Record<string, unknown>);
+    const result = await upsertEvaluacion(patientId, "Masoterapia", "tisular", data as Record<string, unknown>);
     if (!result.success) { setServerError(result.error); return; }
     setSaved(true);
   }
@@ -333,7 +333,7 @@ function PostCirugiaForm({ patientId, initialData, readOnly }: SubFormProps) {
 
   async function onSubmit(data: PostCirugiaFormData) {
     setServerError(null); setSaved(false);
-    const result = await upsertEvaluacion(patientId, "masoterapia", "post_cirugia", data as Record<string, unknown>);
+    const result = await upsertEvaluacion(patientId, "Masoterapia", "post_cirugia", data as Record<string, unknown>);
     if (!result.success) { setServerError(result.error); return; }
     setSaved(true);
   }

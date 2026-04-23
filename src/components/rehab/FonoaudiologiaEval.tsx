@@ -140,7 +140,7 @@ function VocalForm({ patientId, initialData, readOnly }: SubFormProps) {
 
   async function onSubmit(data: VocalFormData) {
     setServerError(null); setSaved(false);
-    const result = await upsertEvaluacion(patientId, "fonoaudiologia", "vocal", data as Record<string, unknown>);
+    const result = await upsertEvaluacion(patientId, "Fonoaudiología", "vocal", data as Record<string, unknown>);
     if (!result.success) { setServerError(result.error); return; }
     setSaved(true);
   }
@@ -236,7 +236,7 @@ function DeglucionForm({ patientId, initialData, readOnly }: SubFormProps) {
 
   async function onSubmit(data: DeglucionFormData) {
     setServerError(null); setSaved(false);
-    const result = await upsertEvaluacion(patientId, "fonoaudiologia", "deglucion", data as Record<string, unknown>);
+    const result = await upsertEvaluacion(patientId, "Fonoaudiología", "deglucion", data as Record<string, unknown>);
     if (!result.success) { setServerError(result.error); return; }
     setSaved(true);
   }
@@ -305,7 +305,7 @@ function DesarrolloForm({ patientId, initialData, readOnly }: SubFormProps) {
 
   async function onSubmit(data: DesarrolloFormData) {
     setServerError(null); setSaved(false);
-    const result = await upsertEvaluacion(patientId, "fonoaudiologia", "desarrollo_fonologico", data as Record<string, unknown>);
+    const result = await upsertEvaluacion(patientId, "Fonoaudiología", "desarrollo_fonologico", data as Record<string, unknown>);
     if (!result.success) { setServerError(result.error); return; }
     setSaved(true);
   }

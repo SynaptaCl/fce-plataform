@@ -129,12 +129,15 @@ export async function upsertSoapNote(
     .select("id, especialidad")
     .eq("auth_id", user.id)
     .maybeSingle();
-  // Normalizar a lowercase/sin-tilde para compatibilidad con el type Especialidad
-  const rawEsp = (prof?.especialidad as string) ?? "kinesiologia";
-  const especialidad = rawEsp.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  const especialidad = (prof?.especialidad as string) ?? "Kinesiología";
   const profesionalId = prof?.id ?? null;
 
   let id: string;
+
+  const soapData = {
+    ...parsed.data,
+    proxima_sesion: parsed.data.proxima_sesion || null,
+  };
 
   if (noteId) {
     // UPDATE — solo si no está firmado
@@ -150,7 +153,7 @@ export async function upsertSoapNote(
 
     const { error } = await supabase
       .from("fce_notas_soap")
-      .update({ ...parsed.data })
+      .update({ ...soapData })
       .eq("id", noteId);
 
     if (error) return { success: false, error: error.message };
@@ -174,7 +177,7 @@ export async function upsertSoapNote(
       .insert({
         id_paciente: patientId,
         id_encuentro: encounterId,
-        ...parsed.data,
+        ...soapData,
         firmado: false,
       })
       .select("id")

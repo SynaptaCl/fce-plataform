@@ -180,7 +180,7 @@ function MSKForm({ patientId, initialData, readOnly }: SubFormProps) {
   async function onSubmit(data: MSKFormData) {
     setServerError(null);
     setSaved(false);
-    const result = await upsertEvaluacion(patientId, "kinesiologia", "musculoesqueletica", data as Record<string, unknown>);
+    const result = await upsertEvaluacion(patientId, "Kinesiología", "musculoesqueletica", data as Record<string, unknown>);
     if (!result.success) { setServerError(result.error); return; }
     setSaved(true);
   }
@@ -295,7 +295,7 @@ function RespiratoriaForm({ patientId, initialData, readOnly }: SubFormProps) {
 
   async function onSubmit(data: RespFormData) {
     setServerError(null); setSaved(false);
-    const result = await upsertEvaluacion(patientId, "kinesiologia", "respiratoria", data as Record<string, unknown>);
+    const result = await upsertEvaluacion(patientId, "Kinesiología", "respiratoria", data as Record<string, unknown>);
     if (!result.success) { setServerError(result.error); return; }
     setSaved(true);
   }
@@ -369,7 +369,7 @@ function GeriatricaForm({ patientId, initialData, readOnly }: SubFormProps) {
 
   async function onSubmit(data: GerFormData) {
     setServerError(null); setSaved(false);
-    const result = await upsertEvaluacion(patientId, "kinesiologia", "geriatrica", data as Record<string, unknown>);
+    const result = await upsertEvaluacion(patientId, "Kinesiología", "geriatrica", data as Record<string, unknown>);
     if (!result.success) { setServerError(result.error); return; }
     setSaved(true);
   }
@@ -439,7 +439,7 @@ function NeurologicaForm({ patientId, initialData, readOnly }: SubFormProps) {
 
   async function onSubmit(data: NeuroFormData) {
     setServerError(null); setSaved(false);
-    const result = await upsertEvaluacion(patientId, "kinesiologia", "neurologica", data as Record<string, unknown>);
+    const result = await upsertEvaluacion(patientId, "Kinesiología", "neurologica", data as Record<string, unknown>);
     if (!result.success) { setServerError(result.error); return; }
     setSaved(true);
   }
@@ -519,7 +519,7 @@ function VestibularForm({ patientId, initialData, readOnly }: SubFormProps) {
 
   async function onSubmit(data: VestFormData) {
     setServerError(null); setSaved(false);
-    const result = await upsertEvaluacion(patientId, "kinesiologia", "vestibular", data as Record<string, unknown>);
+    const result = await upsertEvaluacion(patientId, "Kinesiología", "vestibular", data as Record<string, unknown>);
     if (!result.success) { setServerError(result.error); return; }
     setSaved(true);
   }
@@ -588,7 +588,7 @@ function PisoPelvicoForm({ patientId, initialData, readOnly }: SubFormProps) {
 
   async function onSubmit(data: PisoFormData) {
     setServerError(null); setSaved(false);
-    const result = await upsertEvaluacion(patientId, "kinesiologia", "piso_pelvico", data as Record<string, unknown>);
+    const result = await upsertEvaluacion(patientId, "Kinesiología", "piso_pelvico", data as Record<string, unknown>);
     if (!result.success) { setServerError(result.error); return; }
     setSaved(true);
   }
