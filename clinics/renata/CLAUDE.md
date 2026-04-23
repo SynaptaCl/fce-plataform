@@ -47,12 +47,21 @@ No usan SOAP ni evaluación estructurada M3/M4. Usan:
 |---|---|
 | M1_identificacion | ✅ activo |
 | M2_anamnesis | ✅ activo |
-| M3b_instrumentos | 🔜 Sprint R5 |
+| M3b_instrumentos | ✅ activo (Sprint R5) |
 | M4b_nota_clinica | ✅ activo (Sprint R4) |
 | M5_consentimiento | ✅ activo |
 | M6_auditoria | ✅ activo |
+| M7_prescripciones | ✅ activo (Sprint R9/R10) · modo_firma_default: canvas |
 
 **No activos**: M3_evaluacion, M4_soap (esos son del modelo rehab — Korporis).
+
+### M7 — Prescripciones
+
+- Habilitado en Renata vía migration `20260422_04_seed_modulo_m7.sql` (pendiente aplicar)
+- `modo_firma_default: "canvas"` — firma digital en pantalla
+- `requiere_diagnostico: false` — diagnóstico es opcional
+- Para que un profesional pueda prescribir: `profesionales.puede_prescribir = true` (activar desde synapta-admin, pendiente sprint R10b)
+- Los médicos y enfermeras de Renata son el caso de uso principal
 
 ---
 

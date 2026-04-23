@@ -1,7 +1,7 @@
 # CLAUDE.md — FCE Platform (fce-plataform)
 
 > Última actualización: 2026-04-23
-> Actualizado tras sesión: Sprint R9 completado. Módulo M7 prescripciones: 4 migrations generadas (pendientes aplicar en Supabase), registry M7 + tipos Prescripcion/MedicamentoCatalogo + helper buscarMedicamentos, 53/53 tests, build + lint 0 errores. Fix colateral: 4 errores de lint pre-existentes en EvaluacionTimeline, InstrumentoLauncher, InstrumentosPanel + eslint.config.mjs ignora .worktrees. Korporis migrado al flujo de encuentro explícito: rehab/page.tsx con SoapForm+EvalComponent, components/rehab/ (6 componentes), actions/rehab/soap.ts + evaluacion.ts, rutas legacy evolucion/evaluacion eliminadas, redirects 302 en next.config.ts, test-sprint-r7.ts 33/33. Build 0 errores.
+> Actualizado tras sesión: Sprint R10 completado. UI prescripciones M7: 8 componentes en components/shared/ (PrescripcionLauncher+Form+MedicamentoSelector+Card+Editor+IndicacionGeneralEditor+FirmaPanel+List), server action prescripciones.ts con validación ordenada (schema→módulo→rol→puede_prescribir→encuentro→snapshot→folio), PrescripcionLauncher integrado en clinico/page.tsx y rehab/page.tsx. 43/43 tests, build+lint 0 errores. Módulo M7 prescripciones: 4 migrations generadas (pendientes aplicar en Supabase), registry M7 + tipos Prescripcion/MedicamentoCatalogo + helper buscarMedicamentos, 53/53 tests, build + lint 0 errores. Fix colateral: 4 errores de lint pre-existentes en EvaluacionTimeline, InstrumentoLauncher, InstrumentosPanel + eslint.config.mjs ignora .worktrees. Korporis migrado al flujo de encuentro explícito: rehab/page.tsx con SoapForm+EvalComponent, components/rehab/ (6 componentes), actions/rehab/soap.ts + evaluacion.ts, rutas legacy evolucion/evaluacion eliminadas, redirects 302 en next.config.ts, test-sprint-r7.ts 33/33. Build 0 errores.
 > Este documento es la fuente de verdad para Claude Code. Leerlo antes de cualquier cambio.
 
 ---
@@ -866,7 +866,27 @@ Este archivo convive hasta que los server actions que lo usan sean migrados (Spr
 |---|---|---|---|
 | `getAuditLogs(filter)` | `admin_users`, `logs_auditoria` | — | `requireAdmin()`: verifica rol admin+ o redirect. Máx 200 registros. Filtros: `id_paciente`, `accion`, `desde/hasta` |
 
-### 14.7 `timeline.ts` — timeline clínico unificado
+### 14.9 `prescripciones.ts` — M7 (R10)
+
+| Función | Tablas leídas | Tablas escritas | Notas |
+|---|---|---|---|
+| `getPrescripcionesByPatient(patientId)` | `fce_prescripciones` | — | RLS filtra por tenant. Orden `created_at` desc |
+| `getPrescripcionById(prescripcionId)` | `fce_prescripciones` | — | `.single()`. Error si no existe |
+| `searchMedicamentos(query)` | `medicamentos_catalogo` | — | Proxy de `buscarMedicamentos`. Mínimo 2 chars |
+| `createAndSignPrescripcion(input)` | `admin_users`, `fce_encuentros`, `profesionales` | `fce_prescripciones`, `logs_auditoria` | Validación ordenada: schema → módulo → rol → puede_prescribir → encuentro → snapshot → INSERT firmado=true |
+
+**Orden de validación en `createAndSignPrescripcion`**:
+1. `PrescripcionInputSchema.safeParse(input)` — schema primero
+2. `admin_users` fetch → `idClinica` + `rol` (fuente autoritativa)
+3. `assertModuleEnabled(config, "M7_prescripciones")`
+4. `assertPuedeFirmar(rol)` — guard de rol
+5. `getProfesionalActivo(supabase, user.id, idClinica)` + check `puede_prescribir`
+6. Validación de encuentro (3 checks)
+7. `buildProfesionalSnapshot(profesional)` → snapshot del profesional
+8. INSERT con `id_clinica: idClinica` (de admin_users, NO de profesional)
+9. `logAudit` + `revalidatePath`
+
+### 14.10 `timeline.ts` — timeline clínico unificado
 
 Fetch en paralelo de 5 tablas: `fce_notas_soap`, `fce_evaluaciones`, `fce_signos_vitales`, `fce_consentimientos`, `fce_anamnesis`. Luego batch lookup de nombres en `profesionales`. Construye `TimelineEntry[]` + `PatientSummary`.
 
@@ -1135,7 +1155,7 @@ Reemplaza el Sprint 5 legacy. Docs en `docs/plan-redisenio/`.
 | R7 — Migración Korporis | Mover rehab a estructura encuentro | ✅ | Korporis misma arquitectura |
 | R8 — Switch DNS | Deploy + archive legacy | 🔜 | Repo viejo archivado |
 | R9 — Prescripciones fundamentos | DB + registry + types + helpers | ✅ | Tablas listas para aplicar en Supabase |
-| R10 — Prescripciones UI | Forms + server actions + firma | 🔜 | Renata/Nuvident pueden prescribir |
+| R10 — Prescripciones UI | Forms + server actions + firma | ✅ | PrescripcionLauncher en ambos modelos |
 | R11 — Prescripciones PDF + Timeline | PDF entregable + integración timeline | 🔜 | PDF descargable por paciente |
 
 **Nota**: R2 se completó antes que R1 porque las migrations no tienen dependencia de código. R1 sigue pendiente (limpieza de Korporis-isms). R3 y R4 se completaron sobre R2 sin R1 porque sus dependencias de código son independientes del cleanup. R7 se completó antes que R1 porque la migración de Korporis no dependía de la limpieza R1.

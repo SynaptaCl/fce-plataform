@@ -17,15 +17,22 @@
 
 ## Configuración FCE activa (inicial mínima)
 
-### Módulos activos (2/6)
+### Módulos activos (2/6 + M7 pendiente migrations)
 - ✅ `M1_identificacion`
 - ✅ `M6_auditoria`
+- 🔜 `M7_prescripciones` — activado en migration R9 (pendiente aplicar) · modo_firma_default: impresa
 
 ### Módulos INACTIVOS (no implementar para Nuvident aún)
 - ❌ `M2_anamnesis`
 - ❌ `M3_evaluacion`
 - ❌ `M4_soap`
 - ❌ `M5_consentimiento`
+
+### M7 — Prescripciones para Nuvident
+
+- `modo_firma_default: "impresa"` — dentistas firman el papel antes de entregarlo
+- Para que la Dra. Nuri Peralta pueda prescribir: activar `puede_prescribir=true` en su fila de `profesionales`
+- Odontología prescribe: analgésicos, antibióticos locales, anestésicos tópicos
 
 ### Especialidades activas (0)
 Actualmente ninguna especialidad FCE activa. Cuando se active M3, la especialidad a configurar es `Odontología`.
