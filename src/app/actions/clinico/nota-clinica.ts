@@ -139,7 +139,7 @@ export async function upsertNotaClinica(
 export async function signNotaClinica(
   notaId: string,
   patientId: string,
-): Promise<ActionResult<void>> {
+): Promise<ActionResult<{ redirectTo: string }>> {
   const { supabase, user } = await requireAuth();
 
   const { data: adminRow } = await supabase
@@ -188,5 +188,5 @@ export async function signNotaClinica(
   await logAudit(supabase, user.id, "firmar_nota_clinica", notaId, idClinica, patientId);
 
   revalidatePath(`/dashboard/pacientes/${patientId}`);
-  return { success: true, data: undefined };
+  return { success: true, data: { redirectTo: `/dashboard/pacientes/${patientId}` } };
 }

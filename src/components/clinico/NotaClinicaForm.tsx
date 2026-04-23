@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { PenLine, Lock, CheckCircle2, X } from "lucide-react";
@@ -36,6 +37,7 @@ export function NotaClinicaForm({
   const [firmado, setFirmado] = useState(notaExistente?.firmado ?? false);
   const [firmadoAt, setFirmadoAt] = useState<string | null>(notaExistente?.firmado_at ?? null);
   const [showConfirm, setShowConfirm] = useState(false);
+  const router = useRouter();
   const [isPendingSign, startSignTransition] = useTransition();
 
   const readOnly = readOnlyProp || firmado;
@@ -95,6 +97,9 @@ export function NotaClinicaForm({
       if (!result.success) { setServerError(result.error); return; }
       setFirmado(true);
       setFirmadoAt(new Date().toISOString());
+      if (result.data?.redirectTo) {
+        router.push(result.data.redirectTo);
+      }
     });
   }
 

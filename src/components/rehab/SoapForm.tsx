@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useForm, Controller, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -98,6 +99,7 @@ interface SoapFormProps {
 // ── Componente principal ───────────────────────────────────────────────────
 
 export function SoapForm({ patientId, initialNote, objetivoHint, readOnly: readOnlyProp = false }: SoapFormProps) {
+  const router = useRouter();
   const [noteId, setNoteId] = useState<string | undefined>(
     initialNote?.id
   );
@@ -166,6 +168,9 @@ export function SoapForm({ patientId, initialNote, objetivoHint, readOnly: readO
     if (!result.success) { setSignError(result.error); return; }
     setSigned(true);
     setSignedAt(new Date().toISOString());
+    if (result.data?.redirectTo) {
+      router.push(result.data.redirectTo);
+    }
   }
 
   return (

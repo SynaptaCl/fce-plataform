@@ -92,7 +92,7 @@ export async function signConsentimiento(
   consentId: string,
   patientId: string,
   firmaDataUrl: string
-): Promise<ActionResult<void>> {
+): Promise<ActionResult<{ redirectTo: string }>> {
   if (!firmaDataUrl.startsWith("data:image/")) {
     return { success: false, error: "Firma inválida" };
   }
@@ -116,5 +116,5 @@ export async function signConsentimiento(
   if (error) return { success: false, error: error.message };
   await logAudit(supabase, user.id, "sign", "fce_consentimientos", consentId, patientId);
   revalidatePath(`/dashboard/pacientes/${patientId}/consentimiento`);
-  return { success: true, data: undefined };
+  return { success: true, data: { redirectTo: `/dashboard/pacientes/${patientId}` } };
 }

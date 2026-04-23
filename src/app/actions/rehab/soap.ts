@@ -197,7 +197,7 @@ export async function upsertSoapNote(
 export async function signSoapNote(
   noteId: string,
   patientId: string,
-): Promise<ActionResult<void>> {
+): Promise<ActionResult<{ redirectTo: string }>> {
   const { supabase, user } = await requireAuth();
 
   // firmado_por almacena profesionales.id (no auth.uid) — FK a profesionales
@@ -239,5 +239,5 @@ export async function signSoapNote(
   await logAudit(supabase, user.id, "sign", "soap_note", noteId, patientId);
 
   revalidatePath(`/dashboard/pacientes/${patientId}`);
-  return { success: true, data: undefined };
+  return { success: true, data: { redirectTo: `/dashboard/pacientes/${patientId}` } };
 }
