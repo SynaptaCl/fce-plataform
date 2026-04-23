@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import Link from "next/link";
 import {
   ChevronDown,
   ChevronUp,
@@ -19,6 +18,12 @@ import {
 import { Badge } from "@/components/ui/Badge";
 import { cn } from "@/lib/utils";
 import type { TimelineEntry } from "@/app/actions/timeline";
+import { SoapExpandedCard } from "./timeline/SoapExpandedCard";
+import { EvaluacionExpandedCard } from "./timeline/EvaluacionExpandedCard";
+import { NotaClinicaExpandedCard } from "./timeline/NotaClinicaExpandedCard";
+import { InstrumentoExpandedCard } from "./timeline/InstrumentoExpandedCard";
+import { SignosVitalesExpandedCard } from "./timeline/SignosVitalesExpandedCard";
+import { ConsentimientoExpandedCard } from "./timeline/ConsentimientoExpandedCard";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -113,203 +118,6 @@ function formatDateTime(iso: string) {
   });
 }
 
-// ── Expanded content by type ───────────────────────────────────────────────
-
-function SoapContent({ data }: { data: TimelineEntry["data"] }) {
-  return (
-    <div className="space-y-2.5 text-xs text-ink-2">
-      {data.subjetivo && (
-        <div>
-          <p className="font-bold text-ink-1 uppercase tracking-wide text-[0.6rem] mb-0.5">
-            S — Subjetivo
-          </p>
-          <p className="leading-relaxed">{data.subjetivo}</p>
-        </div>
-      )}
-      {data.objetivo && (
-        <div>
-          <p className="font-bold text-ink-1 uppercase tracking-wide text-[0.6rem] mb-0.5">
-            O — Objetivo
-          </p>
-          <p className="leading-relaxed">{data.objetivo}</p>
-        </div>
-      )}
-      {data.plan && (
-        <div>
-          <p className="font-bold text-ink-1 uppercase tracking-wide text-[0.6rem] mb-0.5">
-            P — Plan
-          </p>
-          <p className="leading-relaxed">{data.plan}</p>
-        </div>
-      )}
-      <div className="flex flex-wrap items-center gap-2 pt-1">
-        {data.proxima_sesion && (
-          <span className="flex items-center gap-1 text-kp-primary font-medium">
-            <Clock className="w-3 h-3" />
-            Próxima: {data.proxima_sesion}
-          </span>
-        )}
-        {data.cif_count > 0 && (
-          <Badge variant="teal">{data.cif_count} ítems CIF</Badge>
-        )}
-        {data.firmado && (
-          <span className="flex items-center gap-1 text-kp-success font-medium">
-            <Lock className="w-3 h-3" />
-            Firmado {data.firmado_at ? formatDateTime(data.firmado_at) : ""}
-          </span>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function EvaluacionContent({ data }: { data: TimelineEntry["data"] }) {
-  // Mostrar especialidad tal cual viene (código del catálogo con tildes)
-  const esp = data.especialidad ?? null;
-  const area = data.sub_area
-    ? String(data.sub_area).replace(/_/g, " ")
-    : null;
-  return (
-    <div className="text-xs text-ink-2 space-y-1.5">
-      {esp && (
-        <p>
-          <span className="font-semibold text-ink-1">Especialidad:</span> {esp}
-        </p>
-      )}
-      {area && (
-        <p>
-          <span className="font-semibold text-ink-1">Área:</span>{" "}
-          <span className="capitalize">{area}</span>
-        </p>
-      )}
-      {data.contraindicaciones_certificadas === true && (
-        <Badge variant="success">Contraindicaciones certificadas ✓</Badge>
-      )}
-    </div>
-  );
-}
-
-function SignosContent({ data }: { data: TimelineEntry["data"] }) {
-  const fields = [
-    { label: "PA", value: data.presion_arterial, unit: "mmHg" },
-    { label: "FC", value: data.frecuencia_cardiaca, unit: "bpm" },
-    { label: "SpO₂", value: data.spo2, unit: "%" },
-    { label: "T°", value: data.temperatura, unit: "°C" },
-    { label: "FR", value: data.frecuencia_respiratoria, unit: "rpm" },
-  ].filter((f) => f.value != null);
-
-  if (fields.length === 0) {
-    return <p className="text-xs text-ink-4 italic">Sin datos de signos vitales</p>;
-  }
-
-  return (
-    <div className="grid grid-cols-3 gap-1.5">
-      {fields.map((f) => (
-        <div
-          key={f.label}
-          className="bg-surface-0 rounded-lg px-2 py-1.5 text-center"
-        >
-          <p className="text-[0.55rem] font-bold text-ink-3 uppercase tracking-wide">
-            {f.label}
-          </p>
-          <p className="text-sm font-bold text-ink-1">
-            {String(f.value)}{" "}
-            <span className="text-[0.6rem] font-normal text-ink-3">{f.unit}</span>
-          </p>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function ConsentimientoContent({ data }: { data: TimelineEntry["data"] }) {
-  const tipo = String(data.tipo ?? "");
-  const tipoLabel =
-    tipo === "general"
-      ? "General de tratamiento"
-      : tipo === "menores"
-        ? "Menores / vulnerables"
-        : tipo === "teleconsulta"
-          ? "Teleconsulta"
-          : tipo || "—";
-  return (
-    <div className="text-xs text-ink-2 space-y-1">
-      <p>
-        <span className="font-semibold text-ink-1">Tipo:</span> {tipoLabel}
-      </p>
-      {data.version && (
-        <p>
-          <span className="font-semibold text-ink-1">Versión:</span> {data.version}
-        </p>
-      )}
-    </div>
-  );
-}
-
-function NotaClinicaContent({
-  entry,
-  patientId,
-}: {
-  entry: TimelineEntry;
-  patientId: string;
-}) {
-  const firmado = entry.firmado;
-  return (
-    <div className="text-xs text-ink-2 space-y-2">
-      <div className="flex items-center gap-2">
-        {firmado ? (
-          <Badge variant="success" icon={<Lock className="w-3 h-3" />}>
-            Firmado
-          </Badge>
-        ) : (
-          <Badge variant="warning">Borrador</Badge>
-        )}
-      </div>
-      {entry.resumen && (
-        <p className="leading-relaxed text-ink-2">{entry.resumen}</p>
-      )}
-      {entry.encuentroId && (
-        <Link
-          href={`/dashboard/pacientes/${patientId}/encuentro/${entry.encuentroId}/clinico`}
-          className="inline-flex items-center gap-1 text-kp-accent font-medium hover:underline"
-        >
-          Ver nota →
-        </Link>
-      )}
-    </div>
-  );
-}
-
-function InstrumentoContent({
-  entry,
-  patientId,
-}: {
-  entry: TimelineEntry;
-  patientId: string;
-}) {
-  const interpretacion = entry.data?.interpretacion as string | null | undefined;
-  return (
-    <div className="text-xs text-ink-2 space-y-2">
-      {interpretacion && (
-        <p>
-          <span className="font-semibold text-ink-1">Interpretación:</span>{" "}
-          <span className="inline-block px-1.5 py-0.5 rounded bg-surface-0 text-ink-2 border border-kp-border">
-            {interpretacion}
-          </span>
-        </p>
-      )}
-      {entry.encuentroId && (
-        <Link
-          href={`/dashboard/pacientes/${patientId}/encuentro/${entry.encuentroId}/clinico`}
-          className="inline-flex items-center gap-1 text-kp-accent font-medium hover:underline"
-        >
-          Ver encuentro →
-        </Link>
-      )}
-    </div>
-  );
-}
-
 function EntryContent({
   entry,
   patientId,
@@ -319,17 +127,17 @@ function EntryContent({
 }) {
   switch (entry.type) {
     case "soap":
-      return <SoapContent data={entry.data} />;
+      return <SoapExpandedCard entry={entry} patientId={patientId} />;
     case "evaluacion":
-      return <EvaluacionContent data={entry.data} />;
+      return <EvaluacionExpandedCard entry={entry} patientId={patientId} />;
     case "signos_vitales":
-      return <SignosContent data={entry.data} />;
+      return <SignosVitalesExpandedCard entry={entry} patientId={patientId} />;
     case "consentimiento":
-      return <ConsentimientoContent data={entry.data} />;
+      return <ConsentimientoExpandedCard entry={entry} patientId={patientId} />;
     case "nota_clinica":
-      return <NotaClinicaContent entry={entry} patientId={patientId} />;
+      return <NotaClinicaExpandedCard entry={entry} patientId={patientId} />;
     case "instrumento":
-      return <InstrumentoContent entry={entry} patientId={patientId} />;
+      return <InstrumentoExpandedCard entry={entry} patientId={patientId} />;
   }
 }
 
