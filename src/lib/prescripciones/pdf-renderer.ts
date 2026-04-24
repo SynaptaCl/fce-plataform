@@ -1,7 +1,5 @@
 "use client";
 
-import html2pdf from "html2pdf.js";
-
 export interface GenerarPdfOptions {
   filename?: string;
   download?: boolean;
@@ -33,6 +31,8 @@ export async function generarRecetaPdf(
       orientation: "portrait",
     },
   };
+
+  const html2pdf = (await import("html2pdf.js")).default;
 
   if (options.returnBlob) {
     return await html2pdf().set(opt).from(element).output("blob") as Blob;

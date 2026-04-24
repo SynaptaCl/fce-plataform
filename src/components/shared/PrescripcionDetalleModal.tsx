@@ -83,8 +83,8 @@ export function PrescripcionDetalleModal({
 
   if (loading) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-        <div className="bg-surface-1 rounded-2xl shadow-xl w-full max-w-3xl p-10 text-center text-ink-3 text-sm">
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+        <div className="bg-white rounded-2xl shadow-xl w-full max-w-3xl p-10 text-center text-ink-3 text-sm">
           Cargando prescripción...
         </div>
       </div>
@@ -93,8 +93,8 @@ export function PrescripcionDetalleModal({
 
   if (error || !prescripcion) {
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-        <div className="bg-surface-1 rounded-2xl shadow-xl w-full max-w-3xl p-10 text-center text-ink-3 text-sm">
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+        <div className="bg-white rounded-2xl shadow-xl w-full max-w-3xl p-10 text-center text-ink-3 text-sm">
           No se pudo cargar la prescripción.
         </div>
       </div>
@@ -105,12 +105,12 @@ export function PrescripcionDetalleModal({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="bg-surface-1 rounded-2xl shadow-xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden">
+      <div className="bg-white rounded-2xl shadow-xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-kp-border shrink-0">
           <div className="flex items-center gap-2">
