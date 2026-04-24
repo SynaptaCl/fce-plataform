@@ -12,7 +12,8 @@
     "test:profesional": "tsx scripts/test-profesional.ts",
     "test:sprint-r7": "tsx scripts/test-sprint-r7.ts",
     "test:sprint-r9": "tsx scripts/test-sprint-r9.ts",
-    "test:sprint-r10": "tsx scripts/test-sprint-r10.ts"
+    "test:sprint-r10": "tsx scripts/test-sprint-r10.ts",
+    "test:sprint-r11": "tsx scripts/test-sprint-r11.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",
