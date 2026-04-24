@@ -1,0 +1,51 @@
+"use client";
+
+export interface GenerarPdfOptions {
+  filename?: string;
+  download?: boolean;
+  newWindow?: boolean;
+  returnBlob?: boolean;
+}
+
+export async function generarOrdenExamenPdf(
+  elementId: string,
+  options: GenerarPdfOptions = {}
+): Promise<Blob | void> {
+  const element = document.getElementById(elementId);
+  if (!element) throw new Error(`Elemento #${elementId} no encontrado`);
+
+  const filename = options.filename ?? `orden-examen-${Date.now()}.pdf`;
+
+  const opt = {
+    margin: 0,
+    filename,
+    image: { type: "jpeg", quality: 0.98 },
+    html2canvas: {
+      scale: 2,
+      useCORS: true,
+      logging: false,
+    },
+    jsPDF: {
+      unit: "mm",
+      format: "letter",
+      orientation: "portrait",
+    },
+  };
+
+  const html2pdf = (await import("html2pdf.js")).default;
+
+  if (options.returnBlob) {
+    return (await html2pdf().set(opt).from(element).output("blob")) as Blob;
+  }
+
+  if (options.newWindow) {
+    const blob = (await html2pdf()
+      .set(opt)
+      .from(element)
+      .output("blob")) as Blob;
+    window.open(URL.createObjectURL(blob), "_blank");
+    return;
+  }
+
+  await html2pdf().set(opt).from(element).save();
+}

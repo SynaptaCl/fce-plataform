@@ -8,6 +8,7 @@ import { getPatientById } from "@/app/actions/patients";
 import { getNotaClinica } from "@/app/actions/clinico/nota-clinica";
 import { getProfesionalActivo } from "@/lib/fce/profesional";
 import { PrescripcionLauncher } from "@/components/shared/PrescripcionLauncher";
+import { OrdenExamenLauncher } from "@/components/shared/OrdenExamenLauncher";
 
 export default async function ClinicoPage({
   params,
@@ -89,7 +90,8 @@ export default async function ClinicoPage({
                 En progreso
               </span>
             )}
-            <PrescripcionLauncher patientId={patient.id} encuentroId={encuentroId} />
+            <PrescripcionLauncher patientId={patient.id} encuentroId={encuentroId} paciente={patient} />
+            <OrdenExamenLauncher patientId={patient.id} encuentroId={encuentroId} paciente={patient} />
           </div>
         </div>
 

@@ -6,6 +6,7 @@ import { getIdClinica } from "./patients";
 import type { ActionResult } from "./patients";
 import type { SoapNote, VitalSigns } from "@/types";
 import type { Evaluation } from "@/types";
+import type { ExamenIndicado } from "@/types/orden-examen";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -94,6 +95,20 @@ type PrescripcionTimelineRow = {
   id_paciente: string;
 };
 
+type OrdenExamenTimelineRow = {
+  id: string;
+  folio_display: string;
+  examenes: unknown[];
+  diagnostico_presuntivo: string | null;
+  prioridad: "normal" | "urgente";
+  estado_resultados: "pendiente" | "parcial" | "completo";
+  firmado_at: string;
+  prof_nombre_snapshot: string | null;
+  prof_especialidad_snapshot: string | null;
+  id_clinica: string;
+  id_paciente: string;
+};
+
 type InstrumentoAplicadoRow = {
   id: string;
   id_encuentro: string | null;
@@ -117,7 +132,7 @@ export async function getPatientTimeline(
 
   const idClinica = await getIdClinica(supabase, user.id);
 
-  const [soapRes, evalRes, vitalsRes, consentRes, anamnesisRes, notasRes, instrumentosRes, prescripcionesRes] = await Promise.all([
+  const [soapRes, evalRes, vitalsRes, consentRes, anamnesisRes, notasRes, instrumentosRes, prescripcionesRes, ordenesExamenRes] = await Promise.all([
     supabase
       .from("fce_notas_soap")
       .select("*")
@@ -165,6 +180,15 @@ export async function getPatientTimeline(
           .from("fce_prescripciones")
           .select("id, folio_display, tipo, medicamentos, indicaciones_generales, diagnostico_asociado, firmado_at, prof_nombre_snapshot, prof_especialidad_snapshot, id_clinica, id_paciente")
           .eq("id_paciente", patientId)
+          .eq("firmado", true)
+          .order("firmado_at", { ascending: false })
+      : Promise.resolve({ data: [], error: null }),
+    idClinica
+      ? supabase
+          .from("fce_ordenes_examen")
+          .select("id, folio_display, examenes, diagnostico_presuntivo, prioridad, estado_resultados, firmado_at, prof_nombre_snapshot, prof_especialidad_snapshot, id_clinica, id_paciente")
+          .eq("id_paciente", patientId)
+          .eq("id_clinica", idClinica)
           .eq("firmado", true)
           .order("firmado_at", { ascending: false })
       : Promise.resolve({ data: [], error: null }),
@@ -394,6 +418,33 @@ export async function getPatientTimeline(
         tipo: presc.tipo,
         medicamentosCount: meds.length,
         diagnostico: presc.diagnostico_asociado,
+      },
+    });
+  }
+
+  // Órdenes de examen
+  for (const orden of (ordenesExamenRes.data ?? []) as OrdenExamenTimelineRow[]) {
+    const examenes = Array.isArray(orden.examenes)
+      ? (orden.examenes as ExamenIndicado[])
+      : [];
+    const primerExamen = examenes[0]?.nombre ?? null;
+    entries.push({
+      id: orden.id,
+      type: "orden_examen",
+      date: orden.firmado_at,
+      especialidad: orden.prof_especialidad_snapshot ?? undefined,
+      profesional_nombre: orden.prof_nombre_snapshot ?? undefined,
+      titulo: `Orden de exámenes — ${orden.folio_display}`,
+      resumen: primerExamen
+        ? `${examenes.length} examen(es): ${primerExamen}${examenes.length > 1 ? ` y ${examenes.length - 1} más` : ""}`
+        : "Orden de exámenes",
+      firmado: true,
+      data: {
+        folio: orden.folio_display,
+        examenes,
+        diagnostico_presuntivo: orden.diagnostico_presuntivo,
+        prioridad: orden.prioridad,
+        estado_resultados: orden.estado_resultados,
       },
     });
   }

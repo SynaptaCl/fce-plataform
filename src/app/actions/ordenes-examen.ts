@@ -238,3 +238,37 @@ export async function searchExamenes(
   if (error) return { success: false, error: error.message };
   return { success: true, data: (data ?? []) as ExamenCatalogo[] };
 }
+
+// ── logOrdenExamenAction ───────────────────────────────────────────────────
+
+export async function logOrdenExamenAction(
+  ordenId: string,
+  accion:
+    | "ver_orden_examen"
+    | "descargar_pdf_orden"
+    | "imprimir_orden"
+    | "compartir_orden_whatsapp"
+    | "compartir_orden_email"
+): Promise<ActionResult> {
+  const { supabase, user } = await requireAuth();
+
+  const { data: orden } = await supabase
+    .from("fce_ordenes_examen")
+    .select("id_clinica, id_paciente")
+    .eq("id", ordenId)
+    .maybeSingle();
+
+  if (!orden) return { success: false, error: "Orden no encontrada" };
+
+  await logAudit(
+    supabase,
+    user.id,
+    accion,
+    "fce_ordenes_examen",
+    ordenId,
+    orden.id_clinica,
+    orden.id_paciente
+  );
+
+  return { success: true, data: undefined };
+}

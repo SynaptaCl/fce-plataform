@@ -27,6 +27,8 @@ import { SignosVitalesExpandedCard } from "./timeline/SignosVitalesExpandedCard"
 import { ConsentimientoExpandedCard } from "./timeline/ConsentimientoExpandedCard";
 import { PrescripcionExpandedCard } from "./timeline/PrescripcionExpandedCard";
 import { PrescripcionDetalleModal } from "@/components/shared/PrescripcionDetalleModal";
+import { OrdenExamenExpandedCard } from "./timeline/OrdenExamenExpandedCard";
+import { OrdenExamenDetalleModal } from "@/components/shared/OrdenExamenDetalleModal";
 import type { Patient } from "@/types/patient";
 import type { ClinicaConfig } from "@/lib/modules/config";
 
@@ -143,10 +145,12 @@ function EntryContent({
   entry,
   patientId,
   onVerReceta,
+  onVerOrden,
 }: {
   entry: TimelineEntry;
   patientId: string;
   onVerReceta?: (id: string) => void;
+  onVerOrden?: (id: string) => void;
 }) {
   switch (entry.type) {
     case "soap":
@@ -163,6 +167,8 @@ function EntryContent({
       return <InstrumentoExpandedCard entry={entry} patientId={patientId} />;
     case "prescripcion":
       return <PrescripcionExpandedCard entry={entry} patientId={patientId} onVerReceta={onVerReceta} />;
+    case "orden_examen":
+      return <OrdenExamenExpandedCard entry={entry} patientId={patientId} onVerOrden={onVerOrden} />;
   }
 }
 
@@ -174,12 +180,14 @@ function TimelineCard({
   onToggle,
   patientId,
   onVerReceta,
+  onVerOrden,
 }: {
   entry: TimelineEntry;
   expanded: boolean;
   onToggle: () => void;
   patientId: string;
   onVerReceta?: (id: string) => void;
+  onVerOrden?: (id: string) => void;
 }) {
   const cfg = TYPE_CONFIG[entry.type];
   const TypeIcon = cfg.icon;
@@ -246,7 +254,7 @@ function TimelineCard({
 
       {expanded && (
         <div className="px-4 pb-4 pt-1 border-t border-kp-border bg-surface-0/40">
-          <EntryContent entry={entry} patientId={patientId} onVerReceta={onVerReceta} />
+          <EntryContent entry={entry} patientId={patientId} onVerReceta={onVerReceta} onVerOrden={onVerOrden} />
         </div>
       )}
     </div>
@@ -266,6 +274,7 @@ export function ClinicalTimeline({
   const [activeTab, setActiveTab] = useState<string>("todos");
   const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
   const [modalPrescripcionId, setModalPrescripcionId] = useState<string | null>(null);
+  const [modalOrdenId, setModalOrdenId] = useState<string | null>(null);
 
   // Construir tabs dinámicamente desde config de la clínica
   const filterTabs = useMemo(() => {
@@ -411,6 +420,7 @@ export function ClinicalTimeline({
               onToggle={() => toggleEntry(entry.id)}
               patientId={patientId}
               onVerReceta={paciente && clinica ? setModalPrescripcionId : undefined}
+              onVerOrden={paciente && clinica ? setModalOrdenId : undefined}
             />
           ))
         )}
@@ -422,6 +432,14 @@ export function ClinicalTimeline({
           paciente={paciente}
           clinica={clinica}
           onClose={() => setModalPrescripcionId(null)}
+        />
+      )}
+      {modalOrdenId && paciente && clinica && (
+        <OrdenExamenDetalleModal
+          ordenId={modalOrdenId}
+          paciente={paciente}
+          clinica={clinica}
+          onClose={() => setModalOrdenId(null)}
         />
       )}
     </div>
