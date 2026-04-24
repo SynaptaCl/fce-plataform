@@ -50,9 +50,17 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-kp-primary-deep flex flex-col items-center justify-center px-4">
-      {/* Card */}
-      <div className="w-full max-w-sm bg-surface-1 rounded-xl shadow-2xl overflow-hidden">
+    <div
+      className="relative min-h-screen bg-cover bg-center bg-no-repeat flex flex-col items-center justify-center px-4"
+      style={{
+        backgroundImage: "url('/imagenes/fondo_login.jpg')",
+      }}
+    >
+      {/* Filtro tenue: Oscurece el fondo y aplica un desenfoque suave (glassmorphism effect) */}
+      <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-[2px]" />
+
+      {/* Card - Se añade 'relative z-10' para que el login quede por encima del filtro */}
+      <div className="relative z-10 w-full max-w-sm bg-surface-1 rounded-xl shadow-2xl overflow-hidden">
         {/* Header */}
         <div className="bg-kp-primary px-8 py-7">
           <div className="flex items-center gap-3 mb-1">
@@ -148,7 +156,7 @@ export default function LoginPage() {
         </div>
       </div>
 
-      <p className="mt-6 text-xs text-white/30">
+      <p className="relative z-10 mt-6 text-xs text-white/50">
         Acceso restringido a personal autorizado de {"Synapta FCE"}
       </p>
     </div>

@@ -15,7 +15,7 @@ interface Props {
   encuentroId: string | null;
   profesional: ProfesionalPerfil;
   onClose: () => void;
-  onSuccess: (folio: string) => void;
+  onSuccess: (folio: string, prescripcionId: string) => void;
 }
 
 export function PrescripcionForm({ patientId, encuentroId, profesional, onClose, onSuccess }: Props) {
@@ -55,7 +55,7 @@ export function PrescripcionForm({ patientId, encuentroId, profesional, onClose,
         firmaCanvas: modoFirma === "canvas" ? firmaCanvas : null,
       });
       if (result.success) {
-        onSuccess(result.data.folio);
+        onSuccess(result.data.folio, result.data.prescripcion.id);
       } else {
         setError(result.error);
       }
@@ -65,10 +65,10 @@ export function PrescripcionForm({ patientId, encuentroId, profesional, onClose,
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
       <div
         className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl shadow-xl"
-        style={{ background: "var(--surface-1)" }}
+        style={{ background: "#ffffff" }}
       >
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: "var(--kp-border)" }}>

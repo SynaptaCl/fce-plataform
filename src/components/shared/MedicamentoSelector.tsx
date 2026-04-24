@@ -92,7 +92,7 @@ export function MedicamentoSelector({ onSelect }: Props) {
       {open && (
         <div
           className="absolute z-10 w-full mt-1 rounded-lg border shadow-lg overflow-hidden"
-          style={{ borderColor: "var(--kp-border)", background: "var(--surface-1)" }}
+          style={{ borderColor: "var(--kp-border)", background: "#ffffff" }}
         >
           {loading && (
             <div className="px-3 py-2 text-sm" style={{ color: "var(--ink-3)" }}>Buscando...</div>

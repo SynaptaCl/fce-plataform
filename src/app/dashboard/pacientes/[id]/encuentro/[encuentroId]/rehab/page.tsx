@@ -145,7 +145,7 @@ export default async function RehabPage({
                 En progreso
               </span>
             )}
-            <PrescripcionLauncher patientId={patient.id} encuentroId={encuentroId} />
+            <PrescripcionLauncher patientId={patient.id} encuentroId={encuentroId} paciente={patient} />
           </div>
         </div>
 
