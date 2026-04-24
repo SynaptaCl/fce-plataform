@@ -226,3 +226,24 @@ export async function createAndSignPrescripcion(input: {
     },
   };
 }
+
+// ── Stubs para R11 audit tracking (will be fully implemented in Task 6) ────────
+
+export async function logPrescripcionDownload(
+  _prescripcionId: string
+): Promise<ActionResult> {
+  return { success: true, data: undefined };
+}
+
+export async function logPrescripcionPrint(
+  _prescripcionId: string
+): Promise<ActionResult> {
+  return { success: true, data: undefined };
+}
+
+export async function logPrescripcionShare(
+  _prescripcionId: string,
+  _canal: "email" | "whatsapp" | "otro"
+): Promise<ActionResult> {
+  return { success: true, data: undefined };
+}
