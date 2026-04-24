@@ -14,6 +14,7 @@ import {
   User,
   Clock,
   ClipboardList,
+  Pill,
 } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { cn } from "@/lib/utils";
@@ -94,6 +95,13 @@ const TYPE_CONFIG: Record<
     borderClass: "border-l-kp-info",
     bgClass: "bg-kp-info-lt",
   },
+  prescripcion: {
+    label: "Prescripción",
+    icon: Pill,
+    badgeVariant: "info" as BadgeVariant,
+    borderClass: "border-l-kp-info",
+    bgClass: "bg-kp-info-lt",
+  },
 };
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -118,6 +126,15 @@ function formatDateTime(iso: string) {
   });
 }
 
+function PrescripcionPlaceholder({ entry }: { entry: TimelineEntry }) {
+  return (
+    <div className="text-sm text-ink-2 py-2">
+      <p className="font-medium">{entry.prescripcionData?.folio ?? entry.titulo}</p>
+      <p className="text-xs text-ink-3 mt-1">{entry.resumen}</p>
+    </div>
+  );
+}
+
 function EntryContent({
   entry,
   patientId,
@@ -138,6 +155,8 @@ function EntryContent({
       return <NotaClinicaExpandedCard entry={entry} patientId={patientId} />;
     case "instrumento":
       return <InstrumentoExpandedCard entry={entry} patientId={patientId} />;
+    case "prescripcion":
+      return <PrescripcionPlaceholder entry={entry} />;
   }
 }
 

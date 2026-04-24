@@ -15,7 +15,8 @@ export type TimelineEntryType =
   | "signos_vitales"
   | "consentimiento"
   | "nota_clinica"
-  | "instrumento";
+  | "instrumento"
+  | "prescripcion";
 
 export interface TimelineEntry {
   id: string;
@@ -30,6 +31,13 @@ export interface TimelineEntry {
   encuentroId?: string;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   data: Record<string, any>;
+  prescripcionData?: {
+    folio: string;
+    tipo: "farmacologica" | "indicacion_general";
+    medicamentosCount: number;
+    primerMedicamento?: string;
+    diagnostico?: string;
+  };
 }
 
 export interface PatientSummary {
