@@ -16,7 +16,8 @@ export type TimelineEntryType =
   | "consentimiento"
   | "nota_clinica"
   | "instrumento"
-  | "prescripcion";
+  | "prescripcion"
+  | "orden_examen";
 
 export interface TimelineEntry {
   id: string;

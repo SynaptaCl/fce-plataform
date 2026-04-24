@@ -108,6 +108,13 @@ const TYPE_CONFIG: Record<
     borderClass: "border-l-kp-info",
     bgClass: "bg-kp-info-lt",
   },
+  orden_examen: {
+    label: "Orden de Examen",
+    icon: ClipboardList,
+    badgeVariant: "info" as BadgeVariant,
+    borderClass: "border-l-kp-info",
+    bgClass: "bg-kp-info-lt",
+  },
 };
 
 // ── Helpers ────────────────────────────────────────────────────────────────

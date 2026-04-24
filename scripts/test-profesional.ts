@@ -113,6 +113,7 @@ const P1: ProfesionalPerfil = {
   numero_registro: null,
   tipo_registro: null,
   puede_prescribir: false,
+  puede_indicar_examenes: false,
 };
 
 const P2: ProfesionalPerfil = {
@@ -128,6 +129,7 @@ const P2: ProfesionalPerfil = {
   numero_registro: null,
   tipo_registro: null,
   puede_prescribir: false,
+  puede_indicar_examenes: false,
 };
 
 const P3: ProfesionalPerfil = {
@@ -143,6 +145,7 @@ const P3: ProfesionalPerfil = {
   numero_registro: null,
   tipo_registro: null,
   puede_prescribir: false,
+  puede_indicar_examenes: false,
 };
 
 // ── Main ─────────────────────────────────────────────────────────────────────

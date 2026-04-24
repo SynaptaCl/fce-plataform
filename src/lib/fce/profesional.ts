@@ -13,6 +13,7 @@ export interface ProfesionalPerfil {
   numero_registro: string | null;    // número de registro profesional (SIS, Colegio, etc.)
   tipo_registro: string | null;      // 'SIS' | 'Colegio Odontológico' | etc.
   puede_prescribir: boolean;         // default false — activado manualmente
+  puede_indicar_examenes: boolean;   // default false — activado manualmente
 }
 
 /**
@@ -27,7 +28,7 @@ export async function getProfesionalesDelUsuario(
 ): Promise<ProfesionalPerfil[]> {
   let query = supabase
     .from('profesionales')
-    .select('id, nombre, especialidad, id_clinica, duracion_consulta, color_agenda, activo, es_agendable, rut, numero_registro, tipo_registro, puede_prescribir')
+    .select('id, nombre, especialidad, id_clinica, duracion_consulta, color_agenda, activo, es_agendable, rut, numero_registro, tipo_registro, puede_prescribir, puede_indicar_examenes')
     .eq('auth_id', authId)
     .eq('activo', true)
     .order('created_at', { ascending: true });

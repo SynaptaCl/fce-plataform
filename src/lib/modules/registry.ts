@@ -23,7 +23,8 @@ export type ModuleId =
   | "M4_soap"
   | "M5_consentimiento"
   | "M6_auditoria"
-  | "M7_prescripciones";
+  | "M7_prescripciones"
+  | "M8_examenes";
 
 // ============================================================================
 // IDs de especialidades (coinciden con especialidades_catalogo.codigo)
@@ -215,6 +216,20 @@ export const MODULE_REGISTRY: Record<ModuleId, ModuleDefinition> = {
     componentes: ["PrescripcionForm", "IndicacionForm"],
     requiereEspecialidad: false,
     estado: "estable",
+  },
+
+  M8_examenes: {
+    id: "M8_examenes",
+    label: "Exámenes y Laboratorios",
+    descripcion:
+      "Indicación de exámenes de laboratorio e imagenología con firma del profesional. Permiso individual por campo puede_indicar_examenes en profesionales.",
+    obligatorio: false,
+    dependeDe: ["M1_identificacion"],
+    tablasSupabase: ["fce_ordenes_examen", "examenes_catalogo"],
+    rutasApp: ["/dashboard/pacientes/[id]/examenes"],
+    componentes: ["OrdenExamenForm"],
+    requiereEspecialidad: false,
+    estado: "beta",
   },
 };
 

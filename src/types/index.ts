@@ -47,3 +47,4 @@ export type {
   ViaAdministracion,
 } from "./prescripcion";
 export type { MedicamentoCatalogo } from "./medicamento";
+export type { ExamenCatalogo, ExamenIndicado, OrdenExamen } from "./orden-examen";
