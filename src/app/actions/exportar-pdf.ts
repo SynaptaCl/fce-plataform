@@ -73,6 +73,15 @@ export interface PdfPatientData {
       descripcion: string | null;
     } | null;
   }>;
+  prescripcionesRecientes: Array<{
+    id: string;
+    folio_display: string;
+    tipo: "farmacologica" | "indicacion_general";
+    diagnostico_asociado: string | null;
+    prof_nombre_snapshot: string | null;
+    firmado_at: string;
+    medicamentos: unknown;
+  }>;
   branding: BrandingConfig | null;
   clinicName: string;
 }
@@ -101,7 +110,7 @@ export async function getPdfPatientData(
   const idClinica = adminRes.data?.id_clinica ?? null;
 
   // Fetch resto de datos en paralelo
-  const [anamnesisRes, vitalesRes, evaluacionesRes, soapsRes, consentimientosRes, clinicaRes, notasClinicasRes, instrumentosRes] =
+  const [anamnesisRes, vitalesRes, evaluacionesRes, soapsRes, consentimientosRes, clinicaRes, notasClinicasRes, instrumentosRes, prescripcionesRes] =
     await Promise.all([
       supabase
         .from("fce_anamnesis")
@@ -176,6 +185,16 @@ export async function getPdfPatientData(
             aplicado_at: string;
             instrumento: { nombre: string; descripcion: string | null } | null;
           }>, error: null }),
+      idClinica
+        ? supabase
+            .from("fce_prescripciones")
+            .select("id, folio_display, tipo, diagnostico_asociado, prof_nombre_snapshot, firmado_at, medicamentos")
+            .eq("id_paciente", patientId)
+            .eq("id_clinica", idClinica)
+            .eq("firmado", true)
+            .order("firmado_at", { ascending: false })
+            .limit(5)
+        : Promise.resolve({ data: [], error: null }),
     ]);
 
   // Registrar exportación en logs_auditoria
@@ -210,6 +229,7 @@ export async function getPdfPatientData(
       consentimientos: consentimientosRes.data ?? [],
       notasClinicas: (notasClinicasRes.data ?? []) as PdfPatientData["notasClinicas"],
       instrumentosAplicados: (instrumentosRes.data ?? []) as PdfPatientData["instrumentosAplicados"],
+      prescripcionesRecientes: (prescripcionesRes.data ?? []) as PdfPatientData["prescripcionesRecientes"],
       branding,
       clinicName,
     },
