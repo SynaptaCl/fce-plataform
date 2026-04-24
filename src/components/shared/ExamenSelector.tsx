@@ -41,9 +41,13 @@ export function ExamenSelector({ onSelect }: Props) {
     if (debounceRef.current) clearTimeout(debounceRef.current);
 
     if (query.length < 2) {
-      setResults([]);
-      setOpen(false);
-      return;
+      debounceRef.current = setTimeout(() => {
+        setResults([]);
+        setOpen(false);
+      }, 0);
+      return () => {
+        if (debounceRef.current) clearTimeout(debounceRef.current);
+      };
     }
 
     debounceRef.current = setTimeout(async () => {

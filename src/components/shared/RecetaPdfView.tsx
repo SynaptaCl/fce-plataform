@@ -95,6 +95,7 @@ export function RecetaPdfView({
       >
         <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
           {clinica.logoUrl && (
+            // eslint-disable-next-line @next/next/no-img-element
             <img
               src={clinica.logoUrl}
               alt="Logo"
@@ -413,6 +414,7 @@ export function RecetaPdfView({
         }}
       >
         {prescripcion.modo_firma === "canvas" && prescripcion.firma_canvas ? (
+          // eslint-disable-next-line @next/next/no-img-element
           <img
             src={prescripcion.firma_canvas}
             alt="Firma digital"
