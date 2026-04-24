@@ -79,6 +79,20 @@ type NotaClinicaRow = {
   created_at: string;
 };
 
+type PrescripcionTimelineRow = {
+  id: string;
+  folio_display: string;
+  tipo: "farmacologica" | "indicacion_general";
+  medicamentos: unknown[] | null;
+  indicaciones_generales: string | null;
+  diagnostico_asociado: string | null;
+  firmado_at: string;
+  prof_nombre_snapshot: string | null;
+  prof_especialidad_snapshot: string | null;
+  id_clinica: string;
+  id_paciente: string;
+};
+
 type InstrumentoAplicadoRow = {
   id: string;
   id_encuentro: string | null;
@@ -102,7 +116,7 @@ export async function getPatientTimeline(
 
   const idClinica = await getIdClinica(supabase, user.id);
 
-  const [soapRes, evalRes, vitalsRes, consentRes, anamnesisRes, notasRes, instrumentosRes] = await Promise.all([
+  const [soapRes, evalRes, vitalsRes, consentRes, anamnesisRes, notasRes, instrumentosRes, prescripcionesRes] = await Promise.all([
     supabase
       .from("fce_notas_soap")
       .select("*")
@@ -144,6 +158,14 @@ export async function getPatientTimeline(
           .eq("id_clinica", idClinica)
           .eq("mostrar_en_timeline", true)
           .order("aplicado_at", { ascending: false })
+      : Promise.resolve({ data: [], error: null }),
+    idClinica
+      ? supabase
+          .from("fce_prescripciones")
+          .select("id, folio_display, tipo, medicamentos, indicaciones_generales, diagnostico_asociado, firmado_at, prof_nombre_snapshot, prof_especialidad_snapshot, id_clinica, id_paciente")
+          .eq("id_paciente", patientId)
+          .eq("firmado", true)
+          .order("firmado_at", { ascending: false })
       : Promise.resolve({ data: [], error: null }),
   ]);
 
@@ -334,6 +356,43 @@ export async function getPatientTimeline(
         respuestas: inst.respuestas ?? {},
         notas: inst.notas,
         schema_items: inst.instrumento?.schema_items,
+      },
+    });
+  }
+
+  // Prescripciones
+  for (const presc of (prescripcionesRes.data ?? []) as PrescripcionTimelineRow[]) {
+    const meds = Array.isArray(presc.medicamentos) ? presc.medicamentos as Array<{ principio_activo?: string; presentacion?: string }> : [];
+    const primerMed = meds[0]
+      ? [meds[0].principio_activo, meds[0].presentacion].filter(Boolean).join(" ")
+      : undefined;
+    entries.push({
+      id: presc.id,
+      type: "prescripcion",
+      date: presc.firmado_at,
+      especialidad: presc.prof_especialidad_snapshot ?? undefined,
+      profesional_nombre: presc.prof_nombre_snapshot ?? undefined,
+      titulo: presc.tipo === "farmacologica"
+        ? `Receta farmacológica — ${presc.folio_display}`
+        : `Indicación general — ${presc.folio_display}`,
+      resumen: presc.tipo === "farmacologica"
+        ? primerMed
+          ? `${primerMed}${meds.length > 1 ? ` y ${meds.length - 1} más` : ""}`
+          : "Prescripción sin medicamentos detallados"
+        : (presc.indicaciones_generales?.slice(0, 100) ?? "Indicación general"),
+      firmado: true,
+      prescripcionData: {
+        folio: presc.folio_display,
+        tipo: presc.tipo,
+        medicamentosCount: meds.length,
+        primerMedicamento: primerMed,
+        diagnostico: presc.diagnostico_asociado ?? undefined,
+      },
+      data: {
+        folio: presc.folio_display,
+        tipo: presc.tipo,
+        medicamentosCount: meds.length,
+        diagnostico: presc.diagnostico_asociado,
       },
     });
   }

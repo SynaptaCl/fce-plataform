@@ -227,23 +227,80 @@ export async function createAndSignPrescripcion(input: {
   };
 }
 
-// ── Stubs para R11 audit tracking (will be fully implemented in Task 6) ────────
+// ── Audit tracking R11 ────────────────────────────────────────────────────────
 
 export async function logPrescripcionDownload(
-  _prescripcionId: string
+  prescripcionId: string
 ): Promise<ActionResult> {
+  const { supabase, user } = await requireAuth();
+
+  const { data: presc } = await supabase
+    .from("fce_prescripciones")
+    .select("id_clinica, id_paciente")
+    .eq("id", prescripcionId)
+    .maybeSingle();
+
+  if (!presc) return { success: false, error: "Prescripción no encontrada" };
+
+  await logAudit(
+    supabase, user.id,
+    "descargar_prescripcion",
+    "fce_prescripciones",
+    prescripcionId,
+    presc.id_clinica,
+    presc.id_paciente
+  );
+
   return { success: true, data: undefined };
 }
 
 export async function logPrescripcionPrint(
-  _prescripcionId: string
+  prescripcionId: string
 ): Promise<ActionResult> {
+  const { supabase, user } = await requireAuth();
+
+  const { data: presc } = await supabase
+    .from("fce_prescripciones")
+    .select("id_clinica, id_paciente")
+    .eq("id", prescripcionId)
+    .maybeSingle();
+
+  if (!presc) return { success: false, error: "Prescripción no encontrada" };
+
+  await logAudit(
+    supabase, user.id,
+    "imprimir_prescripcion",
+    "fce_prescripciones",
+    prescripcionId,
+    presc.id_clinica,
+    presc.id_paciente
+  );
+
   return { success: true, data: undefined };
 }
 
 export async function logPrescripcionShare(
-  _prescripcionId: string,
-  _canal: "email" | "whatsapp" | "otro"
+  prescripcionId: string,
+  canal: "email" | "whatsapp" | "otro"
 ): Promise<ActionResult> {
+  const { supabase, user } = await requireAuth();
+
+  const { data: presc } = await supabase
+    .from("fce_prescripciones")
+    .select("id_clinica, id_paciente")
+    .eq("id", prescripcionId)
+    .maybeSingle();
+
+  if (!presc) return { success: false, error: "Prescripción no encontrada" };
+
+  await logAudit(
+    supabase, user.id,
+    `compartir_prescripcion_${canal}`,
+    "fce_prescripciones",
+    prescripcionId,
+    presc.id_clinica,
+    presc.id_paciente
+  );
+
   return { success: true, data: undefined };
 }
