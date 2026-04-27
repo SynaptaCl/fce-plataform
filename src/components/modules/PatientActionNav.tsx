@@ -9,7 +9,6 @@ import {
   ShieldCheck,
   FileDown,
   Share2,
-  Pencil,
   FileEdit,
   LogOut,
 } from "lucide-react";
@@ -182,17 +181,7 @@ export function PatientActionNav({
         </button>
         <div className="my-1 border-t border-kp-border" />
 
-        {/* Editar datos — siempre (M1 siempre activo) */}
-        <NavLink
-          item={{
-            id: "editar",
-            label: "Editar datos",
-            icon: <Pencil className="w-4 h-4" />,
-            href: `/dashboard/pacientes/${patientId}/editar`,
-          }}
-          isActive={isActiveHref(`/dashboard/pacientes/${patientId}/editar`)}
-        />
-        <div className="my-1 border-t border-kp-border" />
+
 
         {entries.map((entry, idx) => {
           if ("title" in entry) {
