@@ -35,6 +35,7 @@ export interface Patient {
   contacto_emergencia: EmergencyContact | null;
   created_at: string;
   updated_at: string;
+  estado_clinico?: "activo" | "egresado" | string | null;
 }
 
 export type PatientFormData = Omit<Patient, "id" | "created_at" | "updated_at">;

@@ -9,7 +9,10 @@ import { PatientActionNav } from "@/components/modules/PatientActionNav";
 import { ClinicalTimeline } from "@/components/modules/ClinicalTimeline";
 import { SummaryPanel } from "@/components/modules/SummaryPanel";
 import { EncuentroLauncher } from "@/components/shared/EncuentroLauncher";
+import { EgresoLauncher } from "@/components/shared/EgresoLauncher";
+import { ReingresoBanner } from "@/components/shared/ReingresoBanner";
 import { getProfesionalActivo } from "@/lib/fce/profesional";
+import { getEgresosByPaciente } from "@/app/actions/egresos";
 import type { PatientSummary } from "@/app/actions/timeline";
 
 export async function generateMetadata({
@@ -55,7 +58,7 @@ export default async function PatientDetailPage({
   const isAdmin = ["admin", "director", "superadmin"].includes(rol);
 
   // ── Fetch paralelo ─────────────────────────────────────────────────────
-  const [patientResult, timelineResult, consentResult, fceConfigRes, profesional] =
+  const [patientResult, timelineResult, consentResult, fceConfigRes, profesional, egresosResult] =
     await Promise.all([
       getPatientById(id),
       getPatientTimeline(id),
@@ -72,6 +75,7 @@ export default async function PatientDetailPage({
             .single()
         : Promise.resolve({ data: null }),
       getProfesionalActivo(supabase, user.id, idClinica ?? undefined),
+      getEgresosByPaciente(id),
     ]);
 
   if (!patientResult.success) notFound();
@@ -88,6 +92,8 @@ export default async function PatientDetailPage({
       .join(" ") || "Sin nombre";
 
   const entries = timelineResult.success ? timelineResult.data.entries : [];
+  const egresos = egresosResult.success ? egresosResult.data : [];
+  const egresosFirmados = egresos.filter((e) => e.firmado);
 
   const emptySummary: PatientSummary = {
     motivo_consulta: null,
@@ -122,10 +128,26 @@ export default async function PatientDetailPage({
       {/* PatientHeader — banner M1 */}
       <PatientHeader patient={p} hasConsent={hasConsent} patientId={id} />
 
-      {/* Iniciar atención — solo para profesionales con especialidad activa */}
-      {especialidadProfesional && (
+      {/* Banner de egreso — si el paciente está egresado */}
+      {p.estado_clinico === "egresado" && (
+        <ReingresoBanner
+          patientId={id}
+          egresoFirmadoAt={egresosFirmados[0]?.firmado_at ?? null}
+          tipoEgreso={egresosFirmados[0]?.tipo_egreso ?? null}
+        />
+      )}
+
+      {/* Iniciar atención — solo para profesionales con especialidad activa y paciente no egresado */}
+      {especialidadProfesional && p.estado_clinico !== "egresado" && (
         <EncuentroLauncher patientId={id} especialidad={especialidadProfesional} />
       )}
+
+      {/* Egresar paciente — para roles permitidos con M9 activo */}
+      <EgresoLauncher
+        patientId={id}
+        estadoClinico={p.estado_clinico ?? "activo"}
+        rol={rol}
+      />
 
       {/*
         Grid 3 columnas:

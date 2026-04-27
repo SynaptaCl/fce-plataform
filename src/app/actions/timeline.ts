@@ -18,7 +18,8 @@ export type TimelineEntryType =
   | "nota_clinica"
   | "instrumento"
   | "prescripcion"
-  | "orden_examen";
+  | "orden_examen"
+  | "egreso";
 
 export interface TimelineEntry {
   id: string;
@@ -116,6 +117,18 @@ type OrdenExamenTimelineRow = {
   id_paciente: string;
 };
 
+type EgresoTimelineRow = {
+  id: string;
+  tipo_egreso: string;
+  diagnostico_egreso: string;
+  resumen_tratamiento: string;
+  firmado: boolean;
+  firmado_at: string | null;
+  firmado_por: string | null;
+  created_at: string;
+  created_by: string;
+};
+
 type InstrumentoAplicadoRow = {
   id: string;
   id_encuentro: string | null;
@@ -139,7 +152,7 @@ export async function getPatientTimeline(
 
   const idClinica = await getIdClinica(supabase, user.id);
 
-  const [soapRes, evalRes, vitalsRes, consentRes, anamnesisRes, notasRes, instrumentosRes, prescripcionesRes, ordenesExamenRes] = await Promise.all([
+  const [soapRes, evalRes, vitalsRes, consentRes, anamnesisRes, notasRes, instrumentosRes, prescripcionesRes, ordenesExamenRes, egresosRes] = await Promise.all([
     supabase
       .from("fce_notas_soap")
       .select("*")
@@ -199,6 +212,14 @@ export async function getPatientTimeline(
           .eq("firmado", true)
           .order("firmado_at", { ascending: false })
       : Promise.resolve({ data: [], error: null }),
+    idClinica
+      ? supabase
+          .from("fce_egresos")
+          .select("id, tipo_egreso, diagnostico_egreso, resumen_tratamiento, firmado, firmado_at, firmado_por, created_at, created_by")
+          .eq("id_paciente", patientId)
+          .eq("id_clinica", idClinica)
+          .order("created_at", { ascending: false })
+      : Promise.resolve({ data: [], error: null }),
   ]);
 
   // Batch-fetch encuentros for SOAP notes to get especialidad
@@ -235,6 +256,10 @@ export async function getPatientTimeline(
   }
   for (const i of (instrumentosRes.data ?? []) as unknown as InstrumentoAplicadoRow[]) {
     if (i.aplicado_por) profIds.add(i.aplicado_por);
+  }
+  for (const e of (egresosRes.data ?? []) as EgresoTimelineRow[]) {
+    if (e.created_by) profIds.add(e.created_by);
+    if (e.firmado_por) profIds.add(e.firmado_por);
   }
 
   const profMap = new Map<string, string>();
@@ -452,6 +477,34 @@ export async function getPatientTimeline(
         diagnostico_presuntivo: orden.diagnostico_presuntivo,
         prioridad: orden.prioridad,
         estado_resultados: orden.estado_resultados,
+      },
+    });
+  }
+
+  // Egresos
+  for (const egreso of (egresosRes.data ?? []) as EgresoTimelineRow[]) {
+    const TIPO_LABELS: Record<string, string> = {
+      alta_clinica: "Alta clínica",
+      abandono: "Abandono de tratamiento",
+      derivacion: "Derivación",
+      fallecimiento: "Fallecimiento",
+      otro: "Otro",
+    };
+    entries.push({
+      id: egreso.id,
+      type: "egreso",
+      date: egreso.firmado_at ?? egreso.created_at,
+      autor_id: egreso.created_by ?? undefined,
+      profesional_nombre: egreso.created_by ? profMap.get(egreso.created_by) : undefined,
+      titulo: `Egreso — ${TIPO_LABELS[egreso.tipo_egreso] ?? egreso.tipo_egreso}`,
+      resumen: egreso.diagnostico_egreso?.slice(0, 150) ?? "",
+      firmado: egreso.firmado,
+      data: {
+        tipo_egreso: egreso.tipo_egreso,
+        diagnostico_egreso: egreso.diagnostico_egreso,
+        resumen_tratamiento: egreso.resumen_tratamiento,
+        firmado: egreso.firmado,
+        firmado_at: egreso.firmado_at,
       },
     });
   }

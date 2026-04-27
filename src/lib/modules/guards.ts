@@ -93,3 +93,7 @@ export function assertPuedeConfigurar(rol: Rol | null): ActionResult<true> {
   }
   return { success: true, data: true };
 }
+
+export function requireModuloEgresos(config: ClinicaConfig | null): void {
+  requireModule(config, "M9_egresos");
+}

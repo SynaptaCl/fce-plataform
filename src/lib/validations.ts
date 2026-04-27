@@ -161,3 +161,18 @@ export const consentSchema = z.object({
 });
 
 export type ConsentSchemaType = z.infer<typeof consentSchema>;
+
+// ── Egreso ──
+
+export const egresoSchema = z.object({
+  tipo_egreso: z.enum(['alta_clinica', 'abandono', 'derivacion', 'fallecimiento', 'otro']),
+  diagnostico_egreso: z.string().min(1, 'Diagnóstico de egreso es obligatorio'),
+  resumen_tratamiento: z.string().min(1, 'Resumen de tratamiento es obligatorio'),
+  estado_al_egreso: z.string().optional().nullable(),
+  indicaciones_post_egreso: z.string().optional().nullable(),
+  derivacion_a: z.string().optional().nullable(),
+  notas: z.string().optional().nullable(),
+  id_encuentro: z.string().uuid().optional().nullable(),
+});
+
+export type EgresoSchemaType = z.infer<typeof egresoSchema>;

@@ -11,6 +11,7 @@ import {
   Share2,
   Pencil,
   FileEdit,
+  LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useClinicaConfig } from "@/lib/modules/provider";
@@ -61,6 +62,15 @@ function buildNav(patientId: string): NavEntry[] {
         icon: <FileSignature className="w-4 h-4" />,
         href: `${base}/consentimiento`,
         moduleId: "M5_consentimiento",
+      },
+    },
+    {
+      item: {
+        id: "egreso",
+        label: "Egresos",
+        icon: <LogOut className="w-4 h-4" />,
+        href: `${base}/egreso`,
+        moduleId: "M9_egresos",
       },
     },
     {

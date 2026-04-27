@@ -24,7 +24,8 @@ export type ModuleId =
   | "M5_consentimiento"
   | "M6_auditoria"
   | "M7_prescripciones"
-  | "M8_examenes";
+  | "M8_examenes"
+  | "M9_egresos";
 
 // ============================================================================
 // IDs de especialidades (coinciden con especialidades_catalogo.codigo)
@@ -228,6 +229,19 @@ export const MODULE_REGISTRY: Record<ModuleId, ModuleDefinition> = {
     tablasSupabase: ["fce_ordenes_examen", "examenes_catalogo"],
     rutasApp: ["/dashboard/pacientes/[id]/examenes"],
     componentes: ["OrdenExamenForm"],
+    requiereEspecialidad: false,
+    estado: "beta",
+  },
+
+  M9_egresos: {
+    id: "M9_egresos",
+    label: "Egresos",
+    descripcion: "Gestión de altas y egresos clínicos",
+    obligatorio: false,
+    dependeDe: ["M1_identificacion"],
+    tablasSupabase: ["fce_egresos"],
+    rutasApp: ["/dashboard/pacientes/[id]/egreso"],
+    componentes: ["EgresoForm", "EgresoLauncher"],
     requiereEspecialidad: false,
     estado: "beta",
   },
