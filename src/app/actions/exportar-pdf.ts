@@ -82,6 +82,15 @@ export interface PdfPatientData {
     firmado_at: string;
     medicamentos: unknown;
   }>;
+  egresos: Array<{
+    id: string;
+    tipo_egreso: string;
+    diagnostico_egreso: string;
+    resumen_tratamiento: string;
+    indicaciones_post_egreso: string | null;
+    firmado: boolean;
+    firmado_at: string | null;
+  }>;
   branding: BrandingConfig | null;
   clinicName: string;
 }
@@ -110,7 +119,7 @@ export async function getPdfPatientData(
   const idClinica = adminRes.data?.id_clinica ?? null;
 
   // Fetch resto de datos en paralelo
-  const [anamnesisRes, vitalesRes, evaluacionesRes, soapsRes, consentimientosRes, clinicaRes, notasClinicasRes, instrumentosRes, prescripcionesRes] =
+  const [anamnesisRes, vitalesRes, evaluacionesRes, soapsRes, consentimientosRes, clinicaRes, notasClinicasRes, instrumentosRes, prescripcionesRes, egresosRes] =
     await Promise.all([
       supabase
         .from("fce_anamnesis")
@@ -195,6 +204,15 @@ export async function getPdfPatientData(
             .order("firmado_at", { ascending: false })
             .limit(5)
         : Promise.resolve({ data: [], error: null }),
+      idClinica
+        ? supabase
+            .from("fce_egresos")
+            .select("id, tipo_egreso, diagnostico_egreso, resumen_tratamiento, indicaciones_post_egreso, firmado, firmado_at")
+            .eq("id_paciente", patientId)
+            .eq("id_clinica", idClinica)
+            .eq("firmado", true)
+            .order("firmado_at", { ascending: false })
+        : Promise.resolve({ data: [], error: null }),
     ]);
 
   // Registrar exportación en logs_auditoria
@@ -230,6 +248,7 @@ export async function getPdfPatientData(
       notasClinicas: (notasClinicasRes.data ?? []) as PdfPatientData["notasClinicas"],
       instrumentosAplicados: (instrumentosRes.data ?? []) as PdfPatientData["instrumentosAplicados"],
       prescripcionesRecientes: (prescripcionesRes.data ?? []) as PdfPatientData["prescripcionesRecientes"],
+      egresos: (egresosRes.data ?? []) as PdfPatientData["egresos"],
       branding,
       clinicName,
     },

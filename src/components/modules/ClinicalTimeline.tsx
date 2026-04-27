@@ -15,6 +15,7 @@ import {
   Clock,
   ClipboardList,
   Pill,
+  LogOut,
 } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { cn } from "@/lib/utils";
@@ -29,6 +30,7 @@ import { PrescripcionExpandedCard } from "./timeline/PrescripcionExpandedCard";
 import { PrescripcionDetalleModal } from "@/components/shared/PrescripcionDetalleModal";
 import { OrdenExamenExpandedCard } from "./timeline/OrdenExamenExpandedCard";
 import { OrdenExamenDetalleModal } from "@/components/shared/OrdenExamenDetalleModal";
+import { EgresoCard } from "@/components/shared/EgresoCard";
 import type { Patient } from "@/types/patient";
 import type { ClinicaConfig } from "@/lib/modules/config";
 
@@ -117,6 +119,13 @@ const TYPE_CONFIG: Record<
     badgeVariant: "info" as BadgeVariant,
     borderClass: "border-l-kp-info",
     bgClass: "bg-kp-info-lt",
+  },
+  egreso: {
+    label: "Egreso",
+    icon: LogOut,
+    badgeVariant: "warning" as BadgeVariant,
+    borderClass: "border-l-kp-danger",
+    bgClass: "bg-kp-danger-lt",
   },
 };
 
@@ -216,6 +225,8 @@ function EntryContent({
           onVerOrden={onVerOrden}
         />
       );
+    case "egreso":
+      return <EgresoCard entry={entry} patientId={patientId} />;
   }
 }
 
