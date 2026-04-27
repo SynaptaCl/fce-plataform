@@ -95,6 +95,7 @@ La bifurcación ocurre en `encuentro/[encuentroId]/page.tsx` via `getModeloDeEsp
 | M6_auditoria | `logs_auditoria` | **sí** |
 | M7_prescripciones | `fce_prescripciones`, `medicamentos_catalogo` | no |
 | M8_examenes | `fce_ordenes_examen`, `examenes_catalogo` | no |
+| M9_egresos | `fce_egresos` | no |
 
 ---
 
@@ -102,7 +103,7 @@ La bifurcación ocurre en `encuentro/[encuentroId]/page.tsx` via `getModeloDeEsp
 
 Para columnas exactas consultar `docs/schema-real.md` o MCP Supabase.
 
-**Con `id_clinica`**: pacientes, fce_anamnesis, fce_encuentros, fce_consentimientos, clinicas_fce_config, instrumentos_aplicados, fce_notas_clinicas, fce_prescripciones, fce_ordenes_examen
+**Con `id_clinica`**: pacientes, fce_anamnesis, fce_encuentros, fce_consentimientos, clinicas_fce_config, instrumentos_aplicados, fce_notas_clinicas, fce_prescripciones, fce_ordenes_examen, fce_egresos
 
 **Sin `id_clinica`** (filtrar via JOIN): fce_evaluaciones, fce_notas_soap
 
@@ -240,7 +241,7 @@ npm run test:sprint-r7   # Tests regresión (33 checks)
 feat(sprint-rN)(scope): descripción
 fix(sprint-rN)(scope): descripción
 ```
-Scopes: `(clinico)`, `(rehab)`, `(shared)`, `(registry)`, `(guards)`, `(branding)`.
+Scopes: `(clinico)`, `(rehab)`, `(shared)`, `(registry)`, `(guards)`, `(branding)`, `(m9)`.
 
 ---
 
@@ -274,6 +275,7 @@ Para trabajar "para" una clínica, leer `clinics/<slug>/CLAUDE.md` y respetar su
 | R12 | M8 Exámenes: tipos TS, registry, server actions, validaciones Zod |
 | R13 | M8 Exámenes: UI completa — form, PDF, timeline, compartir |
 | R14 | Mejoras UX: SummaryPanel + Timeline colapsable + Nota rápida |
+| M9 | Egresos: tipos, acciones, form, timeline, integración ficha |
 
 ### Pendientes
 
@@ -291,6 +293,7 @@ Para trabajar "para" una clínica, leer `clinics/<slug>/CLAUDE.md` y respetar su
 | M7 activo en Renata + genesis `puede_prescribir=true` | 2026-04-24 |
 | `examenes_catalogo` + `fce_ordenes_examen` + `puede_indicar_examenes` en `profesionales` | 2026-04-24 |
 | M8 activo en Renata + Nuvident | 2026-04-24 |
+| `fce_egresos` + `pacientes.estado_clinico` + M9 activo en Renata | 2026-04-27 |
 
 ### Deuda técnica
 
