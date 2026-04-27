@@ -14,6 +14,7 @@ import { AlertBanner } from "@/components/ui/AlertBanner";
 import { createEgreso, updateEgreso, signEgreso } from "@/app/actions/egresos";
 import type { Egreso } from "@/types/egreso";
 import { TIPOS_EGRESO } from "@/types/egreso";
+import { EpicrisisPdfView } from "@/components/shared/EpicrisisPdfView";
 
 // ── Props ────────────────────────────────────────────────────────────────────
 
@@ -36,6 +37,7 @@ export function EgresoForm({
   const [firmado, setFirmado] = useState(egresoExistente?.firmado ?? false);
   const [firmadoAt, setFirmadoAt] = useState<string | null>(egresoExistente?.firmado_at ?? null);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [showEpicrisis, setShowEpicrisis] = useState(false);
   const router = useRouter();
   const [isPendingSign, startSignTransition] = useTransition();
 
@@ -91,7 +93,8 @@ export function EgresoForm({
       if (!result.success) { setServerError(result.error); return; }
       setFirmado(true);
       setFirmadoAt(new Date().toISOString());
-      router.push(`/dashboard/pacientes/${patientId}`);
+      setShowEpicrisis(true);
+      // Note: removed router.push — user stays on page to download PDF
     });
   }
 
@@ -309,6 +312,22 @@ export function EgresoForm({
                 Sí, firmar y egresar
               </Button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* PDF epicrisis — visible después de firmar */}
+      {showEpicrisis && egresoId && (
+        <div className="space-y-3">
+          <EpicrisisPdfView egresoId={egresoId} patientId={patientId} />
+          <div className="flex justify-end">
+            <button
+              type="button"
+              onClick={() => router.push(`/dashboard/pacientes/${patientId}`)}
+              className="text-sm text-ink-3 hover:text-kp-accent transition-colors underline"
+            >
+              Volver a la ficha del paciente →
+            </button>
           </div>
         </div>
       )}

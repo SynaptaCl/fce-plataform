@@ -4,6 +4,7 @@ import { getClinicaConfigFromSession } from "@/lib/modules/config";
 import { getEgreso } from "@/app/actions/egresos";
 import { getPatientById } from "@/app/actions/patients";
 import { EgresoForm } from "@/components/shared/EgresoForm";
+import { EpicrisisPdfView } from "@/components/shared/EpicrisisPdfView";
 
 export default async function EgresoDetallePage({
   params,
@@ -49,6 +50,10 @@ export default async function EgresoDetallePage({
         egresoExistente={egreso}
         readOnly={egreso.firmado}
       />
+
+      {egreso.firmado && (
+        <EpicrisisPdfView egresoId={egresoId} patientId={id} />
+      )}
     </div>
   );
 }
