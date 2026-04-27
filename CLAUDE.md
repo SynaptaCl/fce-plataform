@@ -273,6 +273,7 @@ Para trabajar "para" una clínica, leer `clinics/<slug>/CLAUDE.md` y respetar su
 | R9-R11 | M7 Prescripciones completo: DB + UI + PDF + Timeline + audit |
 | R12 | M8 Exámenes: tipos TS, registry, server actions, validaciones Zod |
 | R13 | M8 Exámenes: UI completa — form, PDF, timeline, compartir |
+| R14 | Mejoras UX: SummaryPanel + Timeline colapsable + Nota rápida |
 
 ### Pendientes
 
@@ -303,6 +304,7 @@ Para trabajar "para" una clínica, leer `clinics/<slug>/CLAUDE.md` y respetar su
 | Seed medicamentos incompleto (faltan odonto, psiquiatría, suplementos) | Media |
 | Seed examenes_catalogo vacío — poblar antes de activar en producción | Media |
 | `estado_resultados` de órdenes de examen siempre `pendiente` — gestión en Fase 2 | Baja |
+| `04-criterios-tecnicos.md` desactualizado post-R13 | Media |
 
 ---
 

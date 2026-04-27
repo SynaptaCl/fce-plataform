@@ -93,9 +93,12 @@ export default async function PatientDetailPage({
     motivo_consulta: null,
     red_flags_activos: [],
     cif_activos: 0,
+    diagnosticos_recientes: [],
     plan_actual: null,
     proxima_sesion: null,
     vitales: null,
+    indicaciones_farmacologicas: [],
+    antecedentes: null,
   };
   const summary = timelineResult.success
     ? timelineResult.data.summary
@@ -138,7 +141,7 @@ export default async function PatientDetailPage({
         </div>
 
         {/* ── Columna 2: Timeline clínico ── */}
-        <div className="min-w-0">
+        <div id="clinical-timeline" className="min-w-0">
           <ClinicalTimeline
             entries={entries}
             currentUserId={user.id}
@@ -149,7 +152,7 @@ export default async function PatientDetailPage({
 
         {/* ── Columna 3: Panel resumen (mobile+md: bajo timeline; lg: oculto; xl: col 3) ── */}
         <div className="lg:hidden xl:block xl:sticky xl:top-4 self-start">
-          <SummaryPanel summary={summary} patientId={id} />
+          <SummaryPanel summary={summary} patientId={id} especialidadesActivas={especialidadesActivas} />
         </div>
 
       </div>

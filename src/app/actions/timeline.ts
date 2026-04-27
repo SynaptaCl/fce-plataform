@@ -46,9 +46,16 @@ export interface PatientSummary {
   motivo_consulta: string | null;
   red_flags_activos: string[];
   cif_activos: number;
+  diagnosticos_recientes: string[];
   plan_actual: string | null;
   proxima_sesion: string | null;
   vitales: VitalSigns | null;
+  indicaciones_farmacologicas: { nombre: string; presentacion: string; fecha: string }[];
+  antecedentes: {
+    morbidos: string | null;
+    alergias: string | null;
+    medicamentos_habituales: string | null;
+  } | null;
 }
 
 // ── Helper ─────────────────────────────────────────────────────────────────
@@ -155,7 +162,7 @@ export async function getPatientTimeline(
       .order("created_at", { ascending: false }),
     supabase
       .from("fce_anamnesis")
-      .select("motivo_consulta, red_flags")
+      .select("motivo_consulta, red_flags, antecedentes_medicos, alergias, farmacologia")
       .eq("id_paciente", patientId)
       .maybeSingle(),
     idClinica
@@ -453,11 +460,17 @@ export async function getPatientTimeline(
 
   // ── Summary ──────────────────────────────────────────────────────────────
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const anamnesis = anamnesisRes.data as any;
+  type AnamnesisRow = {
+    motivo_consulta?: string | null;
+    red_flags?: Record<string, boolean> | null;
+    antecedentes_medicos?: Array<{ patologia: string }> | null;
+    alergias?: Array<{ sustancia: string }> | null;
+    farmacologia?: Array<{ medicamento: string; dosis: string }> | null;
+  };
+  const anamnesis = anamnesisRes.data as AnamnesisRow | null;
   const redFlagsActivos: string[] = [];
   if (anamnesis?.red_flags) {
-    const rf = anamnesis.red_flags as Record<string, boolean>;
+    const rf = anamnesis.red_flags;
     const LABELS: Record<string, string> = {
       marcapasos: "Marcapasos",
       embarazo: "Embarazo",
@@ -485,13 +498,63 @@ export async function getPatientTimeline(
 
   const latestVitals = ((vitalsRes.data ?? [])[0] ?? null) as VitalSigns | null;
 
+  const diagnosticosRecientes: string[] = [];
+  const seenDiag = new Set<string>();
+  for (const nota of (notasRes.data ?? []) as NotaClinicaRow[]) {
+    if (!nota.firmado || !nota.diagnostico) continue;
+    const diag = nota.diagnostico.trim();
+    if (diag && !seenDiag.has(diag)) {
+      seenDiag.add(diag);
+      diagnosticosRecientes.push(diag);
+    }
+    if (diagnosticosRecientes.length >= 3) break;
+  }
+
+  const indicacionesFarmacologicas: { nombre: string; presentacion: string; fecha: string }[] = [];
+  for (const presc of (prescripcionesRes.data ?? []) as PrescripcionTimelineRow[]) {
+    if (presc.tipo !== "farmacologica") continue;
+    const meds = Array.isArray(presc.medicamentos)
+      ? (presc.medicamentos as Array<{ principio_activo?: string; presentacion?: string }>)
+      : [];
+    for (const med of meds) {
+      indicacionesFarmacologicas.push({
+        nombre: med.principio_activo ?? "Sin nombre",
+        presentacion: med.presentacion ?? "",
+        fecha: presc.firmado_at,
+      });
+    }
+  }
+
+  const antecedentes: PatientSummary["antecedentes"] = anamnesis
+    ? {
+        morbidos:
+          (anamnesis.antecedentes_medicos ?? [])
+            .map((m) => m.patologia)
+            .filter(Boolean)
+            .join(", ") || null,
+        alergias:
+          (anamnesis.alergias ?? [])
+            .map((a) => a.sustancia)
+            .filter(Boolean)
+            .join(", ") || null,
+        medicamentos_habituales:
+          (anamnesis.farmacologia ?? [])
+            .map((m) => [m.medicamento, m.dosis].filter(Boolean).join(" "))
+            .filter(Boolean)
+            .join(", ") || null,
+      }
+    : null;
+
   const summary: PatientSummary = {
     motivo_consulta: anamnesis?.motivo_consulta ?? null,
     red_flags_activos: redFlagsActivos,
     cif_activos: latestCifCount,
+    diagnosticos_recientes: diagnosticosRecientes,
     plan_actual: latestSoap?.plan ?? null,
     proxima_sesion: latestSoap?.proxima_sesion ?? null,
     vitales: latestVitals,
+    indicaciones_farmacologicas: indicacionesFarmacologicas,
+    antecedentes,
   };
 
   return { success: true, data: { entries, summary } };

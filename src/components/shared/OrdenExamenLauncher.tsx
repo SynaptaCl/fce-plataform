@@ -25,8 +25,17 @@ export function OrdenExamenLauncher({
   const [detalleId, setDetalleId] = useState<string | null>(null);
   const [lastFolio, setLastFolio] = useState<string | null>(null);
 
-  if (!session.config.modulosActivos.includes("M8_examenes")) return null;
-  if (!session.profesionalActivo?.puede_indicar_examenes) return null;
+  const m8Activo = session.config.modulosActivos.includes("M8_examenes");
+  const puedeIndicar = session.profesionalActivo?.puede_indicar_examenes === true;
+
+  if (process.env.NODE_ENV === "development") {
+    console.log("[OrdenExamenLauncher] modulosActivos:", session.config.modulosActivos);
+    console.log("[OrdenExamenLauncher] profesionalActivo:", session.profesionalActivo);
+    console.log("[OrdenExamenLauncher] m8Activo:", m8Activo, "| puedeIndicar:", puedeIndicar);
+  }
+
+  if (!m8Activo) return null;
+  if (!puedeIndicar) return null;
 
   function handleSuccess(folio: string, ordenId: string) {
     setLastFolio(folio);

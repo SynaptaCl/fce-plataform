@@ -7,14 +7,18 @@ import {
   Clock,
   Calendar,
   Pencil,
+  Heart,
+  Pill,
 } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
 import { cn } from "@/lib/utils";
+import { getModeloDeEspecialidad } from "@/lib/modules/modelos";
 import type { PatientSummary } from "@/app/actions/timeline";
 
 interface SummaryPanelProps {
   summary: PatientSummary;
   patientId: string;
+  especialidadesActivas: string[];
 }
 
 // ── Section wrapper ────────────────────────────────────────────────────────
@@ -56,9 +60,15 @@ function PanelSection({
 
 // ── SummaryPanel ───────────────────────────────────────────────────────────
 
-export function SummaryPanel({ summary, patientId }: SummaryPanelProps) {
+export function SummaryPanel({ summary, patientId, especialidadesActivas }: SummaryPanelProps) {
   const hasRedFlags = summary.red_flags_activos.length > 0;
   const base = `/dashboard/pacientes/${patientId}`;
+
+  const modelos = new Set(
+    especialidadesActivas.map(getModeloDeEspecialidad).filter((m) => m !== "ninguno")
+  );
+  const showCif = modelos.has("rehabilitacion") || modelos.size === 0;
+  const showDiagnosticos = modelos.has("clinico_general");
 
   return (
     <div className="bg-surface-1 rounded-xl border border-kp-border overflow-hidden">
@@ -107,16 +117,72 @@ export function SummaryPanel({ summary, patientId }: SummaryPanelProps) {
           )}
         </PanelSection>
 
-        {/* Diagnósticos CIF */}
+        {/* Diagnósticos CIF — modelo rehabilitacion */}
+        {showCif && (
+          <PanelSection
+            title="Diagnósticos CIF"
+            icon={<Target className="w-3.5 h-3.5" />}
+            className="pt-4"
+          >
+            {summary.cif_activos > 0 ? (
+              <Badge variant="teal">{summary.cif_activos} ítems activos</Badge>
+            ) : (
+              <p className="text-xs text-ink-4 italic">Sin diagnósticos CIF</p>
+            )}
+          </PanelSection>
+        )}
+
+        {/* Diagnósticos — modelo clinico_general */}
+        {showDiagnosticos && (
+          <PanelSection
+            title="Diagnósticos"
+            icon={<Target className="w-3.5 h-3.5" />}
+            className="pt-4"
+          >
+            {summary.diagnosticos_recientes.length > 0 ? (
+              <div className="space-y-1">
+                {summary.diagnosticos_recientes.map((diag) => (
+                  <p key={diag} className="text-xs text-ink-2 leading-snug">
+                    {diag}
+                  </p>
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs text-ink-4 italic">Sin diagnósticos</p>
+            )}
+          </PanelSection>
+        )}
+
+        {/* Antecedentes */}
         <PanelSection
-          title="Diagnósticos CIF"
-          icon={<Target className="w-3.5 h-3.5" />}
+          title="Antecedentes"
+          icon={<Heart className="w-3.5 h-3.5" />}
           className="pt-4"
+          editHref={`${base}/anamnesis`}
         >
-          {summary.cif_activos > 0 ? (
-            <Badge variant="teal">{summary.cif_activos} ítems activos</Badge>
+          {summary.antecedentes ? (
+            <div className="space-y-1 text-xs">
+              <div>
+                <span className="text-ink-3">Mórbidos: </span>
+                <span className="text-ink-2">
+                  {summary.antecedentes.morbidos ?? "Sin registro"}
+                </span>
+              </div>
+              <div>
+                <span className="text-ink-3">Alergias: </span>
+                <span className="text-ink-2">
+                  {summary.antecedentes.alergias ?? "Sin registro"}
+                </span>
+              </div>
+              <div>
+                <span className="text-ink-3">Medicamentos: </span>
+                <span className="text-ink-2">
+                  {summary.antecedentes.medicamentos_habituales ?? "Sin registro"}
+                </span>
+              </div>
+            </div>
           ) : (
-            <p className="text-xs text-ink-4 italic">Sin diagnósticos CIF</p>
+            <p className="text-xs text-ink-4 italic">Sin registro</p>
           )}
         </PanelSection>
 
@@ -172,6 +238,36 @@ export function SummaryPanel({ summary, patientId }: SummaryPanelProps) {
             </p>
           ) : (
             <p className="text-xs text-ink-4 italic">Sin plan registrado</p>
+          )}
+        </PanelSection>
+
+        {/* Indicaciones farmacológicas */}
+        <PanelSection
+          title="Indicaciones Farmacológicas"
+          icon={<Pill className="w-3.5 h-3.5" />}
+          className="pt-4"
+        >
+          {summary.indicaciones_farmacologicas.length > 0 ? (
+            <div className="space-y-1">
+              {summary.indicaciones_farmacologicas.slice(0, 5).map((ind, i) => (
+                <div key={`${ind.nombre}-${i}`} className="text-xs">
+                  <span className="font-medium text-ink-2">{ind.nombre}</span>
+                  {ind.presentacion && (
+                    <span className="text-ink-3"> · {ind.presentacion}</span>
+                  )}
+                </div>
+              ))}
+              {summary.indicaciones_farmacologicas.length > 5 && (
+                <Link
+                  href="#clinical-timeline"
+                  className="text-xs text-kp-accent hover:underline"
+                >
+                  Ver todas ({summary.indicaciones_farmacologicas.length})
+                </Link>
+              )}
+            </div>
+          ) : (
+            <p className="text-xs text-ink-4 italic">Sin indicaciones registradas</p>
           )}
         </PanelSection>
 

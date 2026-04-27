@@ -40,13 +40,14 @@ interface ClinicalTimelineProps {
   patientId: string;
   /** Especialidades activas de la clínica — códigos exactos del catálogo */
   especialidadesActivas: string[];
-  paciente?: Patient;       // needed for PrescripcionDetalleModal
-  clinica?: ClinicaConfig;  // needed for PrescripcionDetalleModal
+  paciente?: Patient;
+  clinica?: ClinicaConfig;
 }
+
+type ViewMode = "todos" | "solo_notas";
 
 // ── Config ─────────────────────────────────────────────────────────────────
 
-/** Especialidades que no generan actividad clínica en el timeline */
 const ESPECIALIDADES_SIN_TIMELINE = ["Administración Clínica"];
 
 type BadgeVariant = "teal" | "info" | "warning" | "success";
@@ -121,12 +122,31 @@ const TYPE_CONFIG: Record<
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
-/** Normaliza un código de especialidad para comparación interna */
+/**
+ * Determina si un entry es "principal" (expandido por defecto).
+ * Principales: nota_clinica, soap, evaluacion.
+ * Instrumento: principal solo si la interpretación contiene "alto" o "muy alto".
+ */
+function isMainEntry(entry: TimelineEntry): boolean {
+  if (
+    entry.type === "nota_clinica" ||
+    entry.type === "soap" ||
+    entry.type === "evaluacion"
+  ) {
+    return true;
+  }
+  if (entry.type === "instrumento") {
+    const interp = String(entry.data.interpretacion ?? "").toLowerCase();
+    return interp.includes("alto") || interp.includes("muy alto");
+  }
+  return false;
+}
+
 function normalizeEsp(esp: string): string {
   return esp
     .toLowerCase()
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "");
+    .replace(/[̀-ͯ]/g, "");
 }
 
 function formatDateTime(iso: string) {
@@ -140,6 +160,21 @@ function formatDateTime(iso: string) {
     minute: "2-digit",
   });
 }
+
+function formatRelativeDate(iso: string): string {
+  if (!iso) return "—";
+  const d = new Date(iso);
+  const diffDays = Math.floor(
+    (Date.now() - d.getTime()) / (1000 * 60 * 60 * 24)
+  );
+  if (diffDays === 0) return "hoy";
+  if (diffDays === 1) return "ayer";
+  if (diffDays < 7) return `hace ${diffDays}d`;
+  if (diffDays < 30) return `hace ${Math.floor(diffDays / 7)}sem`;
+  return d.toLocaleDateString("es-CL", { day: "2-digit", month: "short" });
+}
+
+// ── EntryContent ───────────────────────────────────────────────────────────
 
 function EntryContent({
   entry,
@@ -166,9 +201,21 @@ function EntryContent({
     case "instrumento":
       return <InstrumentoExpandedCard entry={entry} patientId={patientId} />;
     case "prescripcion":
-      return <PrescripcionExpandedCard entry={entry} patientId={patientId} onVerReceta={onVerReceta} />;
+      return (
+        <PrescripcionExpandedCard
+          entry={entry}
+          patientId={patientId}
+          onVerReceta={onVerReceta}
+        />
+      );
     case "orden_examen":
-      return <OrdenExamenExpandedCard entry={entry} patientId={patientId} onVerOrden={onVerOrden} />;
+      return (
+        <OrdenExamenExpandedCard
+          entry={entry}
+          patientId={patientId}
+          onVerOrden={onVerOrden}
+        />
+      );
   }
 }
 
@@ -177,6 +224,7 @@ function EntryContent({
 function TimelineCard({
   entry,
   expanded,
+  isMain,
   onToggle,
   patientId,
   onVerReceta,
@@ -184,6 +232,7 @@ function TimelineCard({
 }: {
   entry: TimelineEntry;
   expanded: boolean;
+  isMain: boolean;
   onToggle: () => void;
   patientId: string;
   onVerReceta?: (id: string) => void;
@@ -191,9 +240,33 @@ function TimelineCard({
 }) {
   const cfg = TYPE_CONFIG[entry.type];
   const TypeIcon = cfg.icon;
-  // Mostrar especialidad tal cual (código del catálogo)
   const espLabel = entry.especialidad ?? null;
 
+  // Secondary + collapsed → compact single-line row
+  if (!isMain && !expanded) {
+    return (
+      <button
+        onClick={onToggle}
+        aria-expanded={false}
+        className={cn(
+          "w-full flex items-center gap-2.5 px-3 py-2 text-left",
+          "border-b border-kp-border hover:bg-surface-0 transition-colors group cursor-pointer"
+        )}
+      >
+        <TypeIcon className="w-3.5 h-3.5 text-ink-3 shrink-0" />
+        <span className="text-xs text-ink-2 flex-1 truncate min-w-0">
+          {entry.titulo}
+        </span>
+        {espLabel && <Badge variant={cfg.badgeVariant}>{espLabel}</Badge>}
+        <span className="text-[0.65rem] text-ink-3 whitespace-nowrap shrink-0">
+          {formatRelativeDate(entry.date)}
+        </span>
+        <ChevronDown className="w-3.5 h-3.5 text-ink-3 shrink-0 group-hover:text-kp-accent transition-colors" />
+      </button>
+    );
+  }
+
+  // Full card (main entry or expanded secondary)
   return (
     <div
       className={cn(
@@ -218,12 +291,15 @@ function TimelineCard({
 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-sm font-semibold text-ink-1">{entry.titulo}</span>
-            {espLabel && (
-              <Badge variant={cfg.badgeVariant}>{espLabel}</Badge>
-            )}
+            <span className="text-sm font-semibold text-ink-1">
+              {entry.titulo}
+            </span>
+            {espLabel && <Badge variant={cfg.badgeVariant}>{espLabel}</Badge>}
             {entry.firmado && (
-              <Lock className="w-3 h-3 text-kp-success shrink-0" aria-label="Firmado" />
+              <Lock
+                className="w-3 h-3 text-kp-success shrink-0"
+                aria-label="Firmado"
+              />
             )}
           </div>
           <div className="flex flex-wrap items-center gap-3 mt-0.5 text-[0.65rem] text-ink-3">
@@ -252,11 +328,24 @@ function TimelineCard({
         </div>
       </button>
 
-      {expanded && (
-        <div className="px-4 pb-4 pt-1 border-t border-kp-border bg-surface-0/40">
-          <EntryContent entry={entry} patientId={patientId} onVerReceta={onVerReceta} onVerOrden={onVerOrden} />
+      {/* Height-animated expand area */}
+      <div
+        className={cn(
+          "grid transition-[grid-template-rows] duration-200 ease-in-out",
+          expanded ? "[grid-template-rows:1fr]" : "[grid-template-rows:0fr]"
+        )}
+      >
+        <div className="overflow-hidden">
+          <div className="px-4 pb-4 pt-1 border-t border-kp-border bg-surface-0/40">
+            <EntryContent
+              entry={entry}
+              patientId={patientId}
+              onVerReceta={onVerReceta}
+              onVerOrden={onVerOrden}
+            />
+          </div>
         </div>
-      )}
+      </div>
     </div>
   );
 }
@@ -272,7 +361,11 @@ export function ClinicalTimeline({
   clinica,
 }: ClinicalTimelineProps) {
   const [activeTab, setActiveTab] = useState<string>("todos");
-  const [expandedIds, setExpandedIds] = useState<Set<string>>(new Set());
+  const [viewMode, setViewMode] = useState<ViewMode>("todos");
+  // Inicializar con los entries principales expandidos
+  const [expandedIds, setExpandedIds] = useState<Set<string>>(
+    () => new Set(entries.filter(isMainEntry).map((e) => e.id))
+  );
   const [modalPrescripcionId, setModalPrescripcionId] = useState<string | null>(null);
   const [modalOrdenId, setModalOrdenId] = useState<string | null>(null);
 
@@ -282,7 +375,6 @@ export function ClinicalTimeline({
       { key: "todos", label: "Todos" },
       { key: "mis", label: "Mis Atenciones" },
     ];
-    // Agregar tab por cada especialidad activa que tenga sentido clínico
     const espTabs = especialidadesActivas
       .filter((esp) => !ESPECIALIDADES_SIN_TIMELINE.includes(esp))
       .map((esp) => ({ key: esp, label: esp }));
@@ -291,17 +383,24 @@ export function ClinicalTimeline({
 
   // ── Filtering ─────────────────────────────────────────────────────────
   const filtered = useMemo(() => {
-    if (activeTab === "todos") return entries;
-    if (activeTab === "mis") return entries.filter((e) => e.autor_id === currentUserId);
-    // Filtrar por especialidad — comparar normalizado para tolerar diferencias
-    const tabNorm = normalizeEsp(activeTab);
-    return entries.filter((e) => {
-      if (!e.especialidad) return false;
-      return normalizeEsp(e.especialidad) === tabNorm;
-    });
-  }, [entries, activeTab, currentUserId]);
+    let result = entries;
+    if (activeTab === "mis") {
+      result = result.filter((e) => e.autor_id === currentUserId);
+    } else if (activeTab !== "todos") {
+      const tabNorm = normalizeEsp(activeTab);
+      result = result.filter(
+        (e) => e.especialidad && normalizeEsp(e.especialidad) === tabNorm
+      );
+    }
+    if (viewMode === "solo_notas") {
+      result = result.filter(
+        (e) => e.type === "nota_clinica" || e.type === "soap"
+      );
+    }
+    return result;
+  }, [entries, activeTab, currentUserId, viewMode]);
 
-  // ── Tab counts ────────────────────────────────────────────────────────
+  // ── Tab counts (basado solo en el filtro de tab, no en viewMode) ──────
   const tabCounts = useMemo(() => {
     const counts: Record<string, number> = {
       todos: entries.length,
@@ -341,26 +440,46 @@ export function ClinicalTimeline({
   return (
     <div className="bg-surface-1 rounded-xl border border-kp-border overflow-hidden">
       {/* Header */}
-      <div className="px-4 py-3 border-b border-kp-border flex items-center justify-between gap-2">
+      <div className="px-4 py-3 border-b border-kp-border flex items-center justify-between gap-2 flex-wrap">
         <p className="text-[0.6rem] font-bold text-ink-3 uppercase tracking-widest shrink-0">
           Timeline Clínico
         </p>
-        <button
-          onClick={allExpanded ? collapseAll : expandAll}
-          className="flex items-center gap-1 text-[0.65rem] font-medium text-ink-3 hover:text-kp-accent transition-colors px-2 py-1 rounded-md hover:bg-surface-0"
-        >
-          {allExpanded ? (
-            <>
-              <ChevronsDownUp className="w-3 h-3" />
-              Colapsar todo
-            </>
-          ) : (
-            <>
-              <ChevronsUpDown className="w-3 h-3" />
-              Expandir todo
-            </>
-          )}
-        </button>
+        <div className="flex items-center gap-2">
+          {/* Segmented control: Todos / Solo notas */}
+          <div className="flex items-center rounded-md border border-kp-border overflow-hidden text-[0.65rem]">
+            {(["todos", "solo_notas"] as const).map((mode) => (
+              <button
+                key={mode}
+                onClick={() => setViewMode(mode)}
+                className={cn(
+                  "px-2.5 py-1 font-medium transition-colors whitespace-nowrap",
+                  viewMode === mode
+                    ? "bg-kp-accent text-white"
+                    : "text-ink-3 hover:text-ink-2 hover:bg-surface-0"
+                )}
+              >
+                {mode === "todos" ? "Todos" : "Solo notas"}
+              </button>
+            ))}
+          </div>
+          {/* Expandir / Colapsar todo */}
+          <button
+            onClick={allExpanded ? collapseAll : expandAll}
+            className="flex items-center gap-1 text-[0.65rem] font-medium text-ink-3 hover:text-kp-accent transition-colors px-2 py-1 rounded-md hover:bg-surface-0"
+          >
+            {allExpanded ? (
+              <>
+                <ChevronsDownUp className="w-3 h-3" />
+                Colapsar todo
+              </>
+            ) : (
+              <>
+                <ChevronsUpDown className="w-3 h-3" />
+                Expandir todo
+              </>
+            )}
+          </button>
+        </div>
       </div>
 
       {/* Filter tabs — dinámicos desde config */}
@@ -403,7 +522,7 @@ export function ClinicalTimeline({
           <div className="flex flex-col items-center justify-center py-14 text-center">
             <FileText className="w-8 h-8 text-ink-4 mb-2" />
             <p className="text-sm font-medium text-ink-3">
-              {activeTab === "todos"
+              {activeTab === "todos" && viewMode === "todos"
                 ? "Sin actividad clínica registrada"
                 : "Sin registros para este filtro"}
             </p>
@@ -417,6 +536,7 @@ export function ClinicalTimeline({
               key={entry.id}
               entry={entry}
               expanded={expandedIds.has(entry.id)}
+              isMain={isMainEntry(entry)}
               onToggle={() => toggleEntry(entry.id)}
               patientId={patientId}
               onVerReceta={paciente && clinica ? setModalPrescripcionId : undefined}

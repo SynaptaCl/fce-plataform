@@ -1,7 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   Activity,
   FileSignature,
@@ -9,9 +10,11 @@ import {
   FileDown,
   Share2,
   Pencil,
+  FileEdit,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useClinicaConfig } from "@/lib/modules/provider";
+import { QuickNoteModal } from "@/components/clinico/QuickNoteModal";
 import type { ModuleId } from "@/lib/modules/registry";
 
 interface PatientActionNavProps {
@@ -126,8 +129,10 @@ export function PatientActionNav({
   isAdmin,
 }: PatientActionNavProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const config = useClinicaConfig();
   const modulosActivos = config.modulosActivos;
+  const [quickNoteOpen, setQuickNoteOpen] = useState(false);
 
   const entries = buildNav(patientId);
 
@@ -152,7 +157,22 @@ export function PatientActionNav({
 
       {/* Nav entries */}
       <div className="p-2 space-y-1">
-        {/* Editar datos — siempre primero (M1 siempre activo) */}
+        {/* Nota rápida — acceso directo sin flujo de encuentro */}
+        <button
+          onClick={() => setQuickNoteOpen(true)}
+          className={cn(
+            "w-full flex items-center gap-2.5 px-3 py-2 min-h-[44px] rounded-lg text-sm transition-colors group cursor-pointer",
+            "text-ink-2 hover:bg-surface-0 hover:text-ink-1"
+          )}
+        >
+          <span className="shrink-0 text-ink-3 group-hover:text-kp-accent transition-colors">
+            <FileEdit className="w-4 h-4" />
+          </span>
+          <span className="leading-tight text-xs font-medium">Nota rápida</span>
+        </button>
+        <div className="my-1 border-t border-kp-border" />
+
+        {/* Editar datos — siempre (M1 siempre activo) */}
         <NavLink
           item={{
             id: "editar",
@@ -196,6 +216,14 @@ export function PatientActionNav({
           );
         })}
       </div>
+
+      {quickNoteOpen && (
+        <QuickNoteModal
+          patientId={patientId}
+          onClose={() => setQuickNoteOpen(false)}
+          onSaved={() => router.refresh()}
+        />
+      )}
     </nav>
   );
 }
