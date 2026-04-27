@@ -8,7 +8,8 @@ import { getProfesionalActivo } from "@/lib/fce/profesional";
 import { assertPuedeFirmar } from "@/lib/modules/guards";
 import { getIdClinica } from "@/app/actions/patients";
 import type { ActionResult } from "@/app/actions/patients";
-import type { Egreso } from "@/types/egreso";
+import type { Egreso, SnapshotEquipoTratante } from "@/types/egreso";
+import { calcularSnapshotEquipoTratante } from "@/lib/egresos/snapshot";
 
 // ── Shared types ──────────────────────────────────────────────────────────────
 
@@ -230,12 +231,20 @@ export async function signEgreso(
   if (!egresoRow) return { success: false, error: "Egreso no encontrado." };
   if (egresoRow.firmado) return { success: false, error: "El egreso ya está firmado." };
 
+  const snapshot = await calcularSnapshotEquipoTratante(
+    supabase,
+    patientId,
+    idClinica,
+    profesional,
+  );
+
   const { error } = await supabase
     .from("fce_egresos")
     .update({
       firmado: true,
       firmado_at: new Date().toISOString(),
       firmado_por: profesional.id,
+      snapshot_equipo_tratante: snapshot,
       updated_at: new Date().toISOString(),
     })
     .eq("id", egresoId)
@@ -366,6 +375,67 @@ export async function getEgresoConContexto(
         logo_url: branding?.logo_url ?? null,
       },
       fechaIngreso: primerEncuentro?.created_at ?? null,
+    },
+  };
+}
+
+// ── getResumenEquipoTratante ──────────────────────────────────────────────────
+
+export type ResumenEquipoTratante = Omit<SnapshotEquipoTratante, "firmado_por">;
+
+export async function getResumenEquipoTratante(
+  patientId: string,
+): Promise<ActionResult<ResumenEquipoTratante>> {
+  const { supabase, user } = await requireAuth();
+
+  const idClinica = await getIdClinica(supabase, user.id);
+  if (!idClinica) return { success: false, error: "No se pudo determinar la clínica del usuario." };
+
+  // Fetch finalized encuentros
+  const { data: encuentros, error } = await supabase
+    .from("fce_encuentros")
+    .select("id, id_profesional, created_at")
+    .eq("id_paciente", patientId)
+    .eq("id_clinica", idClinica)
+    .eq("status", "finalizado")
+    .order("created_at", { ascending: true });
+
+  if (error) return { success: false, error: error.message };
+  const rows = encuentros ?? [];
+
+  const profIds = [...new Set(rows.map((r) => r.id_profesional).filter(Boolean) as string[])];
+  const profMap = new Map<string, { nombre: string; especialidad: string }>();
+  if (profIds.length > 0) {
+    const { data: profs } = await supabase
+      .from("profesionales")
+      .select("id, nombre, especialidad")
+      .in("id", profIds);
+    for (const p of profs ?? []) {
+      profMap.set(p.id, { nombre: p.nombre ?? "Profesional", especialidad: p.especialidad ?? "" });
+    }
+  }
+
+  const countMap = new Map<string, number>();
+  for (const enc of rows) {
+    if (!enc.id_profesional) continue;
+    countMap.set(enc.id_profesional, (countMap.get(enc.id_profesional) ?? 0) + 1);
+  }
+
+  const profesionales = Array.from(countMap.entries())
+    .map(([id, count]) => ({
+      nombre: profMap.get(id)?.nombre ?? "Profesional",
+      especialidad: profMap.get(id)?.especialidad ?? "",
+      encuentros: count,
+    }))
+    .sort((a, b) => b.encuentros - a.encuentros);
+
+  return {
+    success: true,
+    data: {
+      profesionales,
+      primer_encuentro: rows[0]?.created_at?.slice(0, 10) ?? null,
+      ultimo_encuentro: rows[rows.length - 1]?.created_at?.slice(0, 10) ?? null,
+      total_encuentros: rows.length,
     },
   };
 }
