@@ -10,6 +10,32 @@ import { getIdClinica } from "@/app/actions/patients";
 import type { ActionResult } from "@/app/actions/patients";
 import type { Egreso } from "@/types/egreso";
 
+// ── Shared types ──────────────────────────────────────────────────────────────
+
+export interface EgresoConContexto {
+  egreso: Egreso;
+  paciente: {
+    nombre: string | null;
+    apellido_paterno: string | null;
+    apellido_materno: string | null;
+    rut: string | null;
+    fecha_nacimiento: string | null;
+    prevision: { tipo: string } | null;
+  };
+  profesional: {
+    nombre: string | null;
+    especialidad: string | null;
+    numero_registro: string | null;
+    tipo_registro: string | null;
+  } | null;
+  clinica: {
+    nombre: string;
+    direccion: string | null;
+    logo_url: string | null;
+  };
+  fechaIngreso: string | null;
+}
+
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 async function requireAuth() {
@@ -261,4 +287,98 @@ export async function reingresarPaciente(
   await logAudit(supabase, user.id, "reingresar_paciente", patientId, idClinica, patientId);
   revalidatePath(`/dashboard/pacientes/${patientId}`);
   return { success: true, data: undefined };
+}
+
+// ── getEgresoConContexto ──────────────────────────────────────────────────────
+
+export async function getEgresoConContexto(
+  egresoId: string,
+): Promise<ActionResult<EgresoConContexto>> {
+  const { supabase, user } = await requireAuth();
+
+  const idClinica = await getIdClinica(supabase, user.id);
+  if (!idClinica) return { success: false, error: "No se pudo determinar la clínica del usuario." };
+
+  // 1. Fetch egreso
+  const { data: egresoData, error: egresoError } = await supabase
+    .from("fce_egresos")
+    .select("*")
+    .eq("id", egresoId)
+    .eq("id_clinica", idClinica)
+    .single();
+
+  if (egresoError || !egresoData) return { success: false, error: egresoError?.message ?? "Egreso no encontrado." };
+  const egreso = egresoData as Egreso;
+
+  // 2. Fetch paciente
+  const { data: pacienteData } = await supabase
+    .from("pacientes")
+    .select("nombre, apellido_paterno, apellido_materno, rut, fecha_nacimiento, prevision")
+    .eq("id", egreso.id_paciente)
+    .single();
+
+  // 3. Fetch profesional que firmó (firmado_por is profesionales.id)
+  let profesionalData: EgresoConContexto["profesional"] = null;
+  if (egreso.firmado_por) {
+    const { data: prof } = await supabase
+      .from("profesionales")
+      .select("nombre, especialidad, numero_registro, tipo_registro")
+      .eq("id", egreso.firmado_por)
+      .single();
+    profesionalData = prof ?? null;
+  }
+
+  // 4. Fetch clinica config/nombre
+  const { data: clinicaData } = await supabase
+    .from("clinicas")
+    .select("nombre, config")
+    .eq("id", idClinica)
+    .single();
+
+  const branding = (clinicaData?.config as { branding?: { logo_url?: string; direccion?: string } } | null)?.branding ?? null;
+
+  // 5. Fetch fecha del primer encuentro del paciente (fecha_ingreso)
+  const { data: primerEncuentro } = await supabase
+    .from("fce_encuentros")
+    .select("created_at")
+    .eq("id_paciente", egreso.id_paciente)
+    .eq("id_clinica", idClinica)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  return {
+    success: true,
+    data: {
+      egreso,
+      paciente: pacienteData ?? {
+        nombre: null,
+        apellido_paterno: null,
+        apellido_materno: null,
+        rut: null,
+        fecha_nacimiento: null,
+        prevision: null,
+      },
+      profesional: profesionalData,
+      clinica: {
+        nombre: clinicaData?.nombre ?? "Clínica",
+        direccion: branding?.direccion ?? null,
+        logo_url: branding?.logo_url ?? null,
+      },
+      fechaIngreso: primerEncuentro?.created_at ?? null,
+    },
+  };
+}
+
+// ── registrarExportEpicrisis ──────────────────────────────────────────────────
+
+export async function registrarExportEpicrisis(
+  egresoId: string,
+  patientId: string,
+): Promise<void> {
+  try {
+    const { supabase, user } = await requireAuth();
+    const idClinica = await getIdClinica(supabase, user.id);
+    await logAudit(supabase, user.id, "exportar_epicrisis", egresoId, idClinica, patientId);
+  } catch { /* no bloquea UI */ }
 }
