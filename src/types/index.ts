@@ -50,3 +50,13 @@ export type { MedicamentoCatalogo } from "./medicamento";
 export type { ExamenCatalogo, ExamenIndicado, OrdenExamen } from "./orden-examen";
 export type { Egreso, TipoEgreso } from "./egreso";
 export { TIPOS_EGRESO } from "./egreso";
+export type { EstadoPieza, SuperficieDental, OdontogramaEntry, OdontogramaHistorial } from "./odontograma";
+export type { PeriogramaPiezaDatos, Periograma } from "./periograma";
+export type {
+  EstadoPlan,
+  EstadoItem,
+  PrioridadItem,
+  PlanTratamiento,
+  PlanTratamientoItem,
+  ProcedimientoCatalogo,
+} from "./plan-tratamiento";

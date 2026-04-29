@@ -15,6 +15,7 @@ export function getModulosDelModelo(modelo: ModeloClinico): string[] {
   switch (modelo) {
     case "rehabilitacion":  return ["M3_evaluacion", "M4_soap"];
     case "clinico_general": return ["M3b_instrumentos", "M4b_nota_clinica"];
+    case "odontologico":    return ["M8_odontograma", "M8_periograma", "M8_plan_tratamiento", "M4b_nota_clinica"];
     case "ninguno":         return [];
   }
 }
@@ -31,6 +32,7 @@ export function getRutaEncuentro(
   switch (modelo) {
     case "rehabilitacion":  return `${base}/rehab`;
     case "clinico_general": return `${base}/clinico`;
+    case "odontologico":    return `${base}/dental`;
     case "ninguno":         return base;
   }
 }

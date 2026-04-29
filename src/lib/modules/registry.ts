@@ -48,7 +48,7 @@ export type EspecialidadCodigo =
 // Modelo clínico (bifurcación por especialidad)
 // ============================================================================
 
-export type ModeloClinico = "rehabilitacion" | "clinico_general" | "ninguno";
+export type ModeloClinico = "rehabilitacion" | "clinico_general" | "odontologico" | "ninguno";
 
 // ============================================================================
 // Roles (coinciden con admin_users.rol check constraint)
@@ -264,7 +264,7 @@ export const ESPECIALIDADES_REGISTRY: Record<string, EspecialidadRegistro> = {
   "Enfermería":          { codigo: "Enfermería",          label: "Enfermería",          modelo: "clinico_general", tieneContraindicaciones: false, tieneEscalaFuncional: false, estado: "estable" },
   "Psicología":          { codigo: "Psicología",          label: "Psicología",          modelo: "clinico_general", tieneContraindicaciones: false, tieneEscalaFuncional: false, estado: "estable" },
   "Nutrición":           { codigo: "Nutrición",           label: "Nutrición",           modelo: "clinico_general", tieneContraindicaciones: false, tieneEscalaFuncional: false, estado: "estable" },
-  "Odontología":         { codigo: "Odontología",         label: "Odontología",         modelo: "clinico_general", tieneContraindicaciones: true,  tieneEscalaFuncional: false, estado: "beta"    },
+  "Odontología":         { codigo: "Odontología",         label: "Odontología",         modelo: "odontologico",    tieneContraindicaciones: true,  tieneEscalaFuncional: false, estado: "beta"    },
 
   // Modelo ninguno
   "Administración Clínica": { codigo: "Administración Clínica", label: "Administración Clínica", modelo: "ninguno", tieneContraindicaciones: false, tieneEscalaFuncional: false, estado: "estable" },
