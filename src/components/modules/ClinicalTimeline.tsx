@@ -73,10 +73,10 @@ const TYPE_CONFIG: Record<
     badgeVariant: BadgeVariant;
     /** 3px left border color (CSS var string) */
     borderColor: string;
-    /** Icon box background (CSS var or fixed palette constant) */
+    /** Icon box background (CSS var string) */
     iconBg: string;
-    /** Tailwind text color class for the icon */
-    iconColorClass: string;
+    /** Icon color as CSS var string — applied via inline style */
+    iconColor: string;
   }
 > = {
   soap: {
@@ -84,16 +84,16 @@ const TYPE_CONFIG: Record<
     icon: FileText,
     badgeVariant: "teal",
     borderColor: "var(--color-kp-primary, #006B6B)",
-    iconBg: "#EEF2FF",
-    iconColorClass: "text-[#4F46E5]",
+    iconBg: "var(--color-indigo-icon-bg, #EEF2FF)",
+    iconColor: "var(--color-indigo-icon, #4F46E5)",
   },
   evaluacion: {
     label: "Evaluación",
     icon: Stethoscope,
     badgeVariant: "info",
     borderColor: "var(--color-kp-primary, #006B6B)",
-    iconBg: "#EEF2FF",
-    iconColorClass: "text-[#4F46E5]",
+    iconBg: "var(--color-indigo-icon-bg, #EEF2FF)",
+    iconColor: "var(--color-indigo-icon, #4F46E5)",
   },
   signos_vitales: {
     label: "Signos Vitales",
@@ -101,7 +101,7 @@ const TYPE_CONFIG: Record<
     badgeVariant: "warning",
     borderColor: "var(--color-ink-3, #94A3B8)",
     iconBg: "var(--color-surface-0, #F1F5F9)",
-    iconColorClass: "text-ink-3",
+    iconColor: "var(--color-ink-3, #94A3B8)",
   },
   consentimiento: {
     label: "Consentimiento",
@@ -109,15 +109,15 @@ const TYPE_CONFIG: Record<
     badgeVariant: "success",
     borderColor: "var(--color-ink-3, #94A3B8)",
     iconBg: "var(--color-surface-0, #F1F5F9)",
-    iconColorClass: "text-ink-3",
+    iconColor: "var(--color-ink-3, #94A3B8)",
   },
   nota_clinica: {
     label: "Nota Clínica",
     icon: FileText,
     badgeVariant: "teal",
     borderColor: "var(--color-kp-primary, #006B6B)",
-    iconBg: "#EEF2FF",
-    iconColorClass: "text-[#4F46E5]",
+    iconBg: "var(--color-indigo-icon-bg, #EEF2FF)",
+    iconColor: "var(--color-indigo-icon, #4F46E5)",
   },
   instrumento: {
     label: "Instrumento",
@@ -125,23 +125,23 @@ const TYPE_CONFIG: Record<
     badgeVariant: "info",
     borderColor: "var(--color-kp-accent, #00B0A8)",
     iconBg: "var(--color-kp-accent-lt, #D5F5F4)",
-    iconColorClass: "text-kp-primary",
+    iconColor: "var(--color-kp-primary, #006B6B)",
   },
   prescripcion: {
     label: "Prescripción",
     icon: Pill,
     badgeVariant: "info" as BadgeVariant,
     borderColor: "var(--color-kp-secondary, #F5A623)",
-    iconBg: "#FEF3E2",
-    iconColorClass: "text-[#B45309]",
+    iconBg: "var(--color-kp-secondary-lt, #FEF3E2)",
+    iconColor: "var(--color-amber-icon, #B45309)",
   },
   orden_examen: {
     label: "Orden de Examen",
     icon: ClipboardList,
     badgeVariant: "info" as BadgeVariant,
     borderColor: "var(--color-kp-secondary, #F5A623)",
-    iconBg: "#FEF3E2",
-    iconColorClass: "text-[#B45309]",
+    iconBg: "var(--color-kp-secondary-lt, #FEF3E2)",
+    iconColor: "var(--color-amber-icon, #B45309)",
   },
   egreso: {
     label: "Egreso",
@@ -149,7 +149,7 @@ const TYPE_CONFIG: Record<
     badgeVariant: "warning" as BadgeVariant,
     borderColor: "var(--color-kp-danger, #DC2626)",
     iconBg: "var(--color-kp-danger-lt, #FEE2E2)",
-    iconColorClass: "text-kp-danger",
+    iconColor: "var(--color-kp-danger, #DC2626)",
   },
 };
 
@@ -414,7 +414,9 @@ function TimelineCard({
             marginTop: 2,
           }}
         >
-          <TypeIcon size={14} className={cfg.iconColorClass} />
+          <span style={{ color: cfg.iconColor, display: "flex" }}>
+            <TypeIcon size={14} />
+          </span>
         </div>
 
         {/* Header content */}

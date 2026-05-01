@@ -27,6 +27,11 @@
   --color-ink-3: #94A3B8;
   --color-ink-4: #CBD5E1;
 
+  /* ── Icon palette (static — no brand override needed) ── */
+  --color-indigo-icon-bg: #EEF2FF;
+  --color-indigo-icon: #4F46E5;
+  --color-amber-icon: #B45309;
+
   /* ── Semantic ── */
   --color-kp-success: #16A34A;
   --color-kp-success-lt: #DCFCE7;
