@@ -39,14 +39,14 @@ export function ProcedimientoPicker({ catalogo, onSelect, onClose }: Props) {
   return (
     <div
       className="rounded-xl border shadow-sm overflow-hidden"
-      style={{ borderColor: "var(--kp-border)", background: "var(--surface-1)" }}
+      style={{ borderColor: "var(--color-kp-border)", background: "var(--color-surface-1)" }}
     >
       {/* Buscador */}
       <div
         className="flex items-center gap-2 px-3 py-2 border-b"
-        style={{ borderColor: "var(--kp-border)" }}
+        style={{ borderColor: "var(--color-kp-border)" }}
       >
-        <Search className="w-4 h-4 shrink-0" style={{ color: "var(--ink-3)" }} />
+        <Search className="w-4 h-4 shrink-0" style={{ color: "var(--color-ink-3)" }} />
         <input
           ref={inputRef}
           type="text"
@@ -54,21 +54,21 @@ export function ProcedimientoPicker({ catalogo, onSelect, onClose }: Props) {
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Buscar procedimiento..."
           className="flex-1 text-sm bg-transparent outline-none placeholder:text-ink-3"
-          style={{ color: "var(--ink-1)" }}
+          style={{ color: "var(--color-ink-1)" }}
         />
         <button
           type="button"
           onClick={onClose}
           className="p-0.5 rounded transition-colors hover:bg-surface-0"
         >
-          <X className="w-4 h-4" style={{ color: "var(--ink-3)" }} />
+          <X className="w-4 h-4" style={{ color: "var(--color-ink-3)" }} />
         </button>
       </div>
 
       {/* Resultados */}
       <div className="max-h-64 overflow-y-auto">
         {filtrados.length === 0 ? (
-          <p className="px-4 py-6 text-sm text-center" style={{ color: "var(--ink-3)" }}>
+          <p className="px-4 py-6 text-sm text-center" style={{ color: "var(--color-ink-3)" }}>
             Sin resultados para &ldquo;{query}&rdquo;
           </p>
         ) : (
@@ -77,8 +77,8 @@ export function ProcedimientoPicker({ catalogo, onSelect, onClose }: Props) {
               <div
                 className="px-3 py-1.5 text-xs font-semibold uppercase tracking-wide sticky top-0"
                 style={{
-                  color: "var(--ink-3)",
-                  background: "var(--surface-0)",
+                  color: "var(--color-ink-3)",
+                  background: "var(--color-surface-0)",
                 }}
               >
                 {cat}
@@ -92,11 +92,11 @@ export function ProcedimientoPicker({ catalogo, onSelect, onClose }: Props) {
                     onClose();
                   }}
                   className="w-full flex items-center justify-between px-3 py-2 text-sm text-left transition-colors hover:bg-surface-0"
-                  style={{ color: "var(--ink-1)" }}
+                  style={{ color: "var(--color-ink-1)" }}
                 >
                   <span>{proc.nombre}</span>
                   {proc.precio_base > 0 && (
-                    <span className="text-xs shrink-0 ml-3" style={{ color: "var(--ink-3)" }}>
+                    <span className="text-xs shrink-0 ml-3" style={{ color: "var(--color-ink-3)" }}>
                       ${proc.precio_base.toLocaleString("es-CL")}
                     </span>
                   )}

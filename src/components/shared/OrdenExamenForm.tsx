@@ -73,21 +73,21 @@ export function OrdenExamenForm({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
       <div
         className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl shadow-xl"
-        style={{ background: "var(--surface-1)" }}
+        style={{ background: "var(--color-surface-1)" }}
       >
         {/* Header */}
         <div
           className="flex items-center justify-between px-6 py-4 border-b"
-          style={{ borderColor: "var(--kp-border)" }}
+          style={{ borderColor: "var(--color-kp-border)" }}
         >
           <div>
             <h2
               className="text-base font-semibold"
-              style={{ color: "var(--ink-1)" }}
+              style={{ color: "var(--color-ink-1)" }}
             >
               Nueva orden de exámenes
             </h2>
-            <p className="text-xs mt-0.5" style={{ color: "var(--ink-3)" }}>
+            <p className="text-xs mt-0.5" style={{ color: "var(--color-ink-3)" }}>
               {profesional.nombre} · {profesional.especialidad}
             </p>
           </div>
@@ -95,7 +95,7 @@ export function OrdenExamenForm({
             onClick={onClose}
             className="p-1 rounded-lg hover:bg-gray-100"
           >
-            <X className="size-4" style={{ color: "var(--ink-3)" }} />
+            <X className="size-4" style={{ color: "var(--color-ink-3)" }} />
           </button>
         </div>
 
@@ -117,7 +117,7 @@ export function OrdenExamenForm({
               ))}
             </div>
           ) : (
-            <p className="text-sm text-center py-4" style={{ color: "var(--ink-3)" }}>
+            <p className="text-sm text-center py-4" style={{ color: "var(--color-ink-3)" }}>
               Agregue al menos un examen usando el buscador
             </p>
           )}
@@ -126,10 +126,10 @@ export function OrdenExamenForm({
           <div>
             <label
               className="block text-xs font-medium mb-1"
-              style={{ color: "var(--ink-2)" }}
+              style={{ color: "var(--color-ink-2)" }}
             >
               Diagnóstico presuntivo{" "}
-              <span style={{ color: "var(--ink-3)" }}>(opcional)</span>
+              <span style={{ color: "var(--color-ink-3)" }}>(opcional)</span>
             </label>
             <input
               type="text"
@@ -137,7 +137,7 @@ export function OrdenExamenForm({
               onChange={(e) => setDiagnostico(e.target.value)}
               placeholder="Ej: Hipotiroidismo"
               className="w-full text-sm px-3 py-2 rounded-lg border"
-              style={{ borderColor: "var(--kp-border)", color: "var(--ink-1)" }}
+              style={{ borderColor: "var(--color-kp-border)", color: "var(--color-ink-1)" }}
             />
           </div>
 
@@ -145,17 +145,17 @@ export function OrdenExamenForm({
           <div>
             <label
               className="block text-xs font-medium mb-1"
-              style={{ color: "var(--ink-2)" }}
+              style={{ color: "var(--color-ink-2)" }}
             >
               Observaciones para el laboratorio{" "}
-              <span style={{ color: "var(--ink-3)" }}>(opcional)</span>
+              <span style={{ color: "var(--color-ink-3)" }}>(opcional)</span>
             </label>
             <textarea
               value={observaciones}
               onChange={(e) => setObservaciones(e.target.value)}
               rows={2}
               className="w-full text-sm px-3 py-2 rounded-lg border resize-none"
-              style={{ borderColor: "var(--kp-border)", color: "var(--ink-1)" }}
+              style={{ borderColor: "var(--color-kp-border)", color: "var(--color-ink-1)" }}
             />
           </div>
 
@@ -163,7 +163,7 @@ export function OrdenExamenForm({
           <div>
             <label
               className="block text-xs font-medium mb-2"
-              style={{ color: "var(--ink-2)" }}
+              style={{ color: "var(--color-ink-2)" }}
             >
               Prioridad
             </label>
@@ -182,8 +182,8 @@ export function OrdenExamenForm({
                         }
                       : {
                           background: "transparent",
-                          color: "var(--ink-2)",
-                          borderColor: "var(--kp-border)",
+                          color: "var(--color-ink-2)",
+                          borderColor: "var(--color-kp-border)",
                         }
                   }
                 >
@@ -204,7 +204,7 @@ export function OrdenExamenForm({
         {/* Footer */}
         <div
           className="flex items-center justify-between px-6 py-4 border-t"
-          style={{ borderColor: "var(--kp-border)" }}
+          style={{ borderColor: "var(--color-kp-border)" }}
         >
           {error ? (
             <p className="text-xs" style={{ color: "#dc2626" }}>
@@ -218,7 +218,7 @@ export function OrdenExamenForm({
               onClick={onClose}
               disabled={submitting}
               className="px-4 py-2 rounded-lg text-sm border"
-              style={{ borderColor: "var(--kp-border)", color: "var(--ink-2)" }}
+              style={{ borderColor: "var(--color-kp-border)", color: "var(--color-ink-2)" }}
             >
               Cancelar
             </button>

@@ -34,16 +34,16 @@ export function InstrumentoResultadoCard({
   return (
     <div
       className="rounded-md border p-3 space-y-2"
-      style={{ borderColor: "var(--kp-border)", background: "var(--surface-1)" }}
+      style={{ borderColor: "var(--color-kp-border)", background: "var(--color-surface-1)" }}
     >
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium truncate" style={{ color: "var(--ink-1)" }}>
+          <p className="text-sm font-medium truncate" style={{ color: "var(--color-ink-1)" }}>
             {instrumento.instrumento?.nombre ?? "Instrumento"}
           </p>
           <div className="flex items-center gap-2 mt-0.5 flex-wrap">
             {instrumento.puntaje_total !== null && (
-              <span className="text-xs" style={{ color: "var(--ink-2)" }}>
+              <span className="text-xs" style={{ color: "var(--color-ink-2)" }}>
                 Puntaje: {instrumento.puntaje_total}
               </span>
             )}
@@ -52,7 +52,7 @@ export function InstrumentoResultadoCard({
                 {instrumento.interpretacion}
               </span>
             )}
-            <span className="text-xs" style={{ color: "var(--ink-3)" }}>
+            <span className="text-xs" style={{ color: "var(--color-ink-3)" }}>
               {new Date(instrumento.aplicado_at).toLocaleDateString("es-CL")}
             </span>
           </div>
@@ -61,7 +61,7 @@ export function InstrumentoResultadoCard({
           <button
             onClick={() => setExpandido((v) => !v)}
             className="text-xs underline"
-            style={{ color: "var(--ink-3)" }}
+            style={{ color: "var(--color-ink-3)" }}
           >
             {expandido ? "Ocultar" : "Ver detalle"}
           </button>
@@ -78,7 +78,7 @@ export function InstrumentoResultadoCard({
       </div>
 
       {expandido && (
-        <div className="text-xs space-y-1 pt-1 border-t" style={{ borderColor: "var(--kp-border)", color: "var(--ink-2)" }}>
+        <div className="text-xs space-y-1 pt-1 border-t" style={{ borderColor: "var(--color-kp-border)", color: "var(--color-ink-2)" }}>
           {Object.entries(instrumento.respuestas).map(([key, val]) => (
             <div key={key} className="flex gap-1">
               <span className="font-medium">{key}:</span>

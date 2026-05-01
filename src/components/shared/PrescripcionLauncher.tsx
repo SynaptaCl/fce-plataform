@@ -46,7 +46,7 @@ export function PrescripcionLauncher({ patientId, encuentroId, paciente, onPresc
       </button>
 
       {lastFolio && (
-        <p className="text-xs mt-1" style={{ color: "var(--ink-3)" }}>
+        <p className="text-xs mt-1" style={{ color: "var(--color-ink-3)" }}>
           Última: {lastFolio}
         </p>
       )}

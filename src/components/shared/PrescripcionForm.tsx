@@ -71,15 +71,15 @@ export function PrescripcionForm({ patientId, encuentroId, profesional, onClose,
         style={{ background: "#ffffff" }}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: "var(--kp-border)" }}>
+        <div className="flex items-center justify-between px-6 py-4 border-b" style={{ borderColor: "var(--color-kp-border)" }}>
           <div>
-            <h2 className="text-base font-semibold" style={{ color: "var(--ink-1)" }}>Nueva prescripción</h2>
-            <p className="text-xs mt-0.5" style={{ color: "var(--ink-3)" }}>
+            <h2 className="text-base font-semibold" style={{ color: "var(--color-ink-1)" }}>Nueva prescripción</h2>
+            <p className="text-xs mt-0.5" style={{ color: "var(--color-ink-3)" }}>
               {profesional.nombre} · {profesional.especialidad}
             </p>
           </div>
           <button onClick={onClose} className="p-1 rounded-lg hover:bg-gray-100">
-            <X className="size-4" style={{ color: "var(--ink-3)" }} />
+            <X className="size-4" style={{ color: "var(--color-ink-3)" }} />
           </button>
         </div>
 
@@ -98,8 +98,8 @@ export function PrescripcionForm({ patientId, encuentroId, profesional, onClose,
                   borderColor: "var(--color-kp-accent)",
                 } : {
                   background: "transparent",
-                  color: "var(--ink-2)",
-                  borderColor: "var(--kp-border)",
+                  color: "var(--color-ink-2)",
+                  borderColor: "var(--color-kp-border)",
                 }}
               >
                 {t === "farmacologica" ? "Receta farmacológica" : "Indicación general"}
@@ -126,8 +126,8 @@ export function PrescripcionForm({ patientId, encuentroId, profesional, onClose,
 
           {/* Diagnóstico (siempre visible) */}
           <div>
-            <label className="block text-xs font-medium mb-1" style={{ color: "var(--ink-2)" }}>
-              Diagnóstico asociado <span style={{ color: "var(--ink-3)" }}>(opcional)</span>
+            <label className="block text-xs font-medium mb-1" style={{ color: "var(--color-ink-2)" }}>
+              Diagnóstico asociado <span style={{ color: "var(--color-ink-3)" }}>(opcional)</span>
             </label>
             <input
               type="text"
@@ -135,15 +135,15 @@ export function PrescripcionForm({ patientId, encuentroId, profesional, onClose,
               onChange={(e) => setDiagnostico(e.target.value)}
               placeholder="Ej: Cefalea tensional"
               className="w-full text-sm px-3 py-2 rounded-lg border"
-              style={{ borderColor: "var(--kp-border)", color: "var(--ink-1)" }}
+              style={{ borderColor: "var(--color-kp-border)", color: "var(--color-ink-1)" }}
             />
           </div>
 
           {/* Indicaciones adicionales (solo si farmacologica) */}
           {tipo === "farmacologica" && (
             <div>
-              <label className="block text-xs font-medium mb-1" style={{ color: "var(--ink-2)" }}>
-                Indicaciones adicionales <span style={{ color: "var(--ink-3)" }}>(opcional)</span>
+              <label className="block text-xs font-medium mb-1" style={{ color: "var(--color-ink-2)" }}>
+                Indicaciones adicionales <span style={{ color: "var(--color-ink-3)" }}>(opcional)</span>
               </label>
               <textarea
                 value={indicaciones}
@@ -151,7 +151,7 @@ export function PrescripcionForm({ patientId, encuentroId, profesional, onClose,
                 rows={3}
                 placeholder="Ej: Tomar con abundante agua. Evitar alcohol."
                 className="w-full text-sm px-3 py-2 rounded-lg border resize-none"
-                style={{ borderColor: "var(--kp-border)", color: "var(--ink-1)" }}
+                style={{ borderColor: "var(--color-kp-border)", color: "var(--color-ink-1)" }}
               />
             </div>
           )}
@@ -164,7 +164,7 @@ export function PrescripcionForm({ patientId, encuentroId, profesional, onClose,
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between px-6 py-4 border-t" style={{ borderColor: "var(--kp-border)" }}>
+        <div className="flex items-center justify-between px-6 py-4 border-t" style={{ borderColor: "var(--color-kp-border)" }}>
           {error && <p className="text-xs" style={{ color: "#dc2626" }}>{error}</p>}
           {!error && <div />}
           <div className="flex gap-2">
@@ -172,7 +172,7 @@ export function PrescripcionForm({ patientId, encuentroId, profesional, onClose,
               onClick={onClose}
               disabled={submitting}
               className="px-4 py-2 rounded-lg text-sm border"
-              style={{ borderColor: "var(--kp-border)", color: "var(--ink-2)" }}
+              style={{ borderColor: "var(--color-kp-border)", color: "var(--color-ink-2)" }}
             >
               Cancelar
             </button>

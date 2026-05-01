@@ -112,7 +112,7 @@ export function OrdenExamenFirmaPanel({
 
   return (
     <div className="space-y-3">
-      <p className="text-sm font-semibold" style={{ color: "var(--ink-1)" }}>
+      <p className="text-sm font-semibold" style={{ color: "var(--color-ink-1)" }}>
         Firmar y emitir orden
       </p>
 
@@ -136,8 +136,8 @@ export function OrdenExamenFirmaPanel({
                   }
                 : {
                     background: "transparent",
-                    color: "var(--ink-2)",
-                    borderColor: "var(--kp-border)",
+                    color: "var(--color-ink-2)",
+                    borderColor: "var(--color-kp-border)",
                   }
             }
           >
@@ -150,7 +150,7 @@ export function OrdenExamenFirmaPanel({
       {modoFirma === "canvas" && (
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <p className="text-xs font-medium" style={{ color: "var(--ink-2)" }}>
+            <p className="text-xs font-medium" style={{ color: "var(--color-ink-2)" }}>
               Dibuje su firma
             </p>
             {hasFirma && (
@@ -158,7 +158,7 @@ export function OrdenExamenFirmaPanel({
                 type="button"
                 onClick={clearCanvas}
                 className="flex items-center gap-1 text-xs px-2 py-1 rounded border"
-                style={{ borderColor: "var(--kp-border)", color: "var(--ink-3)" }}
+                style={{ borderColor: "var(--color-kp-border)", color: "var(--color-ink-3)" }}
               >
                 <Eraser className="size-3" />
                 Borrar
@@ -171,7 +171,7 @@ export function OrdenExamenFirmaPanel({
             height={120}
             className="w-full rounded-lg border touch-none"
             style={{
-              borderColor: "var(--kp-border)",
+              borderColor: "var(--color-kp-border)",
               background: "#fff",
               cursor: "crosshair",
             }}
@@ -184,7 +184,7 @@ export function OrdenExamenFirmaPanel({
             onTouchEnd={endDraw}
           />
           {!hasFirma && (
-            <p className="text-xs" style={{ color: "var(--ink-3)" }}>
+            <p className="text-xs" style={{ color: "var(--color-ink-3)" }}>
               Trace su firma en el recuadro superior.
             </p>
           )}
@@ -193,7 +193,7 @@ export function OrdenExamenFirmaPanel({
 
       {/* Impresa mode */}
       {modoFirma === "impresa" && (
-        <p className="text-xs" style={{ color: "var(--ink-3)" }}>
+        <p className="text-xs" style={{ color: "var(--color-ink-3)" }}>
           Se generará un PDF que el profesional firmará a mano antes de entregar
           al paciente.
         </p>

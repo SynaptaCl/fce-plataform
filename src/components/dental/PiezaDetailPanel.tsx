@@ -123,9 +123,9 @@ export function PiezaDetailPanel({
     });
 
   return (
-    <div className="flex flex-col border border-kp-border rounded-xl bg-surface-1 overflow-hidden" style={{ maxHeight: 520 }}>
+    <div className="flex flex-col border border-kp-border rounded-xl bg-surface-1 max-h-[75vh] overflow-hidden mb-4">
       {/* Header */}
-      <div className="flex items-start justify-between px-4 py-3 border-b border-kp-border bg-surface-0">
+      <div className="flex items-start justify-between px-4 py-3 border-b border-kp-border bg-surface-0 shrink-0 rounded-t-xl">
         <div>
           <p className="text-xs font-semibold text-kp-accent uppercase tracking-wide">Pieza {pieza}</p>
           <p className="text-sm font-medium text-ink-1 mt-0.5">{getLabelPieza(pieza)}</p>
@@ -166,7 +166,7 @@ export function PiezaDetailPanel({
               <div key={key} className="flex items-center gap-2">
                 <label
                   className="w-36 text-xs text-ink-2 shrink-0"
-                  style={{ fontWeight: highlightSurface === key ? 600 : undefined, color: highlightSurface === key ? "var(--kp-primary)" : undefined }}
+                  style={{ fontWeight: highlightSurface === key ? 600 : undefined, color: highlightSurface === key ? "var(--color-kp-primary)" : undefined }}
                 >
                   {label}
                 </label>
@@ -198,9 +198,9 @@ export function PiezaDetailPanel({
                 disabled={readOnly}
                 className="flex-1 py-1.5 rounded-lg border text-xs font-medium transition-colors disabled:opacity-60"
                 style={{
-                  borderColor: movilidad === v ? "var(--kp-primary)" : "var(--kp-border)",
-                  background: movilidad === v ? "var(--kp-primary)" : "var(--surface-0)",
-                  color: movilidad === v ? "#FFFFFF" : "var(--ink-2)",
+                  borderColor: movilidad === v ? "var(--color-kp-primary)" : "var(--color-kp-border)",
+                  background: movilidad === v ? "var(--color-kp-primary)" : "var(--color-surface-0)",
+                  color: movilidad === v ? "#FFFFFF" : "var(--color-ink-2)",
                 }}
               >
                 {v === null ? "—" : v}
@@ -230,7 +230,7 @@ export function PiezaDetailPanel({
             value={notas}
             onChange={(e) => setNotas(e.target.value)}
             disabled={readOnly}
-            rows={3}
+            rows={2}
             placeholder="Observaciones clínicas sobre esta pieza…"
             className="w-full rounded-lg border border-kp-border bg-surface-0 px-3 py-2 text-xs text-ink-1 placeholder:text-ink-3 resize-none focus:outline-none focus:ring-2 focus:ring-kp-primary/30 disabled:opacity-60"
           />
@@ -271,15 +271,15 @@ export function PiezaDetailPanel({
         </div>
       </div>
 
-      {/* Footer — guardar */}
+      {/* Footer — botón guardar siempre visible */}
       {!readOnly && (
-        <div className="px-4 py-3 border-t border-kp-border bg-surface-0">
+        <div className="px-4 py-3 border-t border-kp-border bg-surface-0 shrink-0 rounded-b-xl">
           <button
             type="button"
             onClick={handleSave}
             disabled={isPending}
-            className="w-full flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium text-white transition-opacity disabled:opacity-60"
-            style={{ background: "var(--kp-primary)" }}
+            className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-semibold text-white transition-opacity disabled:opacity-60"
+            style={{ background: "var(--color-kp-primary-deep)" }}
           >
             {isPending && <Loader2 className="w-4 h-4 animate-spin" />}
             {isPending ? "Guardando…" : "Guardar cambios"}

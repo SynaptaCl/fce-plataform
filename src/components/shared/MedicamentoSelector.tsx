@@ -78,30 +78,30 @@ export function MedicamentoSelector({ onSelect }: Props) {
   return (
     <div className="relative">
       <div className="relative">
-        <Search className="absolute left-3 top-2.5 size-4" style={{ color: "var(--ink-3)" }} />
+        <Search className="absolute left-3 top-2.5 size-4" style={{ color: "var(--color-ink-3)" }} />
         <input
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Buscar medicamento..."
           className="w-full text-sm pl-9 pr-3 py-2 rounded-lg border"
-          style={{ borderColor: "var(--kp-border)", color: "var(--ink-1)" }}
+          style={{ borderColor: "var(--color-kp-border)", color: "var(--color-ink-1)" }}
         />
       </div>
 
       {open && (
         <div
           className="absolute z-10 w-full mt-1 rounded-lg border shadow-lg overflow-hidden"
-          style={{ borderColor: "var(--kp-border)", background: "#ffffff" }}
+          style={{ borderColor: "var(--color-kp-border)", background: "#ffffff" }}
         >
           {loading && (
-            <div className="px-3 py-2 text-sm" style={{ color: "var(--ink-3)" }}>Buscando...</div>
+            <div className="px-3 py-2 text-sm" style={{ color: "var(--color-ink-3)" }}>Buscando...</div>
           )}
           {!loading && results.length === 0 && query.trim().length >= 2 && (
             <button
               onClick={addManual}
               className="w-full flex items-center gap-2 px-3 py-2 text-sm text-left hover:bg-gray-50"
-              style={{ color: "var(--ink-2)" }}
+              style={{ color: "var(--color-ink-2)" }}
             >
               <Plus className="size-4" />
               Agregar &ldquo;{query}&rdquo; manualmente
@@ -113,10 +113,10 @@ export function MedicamentoSelector({ onSelect }: Props) {
               onClick={() => selectFromCatalog(med)}
               className="w-full flex flex-col items-start px-3 py-2 text-sm text-left hover:bg-gray-50"
             >
-              <span className="font-medium" style={{ color: "var(--ink-1)" }}>
+              <span className="font-medium" style={{ color: "var(--color-ink-1)" }}>
                 {med.principio_activo}{med.nombre_comercial ? ` (${med.nombre_comercial})` : ""}
               </span>
-              <span className="text-xs" style={{ color: "var(--ink-3)" }}>
+              <span className="text-xs" style={{ color: "var(--color-ink-3)" }}>
                 {med.presentacion} · {med.grupo_terapeutico ?? ""}
               </span>
             </button>

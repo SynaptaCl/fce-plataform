@@ -110,8 +110,8 @@ export function PrescripcionFirmaPanel({ modoFirma, onModoChange, onFirmaChange 
               borderColor: "var(--color-kp-primary)",
             } : {
               background: "transparent",
-              color: "var(--ink-2)",
-              borderColor: "var(--kp-border)",
+              color: "var(--color-ink-2)",
+              borderColor: "var(--color-kp-border)",
             }}
           >
             {m === "impresa" ? "Firma impresa" : "Firma digital"}
@@ -122,7 +122,7 @@ export function PrescripcionFirmaPanel({ modoFirma, onModoChange, onFirmaChange 
       {modoFirma === "canvas" && (
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <p className="text-xs font-medium" style={{ color: "var(--ink-2)" }}>
+            <p className="text-xs font-medium" style={{ color: "var(--color-ink-2)" }}>
               Dibuje su firma
             </p>
             {hasFirma && (
@@ -130,7 +130,7 @@ export function PrescripcionFirmaPanel({ modoFirma, onModoChange, onFirmaChange 
                 type="button"
                 onClick={clearCanvas}
                 className="flex items-center gap-1 text-xs px-2 py-1 rounded border"
-                style={{ borderColor: "var(--kp-border)", color: "var(--ink-3)" }}
+                style={{ borderColor: "var(--color-kp-border)", color: "var(--color-ink-3)" }}
               >
                 <Eraser className="size-3" />
                 Borrar
@@ -142,7 +142,7 @@ export function PrescripcionFirmaPanel({ modoFirma, onModoChange, onFirmaChange 
             width={560}
             height={120}
             className="w-full rounded-lg border touch-none"
-            style={{ borderColor: "var(--kp-border)", background: "#fff", cursor: "crosshair" }}
+            style={{ borderColor: "var(--color-kp-border)", background: "#fff", cursor: "crosshair" }}
             onMouseDown={startDraw}
             onMouseMove={draw}
             onMouseUp={endDraw}
@@ -152,7 +152,7 @@ export function PrescripcionFirmaPanel({ modoFirma, onModoChange, onFirmaChange 
             onTouchEnd={endDraw}
           />
           {!hasFirma && (
-            <p className="text-xs" style={{ color: "var(--ink-3)" }}>
+            <p className="text-xs" style={{ color: "var(--color-ink-3)" }}>
               Trace su firma en el recuadro superior.
             </p>
           )}
@@ -160,7 +160,7 @@ export function PrescripcionFirmaPanel({ modoFirma, onModoChange, onFirmaChange 
       )}
 
       {modoFirma === "impresa" && (
-        <p className="text-xs" style={{ color: "var(--ink-3)" }}>
+        <p className="text-xs" style={{ color: "var(--color-ink-3)" }}>
           Se generará un PDF que el profesional firmará a mano antes de entregar al paciente.
         </p>
       )}

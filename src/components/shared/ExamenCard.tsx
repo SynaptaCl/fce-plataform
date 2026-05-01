@@ -33,7 +33,7 @@ export function ExamenCard({ examen, onUpdate, onRemove }: Props) {
   return (
     <div
       className="relative rounded-xl border p-4 space-y-3"
-      style={{ borderColor: "var(--kp-border)", background: "var(--surface-1)" }}
+      style={{ borderColor: "var(--color-kp-border)", background: "var(--color-surface-1)" }}
     >
       {/* Remove button */}
       <button
@@ -41,14 +41,14 @@ export function ExamenCard({ examen, onUpdate, onRemove }: Props) {
         onClick={onRemove}
         aria-label="Eliminar examen"
         className="absolute top-3 right-3 rounded-full p-1 transition-colors"
-        style={{ color: "var(--ink-3)" }}
+        style={{ color: "var(--color-ink-3)" }}
       >
         <X className="w-4 h-4" />
       </button>
 
       {/* Header row */}
       <div className="flex flex-wrap items-center gap-2 pr-8">
-        <span className="font-semibold text-sm" style={{ color: "var(--ink-1)" }}>
+        <span className="font-semibold text-sm" style={{ color: "var(--color-ink-1)" }}>
           {examen.nombre}
         </span>
         <Badge variant={categoriaBadgeVariant(examen.categoria)}>
@@ -66,7 +66,7 @@ export function ExamenCard({ examen, onUpdate, onRemove }: Props) {
       <div>
         <label
           className="block text-xs font-medium mb-1"
-          style={{ color: "var(--ink-2)" }}
+          style={{ color: "var(--color-ink-2)" }}
         >
           Indicación clínica <span style={{ color: "#ef4444" }}>*</span>
         </label>
@@ -82,9 +82,9 @@ export function ExamenCard({ examen, onUpdate, onRemove }: Props) {
             borderColor:
               examen.indicacion_clinica.trim() === ""
                 ? "#ef4444"
-                : "var(--kp-border)",
-            background: "var(--surface-0)",
-            color: "var(--ink-1)",
+                : "var(--color-kp-border)",
+            background: "var(--color-surface-0)",
+            color: "var(--color-ink-1)",
           }}
         />
         {examen.indicacion_clinica.trim() === "" && (
@@ -109,8 +109,8 @@ export function ExamenCard({ examen, onUpdate, onRemove }: Props) {
                 }
               : {
                   background: "transparent",
-                  color: "var(--ink-2)",
-                  borderColor: "var(--kp-border)",
+                  color: "var(--color-ink-2)",
+                  borderColor: "var(--color-kp-border)",
                 }
           }
         >
@@ -122,10 +122,10 @@ export function ExamenCard({ examen, onUpdate, onRemove }: Props) {
       <div>
         <label
           className="block text-xs font-medium mb-1"
-          style={{ color: "var(--ink-2)" }}
+          style={{ color: "var(--color-ink-2)" }}
         >
           Instrucciones adicionales{" "}
-          <span style={{ color: "var(--ink-3)" }}>(opcional)</span>
+          <span style={{ color: "var(--color-ink-3)" }}>(opcional)</span>
         </label>
         <textarea
           rows={2}
@@ -139,9 +139,9 @@ export function ExamenCard({ examen, onUpdate, onRemove }: Props) {
           placeholder="Ej: Ayuno de 8 horas, traer exámenes anteriores…"
           className="w-full rounded-lg border px-3 py-2 text-sm resize-none outline-none transition-colors"
           style={{
-            borderColor: "var(--kp-border)",
-            background: "var(--surface-0)",
-            color: "var(--ink-1)",
+            borderColor: "var(--color-kp-border)",
+            background: "var(--color-surface-0)",
+            color: "var(--color-ink-1)",
           }}
         />
       </div>

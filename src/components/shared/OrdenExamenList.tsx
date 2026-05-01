@@ -26,7 +26,7 @@ export function OrdenExamenList({ ordenes, onVerOrden }: Props) {
     return (
       <div
         className="flex flex-col items-center justify-center py-12 text-center"
-        style={{ color: "var(--ink-3)" }}
+        style={{ color: "var(--color-ink-3)" }}
       >
         <ClipboardList className="w-8 h-8 mb-3 opacity-40" />
         <p className="text-sm">Sin órdenes de examen registradas</p>
@@ -40,7 +40,7 @@ export function OrdenExamenList({ ordenes, onVerOrden }: Props) {
         <li
           key={orden.id}
           className="rounded-xl border p-4"
-          style={{ borderColor: "var(--kp-border)", background: "var(--surface-1)" }}
+          style={{ borderColor: "var(--color-kp-border)", background: "var(--color-surface-1)" }}
         >
           <div className="flex items-start justify-between gap-3">
             <div className="space-y-1 min-w-0">
@@ -48,7 +48,7 @@ export function OrdenExamenList({ ordenes, onVerOrden }: Props) {
               <div className="flex flex-wrap items-center gap-2">
                 <span
                   className="font-semibold text-sm"
-                  style={{ color: "var(--ink-1)" }}
+                  style={{ color: "var(--color-ink-1)" }}
                 >
                   {orden.folio_display}
                 </span>
@@ -58,7 +58,7 @@ export function OrdenExamenList({ ordenes, onVerOrden }: Props) {
               </div>
 
               {/* Date + exam count */}
-              <p className="text-xs" style={{ color: "var(--ink-3)" }}>
+              <p className="text-xs" style={{ color: "var(--color-ink-3)" }}>
                 {formatFecha(orden.firmado_at ?? orden.created_at)} ·{" "}
                 {orden.examenes.length} examen
                 {orden.examenes.length !== 1 ? "es" : ""}
@@ -71,9 +71,9 @@ export function OrdenExamenList({ ordenes, onVerOrden }: Props) {
               onClick={() => onVerOrden(orden.id)}
               className="shrink-0 rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors"
               style={{
-                borderColor: "var(--kp-border)",
-                color: "var(--ink-2)",
-                background: "var(--surface-0)",
+                borderColor: "var(--color-kp-border)",
+                color: "var(--color-ink-2)",
+                background: "var(--color-surface-0)",
               }}
             >
               Ver orden

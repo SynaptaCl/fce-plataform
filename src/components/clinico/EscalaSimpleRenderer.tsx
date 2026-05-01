@@ -37,11 +37,11 @@ export function EscalaSimpleRenderer({
     <div className="space-y-4">
       {items.map((item) => (
         <div key={item.codigo} className="space-y-1">
-          <p className="text-sm font-medium" style={{ color: "var(--ink-1)" }}>
+          <p className="text-sm font-medium" style={{ color: "var(--color-ink-1)" }}>
             {item.label}
           </p>
           {readOnly ? (
-            <p className="text-sm" style={{ color: "var(--ink-2)" }}>
+            <p className="text-sm" style={{ color: "var(--color-ink-2)" }}>
               {item.opciones.find((o) => o.valor === valor[item.codigo])
                 ?.label ?? "—"}
             </p>
@@ -60,9 +60,9 @@ export function EscalaSimpleRenderer({
                     onChange={() =>
                       onChange({ ...valor, [item.codigo]: opcion.valor })
                     }
-                    className="accent-[var(--kp-accent)]"
+                    className="accent-[var(--color-kp-accent)]"
                   />
-                  <span className="text-sm" style={{ color: "var(--ink-2)" }}>
+                  <span className="text-sm" style={{ color: "var(--color-ink-2)" }}>
                     {opcion.label}
                   </span>
                 </label>
@@ -75,11 +75,11 @@ export function EscalaSimpleRenderer({
       {hasAnyValue && (
         <div
           className="border-t pt-3 flex items-center gap-3"
-          style={{ borderColor: "var(--kp-border)" }}
+          style={{ borderColor: "var(--color-kp-border)" }}
         >
           <span
             className="text-sm font-medium"
-            style={{ color: "var(--ink-1)" }}
+            style={{ color: "var(--color-ink-1)" }}
           >
             {puntaje !== null
               ? `Puntaje: ${puntaje}`

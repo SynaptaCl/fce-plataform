@@ -53,7 +53,7 @@ interface Props {
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <label className="block text-xs font-medium mb-1" style={{ color: "var(--ink-2)" }}>
+      <label className="block text-xs font-medium mb-1" style={{ color: "var(--color-ink-2)" }}>
         {label}
       </label>
       {children}
@@ -70,7 +70,7 @@ function QuickPills({ options, onSelect }: { options: string[]; onSelect: (v: st
           type="button"
           onClick={() => onSelect(o)}
           className="text-xs px-2 py-0.5 rounded-full border"
-          style={{ borderColor: "var(--kp-border)", color: "var(--ink-3)" }}
+          style={{ borderColor: "var(--color-kp-border)", color: "var(--color-ink-3)" }}
         >
           {o}
         </button>
@@ -102,7 +102,7 @@ export function MedicamentoEditor({ medicamento, onChange }: Props) {
   const autoCalculado = expectedCalc !== null && medicamento.cantidad_total === expectedCalc;
 
   const inputCls = "w-full text-sm px-3 py-1.5 rounded-lg border";
-  const inputStyle = { borderColor: "var(--kp-border)", color: "var(--ink-1)" };
+  const inputStyle = { borderColor: "var(--color-kp-border)", color: "var(--color-ink-1)" };
 
   return (
     <div className="grid grid-cols-2 gap-3">
@@ -156,14 +156,14 @@ export function MedicamentoEditor({ medicamento, onChange }: Props) {
           className={inputCls}
           style={{
             ...inputStyle,
-            background: autoCalculado ? "var(--surface-0, #f8fafc)" : "#ffffff",
+            background: autoCalculado ? "var(--color-surface-0, #f8fafc)" : "#ffffff",
           }}
           value={medicamento.cantidad_total}
           onChange={(e) => update("cantidad_total", e.target.value)}
           placeholder="Se calcula automáticamente"
         />
         {autoCalculado && (
-          <p className="text-xs mt-0.5" style={{ color: "var(--ink-3)" }}>
+          <p className="text-xs mt-0.5" style={{ color: "var(--color-ink-3)" }}>
             Calculado — puede editarlo si la presentación es diferente
           </p>
         )}

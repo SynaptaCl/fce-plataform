@@ -108,7 +108,7 @@ export function InstrumentoLauncher({
         {trigger ?? (
           <button
             className="text-sm font-medium px-3 py-1.5 rounded-md"
-            style={{ background: "var(--kp-accent)", color: "#fff" }}
+            style={{ background: "var(--color-kp-accent)", color: "#fff" }}
           >
             Aplicar instrumento
           </button>
@@ -119,16 +119,16 @@ export function InstrumentoLauncher({
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div
             className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-lg shadow-xl"
-            style={{ background: "var(--surface-1)" }}
+            style={{ background: "var(--color-surface-1)" }}
           >
             {/* Header */}
             <div
               className="flex items-center justify-between p-4 border-b"
-              style={{ borderColor: "var(--kp-border)" }}
+              style={{ borderColor: "var(--color-kp-border)" }}
             >
               <h2
                 className="text-base font-semibold"
-                style={{ color: "var(--ink-1)" }}
+                style={{ color: "var(--color-ink-1)" }}
               >
                 {instrumentoSeleccionado
                   ? instrumentoSeleccionado.nombre
@@ -137,7 +137,7 @@ export function InstrumentoLauncher({
               <button
                 onClick={handleClose}
                 className="text-lg leading-none"
-                style={{ color: "var(--ink-3)" }}
+                style={{ color: "var(--color-ink-3)" }}
                 aria-label="Cerrar"
               >
                 ×
@@ -155,28 +155,28 @@ export function InstrumentoLauncher({
                     onChange={(e) => setQuery(e.target.value)}
                     className="w-full px-3 py-2 rounded-md border text-sm"
                     style={{
-                      borderColor: "var(--kp-border)",
-                      color: "var(--ink-1)",
+                      borderColor: "var(--color-kp-border)",
+                      color: "var(--color-ink-1)",
                     }}
                   />
                   {loading ? (
                     <p
                       className="text-sm text-center py-4"
-                      style={{ color: "var(--ink-3)" }}
+                      style={{ color: "var(--color-ink-3)" }}
                     >
                       Cargando...
                     </p>
                   ) : catalogoFiltrado.length === 0 ? (
                     <p
                       className="text-sm text-center py-4"
-                      style={{ color: "var(--ink-3)" }}
+                      style={{ color: "var(--color-ink-3)" }}
                     >
                       Sin resultados
                     </p>
                   ) : (
                     <ul
                       className="divide-y"
-                      style={{ borderColor: "var(--kp-border)" }}
+                      style={{ borderColor: "var(--color-kp-border)" }}
                     >
                       {catalogoFiltrado.map((instrumento) => (
                         <li key={instrumento.id}>
@@ -186,14 +186,14 @@ export function InstrumentoLauncher({
                           >
                             <p
                               className="text-sm font-medium"
-                              style={{ color: "var(--ink-1)" }}
+                              style={{ color: "var(--color-ink-1)" }}
                             >
                               {instrumento.nombre}
                             </p>
                             {instrumento.descripcion && (
                               <p
                                 className="text-xs mt-0.5"
-                                style={{ color: "var(--ink-3)" }}
+                                style={{ color: "var(--color-ink-3)" }}
                               >
                                 {instrumento.descripcion}
                               </p>
@@ -215,7 +215,7 @@ export function InstrumentoLauncher({
                       setRespuestas({});
                     }}
                     className="text-xs underline"
-                    style={{ color: "var(--ink-3)" }}
+                    style={{ color: "var(--color-ink-3)" }}
                   >
                     ← Volver al catálogo
                   </button>
@@ -233,7 +233,7 @@ export function InstrumentoLauncher({
                       onChange={setRespuestas}
                     />
                   ) : (
-                    <p className="text-sm" style={{ color: "var(--ink-3)" }}>
+                    <p className="text-sm" style={{ color: "var(--color-ink-3)" }}>
                       Cargando componente...
                     </p>
                   )}
@@ -242,7 +242,7 @@ export function InstrumentoLauncher({
                   <div>
                     <label
                       className="block text-sm font-medium mb-1"
-                      style={{ color: "var(--ink-1)" }}
+                      style={{ color: "var(--color-ink-1)" }}
                     >
                       Notas (opcional)
                     </label>
@@ -252,8 +252,8 @@ export function InstrumentoLauncher({
                       rows={2}
                       className="w-full px-3 py-2 rounded-md border text-sm"
                       style={{
-                        borderColor: "var(--kp-border)",
-                        color: "var(--ink-1)",
+                        borderColor: "var(--color-kp-border)",
+                        color: "var(--color-ink-1)",
                       }}
                     />
                   </div>
@@ -264,9 +264,9 @@ export function InstrumentoLauncher({
                       type="checkbox"
                       checked={mostrarEnTimeline}
                       onChange={(e) => setMostrarEnTimeline(e.target.checked)}
-                      className="accent-[var(--kp-accent)]"
+                      className="accent-[var(--color-kp-accent)]"
                     />
-                    <span className="text-sm" style={{ color: "var(--ink-2)" }}>
+                    <span className="text-sm" style={{ color: "var(--color-ink-2)" }}>
                       Mostrar en Timeline
                     </span>
                   </label>
@@ -278,14 +278,14 @@ export function InstrumentoLauncher({
                   {/* Botones de acción */}
                   <div
                     className="flex justify-end gap-2 pt-2 border-t"
-                    style={{ borderColor: "var(--kp-border)" }}
+                    style={{ borderColor: "var(--color-kp-border)" }}
                   >
                     <button
                       onClick={handleClose}
                       className="text-sm px-4 py-2 rounded-md border"
                       style={{
-                        borderColor: "var(--kp-border)",
-                        color: "var(--ink-2)",
+                        borderColor: "var(--color-kp-border)",
+                        color: "var(--color-ink-2)",
                       }}
                     >
                       Cancelar
@@ -294,7 +294,7 @@ export function InstrumentoLauncher({
                       onClick={handleGuardar}
                       disabled={guardando}
                       className="text-sm px-4 py-2 rounded-md font-medium disabled:opacity-50"
-                      style={{ background: "var(--kp-accent)", color: "#fff" }}
+                      style={{ background: "var(--color-kp-accent)", color: "#fff" }}
                     >
                       {guardando ? "Guardando..." : "Guardar"}
                     </button>

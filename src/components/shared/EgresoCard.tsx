@@ -23,16 +23,16 @@ const TIPO_LABELS: Record<string, string> = {
 function getTipoBadgeStyle(tipo: string): React.CSSProperties {
   switch (tipo) {
     case "alta_clinica":
-      return { background: "var(--kp-success)", color: "#fff" };
+      return { background: "var(--color-kp-success)", color: "#fff" };
     case "abandono":
-      return { background: "var(--kp-secondary)", color: "#fff" };
+      return { background: "var(--color-kp-secondary)", color: "#fff" };
     case "derivacion":
-      return { background: "var(--kp-info)", color: "#fff" };
+      return { background: "var(--color-kp-info)", color: "#fff" };
     case "fallecimiento":
-      return { background: "var(--kp-border)", color: "var(--ink-2)" };
+      return { background: "var(--color-kp-border)", color: "var(--color-ink-2)" };
     case "otro":
     default:
-      return { background: "var(--kp-border)", color: "var(--ink-3)" };
+      return { background: "var(--color-kp-border)", color: "var(--color-ink-3)" };
   }
 }
 

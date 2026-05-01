@@ -126,7 +126,7 @@ function ItemRow({
   return (
     <li
       className="rounded-lg border"
-      style={{ borderColor: "var(--kp-border)", background: "var(--surface-1)" }}
+      style={{ borderColor: "var(--color-kp-border)", background: "var(--color-surface-1)" }}
     >
       {/* Fila principal */}
       <div className="flex items-start gap-3 p-3">
@@ -141,7 +141,7 @@ function ItemRow({
           <div className="flex flex-wrap items-center gap-2">
             <span
               className="text-sm font-medium"
-              style={{ color: "var(--ink-1)" }}
+              style={{ color: "var(--color-ink-1)" }}
             >
               {item.procedimiento}
             </span>
@@ -149,8 +149,8 @@ function ItemRow({
               <span
                 className="text-xs px-1.5 py-0.5 rounded"
                 style={{
-                  color: "var(--ink-2)",
-                  background: "var(--surface-0)",
+                  color: "var(--color-ink-2)",
+                  background: "var(--color-surface-0)",
                 }}
               >
                 Pieza {item.pieza}
@@ -162,7 +162,7 @@ function ItemRow({
 
           {/* Valor */}
           {item.valor_unitario > 0 && (
-            <p className="text-xs mt-0.5" style={{ color: "var(--ink-3)" }}>
+            <p className="text-xs mt-0.5" style={{ color: "var(--color-ink-3)" }}>
               {formatCLP(item.valor_unitario)}
             </p>
           )}
@@ -171,7 +171,7 @@ function ItemRow({
           {item.notas && expanded && (
             <p
               className="text-xs mt-1.5 leading-relaxed"
-              style={{ color: "var(--ink-2)" }}
+              style={{ color: "var(--color-ink-2)" }}
             >
               {item.notas}
             </p>
@@ -188,9 +188,9 @@ function ItemRow({
               title={expanded ? "Ocultar notas" : "Ver notas"}
             >
               {expanded ? (
-                <ChevronUp className="w-3.5 h-3.5" style={{ color: "var(--ink-3)" }} />
+                <ChevronUp className="w-3.5 h-3.5" style={{ color: "var(--color-ink-3)" }} />
               ) : (
-                <ChevronDown className="w-3.5 h-3.5" style={{ color: "var(--ink-3)" }} />
+                <ChevronDown className="w-3.5 h-3.5" style={{ color: "var(--color-ink-3)" }} />
               )}
             </button>
           )}
@@ -281,15 +281,15 @@ export function PlanTratamientoPanel({
       <div className="flex flex-col items-center justify-center py-16 gap-4 text-center">
         <div
           className="w-12 h-12 rounded-full flex items-center justify-center"
-          style={{ background: "var(--surface-0)" }}
+          style={{ background: "var(--color-surface-0)" }}
         >
-          <ClipboardList className="w-6 h-6" style={{ color: "var(--ink-3)" }} />
+          <ClipboardList className="w-6 h-6" style={{ color: "var(--color-ink-3)" }} />
         </div>
         <div>
-          <h3 className="text-sm font-semibold" style={{ color: "var(--ink-1)" }}>
+          <h3 className="text-sm font-semibold" style={{ color: "var(--color-ink-1)" }}>
             Sin plan de tratamiento
           </h3>
-          <p className="text-sm mt-1" style={{ color: "var(--ink-3)" }}>
+          <p className="text-sm mt-1" style={{ color: "var(--color-ink-3)" }}>
             Crea un plan para registrar los procedimientos y hacer seguimiento del tratamiento.
           </p>
         </div>
@@ -309,7 +309,7 @@ export function PlanTratamientoPanel({
             });
           }}
           className="flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-medium text-white transition-opacity disabled:opacity-50"
-          style={{ background: "var(--kp-primary)" }}
+          style={{ background: "var(--color-kp-primary)" }}
         >
           <Plus className="w-4 h-4" />
           {isPending ? "Creando…" : "Crear plan de tratamiento"}
@@ -412,15 +412,15 @@ export function PlanTratamientoPanel({
       {/* Header del plan */}
       <div
         className="rounded-xl border p-4"
-        style={{ borderColor: "var(--kp-border)", background: "var(--surface-0)" }}
+        style={{ borderColor: "var(--color-kp-border)", background: "var(--color-surface-0)" }}
       >
         <div className="flex items-start justify-between gap-3">
           <div className="flex-1 min-w-0">
-            <h3 className="text-sm font-semibold" style={{ color: "var(--ink-1)" }}>
+            <h3 className="text-sm font-semibold" style={{ color: "var(--color-ink-1)" }}>
               {plan.titulo}
             </h3>
             {plan.diagnostico && (
-              <p className="text-xs mt-0.5" style={{ color: "var(--ink-2)" }}>
+              <p className="text-xs mt-0.5" style={{ color: "var(--color-ink-2)" }}>
                 {plan.diagnostico}
               </p>
             )}
@@ -439,7 +439,7 @@ export function PlanTratamientoPanel({
         {/* Barra de progreso */}
         {items.length > 0 && (
           <div className="mt-3">
-            <div className="flex justify-between text-xs mb-1" style={{ color: "var(--ink-3)" }}>
+            <div className="flex justify-between text-xs mb-1" style={{ color: "var(--color-ink-3)" }}>
               <span>Progreso: {progreso}%</span>
               <span>
                 {completados.length}/{items.length} procedimientos
@@ -447,13 +447,13 @@ export function PlanTratamientoPanel({
             </div>
             <div
               className="h-1.5 rounded-full overflow-hidden"
-              style={{ background: "var(--kp-border)" }}
+              style={{ background: "var(--color-kp-border)" }}
             >
               <div
                 className="h-full rounded-full transition-all"
                 style={{
                   width: `${progreso}%`,
-                  background: "var(--kp-primary)",
+                  background: "var(--color-kp-primary)",
                 }}
               />
             </div>
@@ -475,8 +475,8 @@ export function PlanTratamientoPanel({
           onClick={() => setShowForm(true)}
           className="flex items-center gap-2 w-full rounded-xl border-2 border-dashed px-4 py-3 text-sm font-medium transition-colors hover:bg-surface-0"
           style={{
-            borderColor: "var(--kp-border)",
-            color: "var(--ink-3)",
+            borderColor: "var(--color-kp-border)",
+            color: "var(--color-ink-3)",
           }}
         >
           <Plus className="w-4 h-4" />
@@ -504,7 +504,7 @@ export function PlanTratamientoPanel({
         <section>
           <h4
             className="text-xs font-semibold uppercase tracking-wide mb-2"
-            style={{ color: "var(--ink-3)" }}
+            style={{ color: "var(--color-ink-3)" }}
           >
             Pendientes ({pendientes.length})
           </h4>
@@ -530,7 +530,7 @@ export function PlanTratamientoPanel({
         <section>
           <h4
             className="text-xs font-semibold uppercase tracking-wide mb-2"
-            style={{ color: "var(--ink-3)" }}
+            style={{ color: "var(--color-ink-3)" }}
           >
             Realizados ({completados.length})
           </h4>
@@ -556,7 +556,7 @@ export function PlanTratamientoPanel({
         <section>
           <h4
             className="text-xs font-semibold uppercase tracking-wide mb-2"
-            style={{ color: "var(--ink-3)" }}
+            style={{ color: "var(--color-ink-3)" }}
           >
             Otros ({otros.length})
           </h4>
@@ -581,33 +581,33 @@ export function PlanTratamientoPanel({
       {items.length > 0 && (
         <div
           className="rounded-xl border px-4 py-3 flex flex-wrap gap-4 justify-between items-center"
-          style={{ borderColor: "var(--kp-border)", background: "var(--surface-0)" }}
+          style={{ borderColor: "var(--color-kp-border)", background: "var(--color-surface-0)" }}
         >
           <div className="space-y-0.5">
-            <p className="text-xs" style={{ color: "var(--ink-3)" }}>
+            <p className="text-xs" style={{ color: "var(--color-ink-3)" }}>
               Presupuesto total
             </p>
-            <p className="text-base font-semibold" style={{ color: "var(--ink-1)" }}>
+            <p className="text-base font-semibold" style={{ color: "var(--color-ink-1)" }}>
               {formatCLP(presupuesto)}
             </p>
           </div>
           <div className="space-y-0.5 text-right">
-            <p className="text-xs" style={{ color: "var(--ink-3)" }}>
+            <p className="text-xs" style={{ color: "var(--color-ink-3)" }}>
               Monto realizado
             </p>
             <p
               className="text-base font-semibold"
-              style={{ color: realizado > 0 ? "#16A34A" : "var(--ink-2)" }}
+              style={{ color: realizado > 0 ? "#16A34A" : "var(--color-ink-2)" }}
             >
               {formatCLP(realizado)}
             </p>
           </div>
           {presupuesto > 0 && (
             <div className="space-y-0.5 text-right">
-              <p className="text-xs" style={{ color: "var(--ink-3)" }}>
+              <p className="text-xs" style={{ color: "var(--color-ink-3)" }}>
                 Pendiente
               </p>
-              <p className="text-base font-semibold" style={{ color: "var(--ink-2)" }}>
+              <p className="text-base font-semibold" style={{ color: "var(--color-ink-2)" }}>
                 {formatCLP(presupuesto - realizado)}
               </p>
             </div>
@@ -623,8 +623,8 @@ function Empty({ mensaje }: { mensaje: string }) {
     <div
       className="flex flex-col items-center justify-center py-12 text-center gap-2"
     >
-      <ClipboardList className="w-8 h-8 opacity-30" style={{ color: "var(--ink-3)" }} />
-      <p className="text-sm" style={{ color: "var(--ink-3)" }}>
+      <ClipboardList className="w-8 h-8 opacity-30" style={{ color: "var(--color-ink-3)" }} />
+      <p className="text-sm" style={{ color: "var(--color-ink-3)" }}>
         {mensaje}
       </p>
     </div>

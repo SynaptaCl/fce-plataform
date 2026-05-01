@@ -63,11 +63,11 @@ export default function GlasgowComaScale({ valor, onChange, readOnly }: Instrume
 
       {SUBESCALAS.map((sub) => (
         <div key={sub.clave} className="space-y-1">
-          <p className="text-sm font-medium" style={{ color: "var(--ink-1)" }}>
+          <p className="text-sm font-medium" style={{ color: "var(--color-ink-1)" }}>
             {sub.label}
           </p>
           {readOnly ? (
-            <p className="text-sm" style={{ color: "var(--ink-2)" }}>
+            <p className="text-sm" style={{ color: "var(--color-ink-2)" }}>
               {sub.opciones.find((o) => o.valor === valor[sub.clave])?.label ?? "—"}
             </p>
           ) : (
@@ -80,9 +80,9 @@ export default function GlasgowComaScale({ valor, onChange, readOnly }: Instrume
                     value={opcion.valor}
                     checked={valor[sub.clave] === opcion.valor}
                     onChange={() => onChange({ ...valor, [sub.clave]: opcion.valor })}
-                    className="accent-[var(--kp-accent)]"
+                    className="accent-[var(--color-kp-accent)]"
                   />
-                  <span className="text-sm" style={{ color: "var(--ink-2)" }}>
+                  <span className="text-sm" style={{ color: "var(--color-ink-2)" }}>
                     {opcion.valor} — {opcion.label}
                   </span>
                 </label>
@@ -93,8 +93,8 @@ export default function GlasgowComaScale({ valor, onChange, readOnly }: Instrume
       ))}
 
       {puntaje !== null && (
-        <div className="border-t pt-3 flex items-center gap-3" style={{ borderColor: "var(--kp-border)" }}>
-          <span className="text-sm font-semibold" style={{ color: "var(--ink-1)" }}>
+        <div className="border-t pt-3 flex items-center gap-3" style={{ borderColor: "var(--color-kp-border)" }}>
+          <span className="text-sm font-semibold" style={{ color: "var(--color-ink-1)" }}>
             Total GCS: {puntaje}/15
           </span>
           <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${getInterpretacion(puntaje).colorClass}`}>

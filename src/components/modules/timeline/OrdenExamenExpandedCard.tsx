@@ -26,7 +26,7 @@ export function OrdenExamenExpandedCard({ entry, onVerOrden }: Props) {
 
   if (!data) {
     return (
-      <div className="text-xs italic" style={{ color: "var(--ink-3)" }}>
+      <div className="text-xs italic" style={{ color: "var(--color-ink-3)" }}>
         Sin datos de orden
       </div>
     );
@@ -57,7 +57,7 @@ export function OrdenExamenExpandedCard({ entry, onVerOrden }: Props) {
     <div className="space-y-3">
       {/* Header row */}
       <div className="flex flex-wrap items-center gap-2">
-        <p className="font-bold text-sm" style={{ color: "var(--ink-1)" }}>
+        <p className="font-bold text-sm" style={{ color: "var(--color-ink-1)" }}>
           {data.folio}
         </p>
         {data.prioridad === "urgente" && (
@@ -69,7 +69,7 @@ export function OrdenExamenExpandedCard({ entry, onVerOrden }: Props) {
       </div>
 
       {/* Exam count */}
-      <p className="text-xs" style={{ color: "var(--ink-2)" }}>
+      <p className="text-xs" style={{ color: "var(--color-ink-2)" }}>
         {examenes.length} examen{examenes.length !== 1 ? "es" : ""} solicitado
         {examenes.length !== 1 ? "s" : ""}
       </p>
@@ -86,7 +86,7 @@ export function OrdenExamenExpandedCard({ entry, onVerOrden }: Props) {
         <div>
           <p
             className="font-bold uppercase tracking-wide text-[0.6rem] mb-1"
-            style={{ color: "var(--ink-3)" }}
+            style={{ color: "var(--color-ink-3)" }}
           >
             Exámenes
           </p>
@@ -95,13 +95,13 @@ export function OrdenExamenExpandedCard({ entry, onVerOrden }: Props) {
               <li
                 key={i}
                 className="text-xs"
-                style={{ color: "var(--ink-2)" }}
+                style={{ color: "var(--color-ink-2)" }}
               >
                 • {e.nombre}
               </li>
             ))}
             {examenes.length > 3 && (
-              <li className="text-xs italic" style={{ color: "var(--ink-3)" }}>
+              <li className="text-xs italic" style={{ color: "var(--color-ink-3)" }}>
                 y {examenes.length - 3} más…
               </li>
             )}
@@ -115,7 +115,7 @@ export function OrdenExamenExpandedCard({ entry, onVerOrden }: Props) {
           type="button"
           onClick={() => onVerOrden(entry.id)}
           className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium transition-colors hover:underline"
-          style={{ color: "var(--kp-accent)" }}
+          style={{ color: "var(--color-kp-accent)" }}
         >
           <ClipboardList className="w-3 h-3" />
           Ver orden completa / Descargar PDF

@@ -13,6 +13,7 @@ import { EgresoLauncher } from "@/components/shared/EgresoLauncher";
 import { ReingresoBanner } from "@/components/shared/ReingresoBanner";
 import { getProfesionalActivo } from "@/lib/fce/profesional";
 import { getEgresosByPaciente } from "@/app/actions/egresos";
+import { ResumenIAButton } from "@/components/modules/ResumenIA";
 import type { PatientSummary } from "@/app/actions/timeline";
 
 export async function generateMetadata({
@@ -127,6 +128,13 @@ export default async function PatientDetailPage({
 
       {/* PatientHeader — banner M1 */}
       <PatientHeader patient={p} hasConsent={hasConsent} patientId={id} />
+
+      {/* Resumen IA — solo para roles con acceso FCE (no recepcionista) */}
+      {idClinica && !["recepcionista", "recepcion"].includes(rol) && (
+        <div className="flex justify-end">
+          <ResumenIAButton idPaciente={id} idClinica={idClinica} />
+        </div>
+      )}
 
       {/* Banner de egreso — si el paciente está egresado */}
       {p.estado_clinico === "egresado" && (

@@ -35,7 +35,7 @@ export function InstrumentosPanel({
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <h3 className="text-sm font-semibold" style={{ color: "var(--ink-1)" }}>
+        <h3 className="text-sm font-semibold" style={{ color: "var(--color-ink-1)" }}>
           Instrumentos aplicados
         </h3>
         {!encuentroFinalizado && (
@@ -49,9 +49,9 @@ export function InstrumentosPanel({
       </div>
 
       {loading ? (
-        <p className="text-xs text-center py-4" style={{ color: "var(--ink-3)" }}>Cargando...</p>
+        <p className="text-xs text-center py-4" style={{ color: "var(--color-ink-3)" }}>Cargando...</p>
       ) : instrumentos.length === 0 ? (
-        <p className="text-xs py-4 text-center" style={{ color: "var(--ink-3)" }}>
+        <p className="text-xs py-4 text-center" style={{ color: "var(--color-ink-3)" }}>
           Sin instrumentos aplicados en este encuentro
         </p>
       ) : (

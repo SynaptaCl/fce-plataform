@@ -83,7 +83,7 @@ export function OrdenExamenDetalleModal({
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
         <div
           className="rounded-2xl shadow-xl w-full max-w-3xl p-10 text-center text-sm"
-          style={{ background: "var(--surface-1)", color: "var(--ink-3)" }}
+          style={{ background: "var(--color-surface-1)", color: "var(--color-ink-3)" }}
         >
           Cargando orden de exámenes...
         </div>
@@ -96,7 +96,7 @@ export function OrdenExamenDetalleModal({
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
         <div
           className="rounded-2xl shadow-xl w-full max-w-3xl p-10 text-center text-sm"
-          style={{ background: "var(--surface-1)", color: "var(--ink-3)" }}
+          style={{ background: "var(--color-surface-1)", color: "var(--color-ink-3)" }}
         >
           No se pudo cargar la orden de exámenes.
         </div>
@@ -115,12 +115,12 @@ export function OrdenExamenDetalleModal({
     >
       <div
         className="rounded-2xl shadow-xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden"
-        style={{ background: "var(--surface-1)" }}
+        style={{ background: "var(--color-surface-1)" }}
       >
         {/* Header */}
         <div
           className="flex items-center justify-between px-5 py-4 border-b shrink-0"
-          style={{ borderColor: "var(--kp-border)" }}
+          style={{ borderColor: "var(--color-kp-border)" }}
         >
           <div className="flex items-center gap-2">
             <ClipboardList
@@ -129,7 +129,7 @@ export function OrdenExamenDetalleModal({
             />
             <span
               className="font-semibold text-sm"
-              style={{ color: "var(--ink-1)" }}
+              style={{ color: "var(--color-ink-1)" }}
             >
               {orden.folio_display ?? "Orden de exámenes"}
             </span>
@@ -140,7 +140,7 @@ export function OrdenExamenDetalleModal({
           <button
             onClick={onClose}
             className="transition-colors"
-            style={{ color: "var(--ink-3)" }}
+            style={{ color: "var(--color-ink-3)" }}
           >
             <X className="w-5 h-5" />
           </button>
@@ -149,7 +149,7 @@ export function OrdenExamenDetalleModal({
         {/* Tabs */}
         <div
           className="flex border-b px-5 shrink-0"
-          style={{ borderColor: "var(--kp-border)" }}
+          style={{ borderColor: "var(--color-kp-border)" }}
         >
           {(["orden", "detalles", "acciones"] as const).map((tab) => (
             <button
@@ -189,7 +189,7 @@ export function OrdenExamenDetalleModal({
 
             {/* Preview message + buttons */}
             <div className="p-5 space-y-4">
-              <p className="text-sm" style={{ color: "var(--ink-2)" }}>
+              <p className="text-sm" style={{ color: "var(--color-ink-2)" }}>
                 El PDF se genera on-demand. Use los botones para descargar o imprimir.
               </p>
 
@@ -208,8 +208,8 @@ export function OrdenExamenDetalleModal({
                   disabled={pdfLoading}
                   className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-60 transition-colors border"
                   style={{
-                    borderColor: "var(--kp-border)",
-                    color: "var(--ink-2)",
+                    borderColor: "var(--color-kp-border)",
+                    color: "var(--color-ink-2)",
                     background: "transparent",
                   }}
                 >
@@ -228,11 +228,11 @@ export function OrdenExamenDetalleModal({
             <div>
               <p
                 className="text-xs font-semibold uppercase tracking-wide mb-1"
-                style={{ color: "var(--ink-3)" }}
+                style={{ color: "var(--color-ink-3)" }}
               >
                 Fecha de emisión
               </p>
-              <p className="text-sm" style={{ color: "var(--ink-1)" }}>
+              <p className="text-sm" style={{ color: "var(--color-ink-1)" }}>
                 {orden.firmado_at
                   ? new Date(orden.firmado_at).toLocaleDateString("es-CL", {
                       day: "numeric",
@@ -250,11 +250,11 @@ export function OrdenExamenDetalleModal({
             <div>
               <p
                 className="text-xs font-semibold uppercase tracking-wide mb-1"
-                style={{ color: "var(--ink-3)" }}
+                style={{ color: "var(--color-ink-3)" }}
               >
                 Prioridad
               </p>
-              <p className="text-sm capitalize" style={{ color: "var(--ink-1)" }}>
+              <p className="text-sm capitalize" style={{ color: "var(--color-ink-1)" }}>
                 {orden.prioridad}
               </p>
             </div>
@@ -263,7 +263,7 @@ export function OrdenExamenDetalleModal({
             <div>
               <p
                 className="text-xs font-semibold uppercase tracking-wide mb-1"
-                style={{ color: "var(--ink-3)" }}
+                style={{ color: "var(--color-ink-3)" }}
               >
                 Estado de resultados
               </p>
@@ -274,7 +274,7 @@ export function OrdenExamenDetalleModal({
                     ? { background: "#dcfce7", color: "#166534" }
                     : orden.estado_resultados === "parcial"
                     ? { background: "#fef9c3", color: "#854d0e" }
-                    : { background: "var(--surface-0)", color: "var(--ink-3)" }
+                    : { background: "var(--color-surface-0)", color: "var(--color-ink-3)" }
                 }
               >
                 {orden.estado_resultados}
@@ -286,11 +286,11 @@ export function OrdenExamenDetalleModal({
               <div>
                 <p
                   className="text-xs font-semibold uppercase tracking-wide mb-1"
-                  style={{ color: "var(--ink-3)" }}
+                  style={{ color: "var(--color-ink-3)" }}
                 >
                   Diagnóstico presuntivo
                 </p>
-                <p className="text-sm" style={{ color: "var(--ink-1)" }}>
+                <p className="text-sm" style={{ color: "var(--color-ink-1)" }}>
                   {orden.diagnostico_presuntivo}
                 </p>
               </div>
@@ -301,7 +301,7 @@ export function OrdenExamenDetalleModal({
               <div>
                 <p
                   className="text-xs font-semibold uppercase tracking-wide mb-2"
-                  style={{ color: "var(--ink-3)" }}
+                  style={{ color: "var(--color-ink-3)" }}
                 >
                   Exámenes indicados
                 </p>
@@ -310,12 +310,12 @@ export function OrdenExamenDetalleModal({
                     <div
                       key={idx}
                       className="rounded-lg p-3 space-y-1 border"
-                      style={{ borderColor: "var(--kp-border)" }}
+                      style={{ borderColor: "var(--color-kp-border)" }}
                     >
                       <div className="flex items-center gap-2 flex-wrap">
                         <p
                           className="text-sm font-semibold"
-                          style={{ color: "var(--ink-1)" }}
+                          style={{ color: "var(--color-ink-1)" }}
                         >
                           {idx + 1}. {examen.nombre}
                         </p>
@@ -323,18 +323,18 @@ export function OrdenExamenDetalleModal({
                           <Badge variant="danger">Urgente</Badge>
                         )}
                       </div>
-                      <p className="text-xs" style={{ color: "var(--ink-2)" }}>
+                      <p className="text-xs" style={{ color: "var(--color-ink-2)" }}>
                         {examen.categoria}
                       </p>
                       {examen.indicacion_clinica && (
-                        <p className="text-xs" style={{ color: "var(--ink-2)" }}>
+                        <p className="text-xs" style={{ color: "var(--color-ink-2)" }}>
                           Indicación: {examen.indicacion_clinica}
                         </p>
                       )}
                       {examen.instrucciones && (
                         <p
                           className="text-xs italic"
-                          style={{ color: "var(--ink-3)" }}
+                          style={{ color: "var(--color-ink-3)" }}
                         >
                           {examen.instrucciones}
                         </p>
@@ -350,13 +350,13 @@ export function OrdenExamenDetalleModal({
               <div>
                 <p
                   className="text-xs font-semibold uppercase tracking-wide mb-1"
-                  style={{ color: "var(--ink-3)" }}
+                  style={{ color: "var(--color-ink-3)" }}
                 >
                   Observaciones
                 </p>
                 <p
                   className="text-sm whitespace-pre-wrap"
-                  style={{ color: "var(--ink-1)" }}
+                  style={{ color: "var(--color-ink-1)" }}
                 >
                   {orden.observaciones}
                 </p>
@@ -367,25 +367,25 @@ export function OrdenExamenDetalleModal({
             <div>
               <p
                 className="text-xs font-semibold uppercase tracking-wide mb-1"
-                style={{ color: "var(--ink-3)" }}
+                style={{ color: "var(--color-ink-3)" }}
               >
                 Profesional
               </p>
-              <div className="text-sm space-y-0.5" style={{ color: "var(--ink-1)" }}>
+              <div className="text-sm space-y-0.5" style={{ color: "var(--color-ink-1)" }}>
                 <p>{orden.prof_nombre_snapshot ?? "—"}</p>
                 {orden.prof_rut_snapshot && (
-                  <p className="text-xs" style={{ color: "var(--ink-2)" }}>
+                  <p className="text-xs" style={{ color: "var(--color-ink-2)" }}>
                     RUT: {orden.prof_rut_snapshot}
                   </p>
                 )}
                 {orden.prof_registro_snapshot && (
-                  <p className="text-xs" style={{ color: "var(--ink-2)" }}>
+                  <p className="text-xs" style={{ color: "var(--color-ink-2)" }}>
                     {orden.prof_tipo_registro_snapshot ?? "Reg."}:{" "}
                     {orden.prof_registro_snapshot}
                   </p>
                 )}
                 {orden.prof_especialidad_snapshot && (
-                  <p className="text-xs" style={{ color: "var(--ink-2)" }}>
+                  <p className="text-xs" style={{ color: "var(--color-ink-2)" }}>
                     {orden.prof_especialidad_snapshot}
                   </p>
                 )}
@@ -409,8 +409,8 @@ export function OrdenExamenDetalleModal({
                 href={buildMailtoLink(orden, paciente, clinica.nombreDisplay)}
                 className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm border transition-colors"
                 style={{
-                  borderColor: "var(--kp-border)",
-                  color: "var(--ink-2)",
+                  borderColor: "var(--color-kp-border)",
+                  color: "var(--color-ink-2)",
                 }}
                 onClick={() =>
                   logOrdenExamenAction(orden.id, "compartir_orden_email").catch(() => {})
@@ -429,8 +429,8 @@ export function OrdenExamenDetalleModal({
                 rel="noopener noreferrer"
                 className="flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm border transition-colors"
                 style={{
-                  borderColor: "var(--kp-border)",
-                  color: "var(--ink-2)",
+                  borderColor: "var(--color-kp-border)",
+                  color: "var(--color-ink-2)",
                 }}
                 onClick={() =>
                   logOrdenExamenAction(orden.id, "compartir_orden_whatsapp").catch(() => {})

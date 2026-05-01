@@ -118,7 +118,7 @@ export function ExamenSelector({ onSelect }: Props) {
       <div className="relative">
         <Search
           className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none"
-          style={{ color: "var(--ink-3)" }}
+          style={{ color: "var(--color-ink-3)" }}
         />
         <input
           type="text"
@@ -127,15 +127,15 @@ export function ExamenSelector({ onSelect }: Props) {
           placeholder="Buscar examen..."
           className="w-full rounded-lg border pl-10 pr-4 py-2.5 text-sm outline-none transition-colors"
           style={{
-            borderColor: "var(--kp-border)",
-            background: "var(--surface-0)",
-            color: "var(--ink-1)",
+            borderColor: "var(--color-kp-border)",
+            background: "var(--color-surface-0)",
+            color: "var(--color-ink-1)",
           }}
         />
         {loading && (
           <span
             className="absolute right-3 top-1/2 -translate-y-1/2 text-xs"
-            style={{ color: "var(--ink-3)" }}
+            style={{ color: "var(--color-ink-3)" }}
           >
             Buscando…
           </span>
@@ -146,10 +146,10 @@ export function ExamenSelector({ onSelect }: Props) {
       {open && (
         <div
           className="absolute z-50 mt-1 w-full rounded-xl border shadow-lg overflow-hidden"
-          style={{ borderColor: "var(--kp-border)", background: "var(--surface-1)" }}
+          style={{ borderColor: "var(--color-kp-border)", background: "var(--color-surface-1)" }}
         >
           {results.length > 0 ? (
-            <ul className="max-h-64 overflow-y-auto divide-y" style={{ borderColor: "var(--kp-border)" }}>
+            <ul className="max-h-64 overflow-y-auto divide-y" style={{ borderColor: "var(--color-kp-border)" }}>
               {results.map((cat) => (
                 <li key={cat.id}>
                   <button
@@ -158,10 +158,10 @@ export function ExamenSelector({ onSelect }: Props) {
                     onClick={() => handleSelect(buildFromCatalogo(cat))}
                   >
                     <span className="flex-1 min-w-0">
-                      <span className="block text-sm font-medium truncate" style={{ color: "var(--ink-1)" }}>
+                      <span className="block text-sm font-medium truncate" style={{ color: "var(--color-ink-1)" }}>
                         {cat.nombre}
                       </span>
-                      <span className="text-xs" style={{ color: "var(--ink-3)" }}>
+                      <span className="text-xs" style={{ color: "var(--color-ink-3)" }}>
                         {cat.codigo}
                       </span>
                     </span>
@@ -174,7 +174,7 @@ export function ExamenSelector({ onSelect }: Props) {
             </ul>
           ) : (
             <div className="px-4 py-3 space-y-2">
-              <p className="text-sm" style={{ color: "var(--ink-3)" }}>
+              <p className="text-sm" style={{ color: "var(--color-ink-3)" }}>
                 Sin resultados para &quot;{query}&quot;.
               </p>
             </div>
@@ -186,7 +186,7 @@ export function ExamenSelector({ onSelect }: Props) {
               <button
                 type="button"
                 className="w-full text-left rounded-lg border px-3 py-2 text-sm transition-colors"
-                style={{ borderColor: "var(--kp-border)", color: "var(--ink-2)" }}
+                style={{ borderColor: "var(--color-kp-border)", color: "var(--color-ink-2)" }}
                 onClick={() => handleSelect(buildManual(query))}
               >
                 Agregar &quot;{query}&quot; manualmente

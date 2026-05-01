@@ -140,9 +140,9 @@ export function OdontogramaInteractivo({
               onClick={() => { setView(v); setSelectedPieza(null); }}
               className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border"
               style={{
-                background: view === v ? "var(--kp-primary)" : "var(--surface-0)",
-                color: view === v ? "#FFFFFF" : "var(--ink-2)",
-                borderColor: view === v ? "var(--kp-primary)" : "var(--kp-border)",
+                background: view === v ? "var(--color-kp-primary)" : "var(--color-surface-0)",
+                color: view === v ? "#FFFFFF" : "var(--color-ink-2)",
+                borderColor: view === v ? "var(--color-kp-primary)" : "var(--color-kp-border)",
               }}
             >
               {v === "adulto" ? "Dentición permanente" : "Dentición temporal"}

@@ -38,7 +38,7 @@ export function EgresoLauncher({ patientId, estadoClinico, rol }: EgresoLauncher
       onClick={handleEgresar}
       className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
       style={{
-        background: "var(--kp-danger)",
+        background: "var(--color-kp-danger)",
         color: "#fff",
       }}
     >

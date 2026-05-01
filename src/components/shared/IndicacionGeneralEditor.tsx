@@ -34,7 +34,7 @@ export function IndicacionGeneralEditor({ value, onChange }: Props) {
         rows={8}
         placeholder="Escriba las indicaciones para el paciente..."
         className="w-full text-sm px-3 py-2 rounded-lg border resize-none"
-        style={{ borderColor: "var(--kp-border)", color: "var(--ink-1)" }}
+        style={{ borderColor: "var(--color-kp-border)", color: "var(--color-ink-1)" }}
       />
     </div>
   );

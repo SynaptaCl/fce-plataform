@@ -88,19 +88,19 @@ export default function ApgarScore({ valor, onChange, readOnly }: InstrumentoCus
             <tr>
               <th
                 className="text-left py-2 pr-4 font-medium text-sm w-1/2"
-                style={{ color: "var(--ink-1)", borderBottom: "1px solid var(--kp-border)" }}
+                style={{ color: "var(--color-ink-1)", borderBottom: "1px solid var(--color-kp-border)" }}
               >
                 Criterio
               </th>
               <th
                 className="text-center py-2 px-3 font-medium text-sm"
-                style={{ color: "var(--ink-1)", borderBottom: "1px solid var(--kp-border)" }}
+                style={{ color: "var(--color-ink-1)", borderBottom: "1px solid var(--color-kp-border)" }}
               >
                 1 min
               </th>
               <th
                 className="text-center py-2 px-3 font-medium text-sm"
-                style={{ color: "var(--ink-1)", borderBottom: "1px solid var(--kp-border)" }}
+                style={{ color: "var(--color-ink-1)", borderBottom: "1px solid var(--color-kp-border)" }}
               >
                 5 min
               </th>
@@ -111,12 +111,12 @@ export default function ApgarScore({ valor, onChange, readOnly }: InstrumentoCus
               <tr key={criterio.claveBase}>
                 <td
                   className="py-3 pr-4 align-top font-medium"
-                  style={{ color: "var(--ink-1)", borderBottom: "1px solid var(--kp-border)" }}
+                  style={{ color: "var(--color-ink-1)", borderBottom: "1px solid var(--color-kp-border)" }}
                 >
                   {criterio.label}
                   <div className="mt-1 space-y-0.5">
                     {criterio.opciones.map((op) => (
-                      <p key={op.valor} className="text-xs" style={{ color: "var(--ink-2)" }}>
+                      <p key={op.valor} className="text-xs" style={{ color: "var(--color-ink-2)" }}>
                         {op.valor}: {op.label}
                       </p>
                     ))}
@@ -129,10 +129,10 @@ export default function ApgarScore({ valor, onChange, readOnly }: InstrumentoCus
                     <td
                       key={timing}
                       className="py-3 px-3 align-top text-center"
-                      style={{ borderBottom: "1px solid var(--kp-border)" }}
+                      style={{ borderBottom: "1px solid var(--color-kp-border)" }}
                     >
                       {readOnly ? (
-                        <span className="text-sm font-medium" style={{ color: "var(--ink-2)" }}>
+                        <span className="text-sm font-medium" style={{ color: "var(--color-ink-2)" }}>
                           {valorActual !== undefined ? valorActual : "—"}
                         </span>
                       ) : (
@@ -150,9 +150,9 @@ export default function ApgarScore({ valor, onChange, readOnly }: InstrumentoCus
                                 onChange={() =>
                                   handleChange(criterio.claveBase, timing, op.valor)
                                 }
-                                className="accent-[var(--kp-accent)]"
+                                className="accent-[var(--color-kp-accent)]"
                               />
-                              <span className="text-xs" style={{ color: "var(--ink-2)" }}>
+                              <span className="text-xs" style={{ color: "var(--color-ink-2)" }}>
                                 {op.valor}
                               </span>
                             </label>
@@ -170,13 +170,13 @@ export default function ApgarScore({ valor, onChange, readOnly }: InstrumentoCus
 
       <div
         className="border-t pt-3 grid grid-cols-2 gap-4"
-        style={{ borderColor: "var(--kp-border)" }}
+        style={{ borderColor: "var(--color-kp-border)" }}
       >
         {([["1m", puntaje1m], ["5m", puntaje5m]] as [string, number | null][]).map(
           ([timing, puntaje]) =>
             puntaje !== null ? (
               <div key={timing} className="flex items-center gap-2">
-                <span className="text-sm font-semibold" style={{ color: "var(--ink-1)" }}>
+                <span className="text-sm font-semibold" style={{ color: "var(--color-ink-1)" }}>
                   Apgar {timing}: {puntaje}/10
                 </span>
                 <span

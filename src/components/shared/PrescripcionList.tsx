@@ -11,7 +11,7 @@ interface Props {
 export function PrescripcionList({ prescripciones }: Props) {
   if (prescripciones.length === 0) {
     return (
-      <p className="text-sm" style={{ color: "var(--ink-3)" }}>
+      <p className="text-sm" style={{ color: "var(--color-ink-3)" }}>
         Sin prescripciones en este encuentro.
       </p>
     );
@@ -23,17 +23,17 @@ export function PrescripcionList({ prescripciones }: Props) {
         <li
           key={p.id}
           className="rounded-lg border px-3 py-2"
-          style={{ borderColor: "var(--kp-border)" }}
+          style={{ borderColor: "var(--color-kp-border)" }}
         >
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold" style={{ color: "var(--ink-1)" }}>
+            <span className="text-xs font-semibold" style={{ color: "var(--color-ink-1)" }}>
               {p.folio_display}
             </span>
-            <span className="text-xs" style={{ color: "var(--ink-3)" }}>
+            <span className="text-xs" style={{ color: "var(--color-ink-3)" }}>
               {formatDistanceToNow(new Date(p.created_at), { addSuffix: true, locale: es })}
             </span>
           </div>
-          <p className="text-xs mt-0.5" style={{ color: "var(--ink-2)" }}>
+          <p className="text-xs mt-0.5" style={{ color: "var(--color-ink-2)" }}>
             {p.tipo === "farmacologica"
               ? `${p.medicamentos?.length ?? 0} medicamento(s)`
               : "Indicación general"}

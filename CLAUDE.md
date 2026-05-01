@@ -1,6 +1,6 @@
 # CLAUDE.md — FCE Platform (fce-plataform)
 
-> Última actualización: 2026-04-24 (R12–R13)
+> Última actualización: 2026-05-01 (Resumen IA)
 > Este documento es la fuente de verdad para Claude Code. Leerlo antes de cualquier cambio.
 
 ---
@@ -201,8 +201,9 @@ src/components/
   ├── ui/          → Átomos (Button, Input, Card, Badge, AlertBanner, etc.)
   ├── layout/      → Sidebar, TopBar, DashboardShell, PatientHeader, BrandingInjector
   ├── modules/     → M1-M6 compartidos (PatientForm, AnamnesisForm, ClinicalTimeline, etc.)
-  │   └── timeline/ → SoapExpandedCard, EvaluacionExpandedCard, PrescripcionExpandedCard,
-  │                    OrdenExamenExpandedCard, y demás cards del timeline
+  │   ├── timeline/ → SoapExpandedCard, EvaluacionExpandedCard, PrescripcionExpandedCard,
+  │   │               OrdenExamenExpandedCard, y demás cards del timeline
+  │   └── ResumenIA/ → ResumenIAButton, ResumenIAModal, ResumenIAReport (index.ts)
   ├── rehab/       → SoapForm, CifMapper, KinesiologiaEval, FonoaudiologiaEval, MasoterapiaEval
   ├── clinico/     → NotaClinicaForm, InstrumentosPanel
   └── shared/      → EncuentroLauncher, BodyMap, ScaleSlider,
@@ -215,10 +216,13 @@ src/lib/
   ├── fce/            → profesional.ts (getProfesionalActivo)
   ├── prescripciones/ → pdf-renderer.ts, share-helpers.ts, snapshot.ts, validations.ts
   ├── ordenes-examen/ → pdf-renderer.ts, share-helpers.ts, validations.ts
-  └── supabase/, utils.ts, validations.ts, audit.ts, fhir-mapper.ts
+  ├── ia/             → contexto-clinico.ts, prompt.ts, cache.ts
+  │   └── extraccion/ → demografico.ts, anamnesis.ts, signos-vitales.ts, medicacion.ts,
+  │                      alertas.ts, evolucion.ts, examenes.ts, instrumentos.ts
+  └── supabase/       → client.ts, server.ts, service.ts (service_role), types.ts
 
 src/types/ → patient.ts, encounter.ts, soap.ts, nota-clinica.ts, prescripcion.ts,
-             medicamento.ts, orden-examen.ts, timeline.ts, etc.
+             medicamento.ts, orden-examen.ts, timeline.ts, resumen-ia.ts, etc.
 clinics/{korporis,nuvident,renata}/CLAUDE.md
 ```
 
@@ -276,6 +280,7 @@ Para trabajar "para" una clínica, leer `clinics/<slug>/CLAUDE.md` y respetar su
 | R13 | M8 Exámenes: UI completa — form, PDF, timeline, compartir |
 | R14 | Mejoras UX: SummaryPanel + Timeline colapsable + Nota rápida |
 | M9 | Egresos: tipos, acciones, form, timeline, integración ficha |
+| Resumen IA | Botón on-demand en ficha: extracción 7 tablas → Anthropic Haiku → caché + audit |
 
 ### Pendientes
 
@@ -294,6 +299,7 @@ Para trabajar "para" una clínica, leer `clinics/<slug>/CLAUDE.md` y respetar su
 | `examenes_catalogo` + `fce_ordenes_examen` + `puede_indicar_examenes` en `profesionales` | 2026-04-24 |
 | M8 activo en Renata + Nuvident | 2026-04-24 |
 | `fce_egresos` + `pacientes.estado_clinico` + M9 activo en Renata | 2026-04-27 |
+| `fce_resumenes_ia` (migración ya aplicada) | 2026-04-30 |
 
 ### Deuda técnica
 
@@ -311,8 +317,58 @@ Para trabajar "para" una clínica, leer `clinics/<slug>/CLAUDE.md` y respetar su
 
 ---
 
-## 15. RECURSOS
+## 15. MÓDULO RESUMEN IA
+
+### Arquitectura
+
+```
+Botón ResumenIAButton (client)
+  → generarResumenIA (server action)
+      → buildContextoClinico (Promise.all 7 funciones de extracción)
+      → generarAlertas (sin query, lógica pura)
+      → calcularContextoHash → getResumenCacheado (via supabase normal)
+        ✓ cache hit  → audit log 'resumen_ia_cache' → return
+        ✗ cache miss → Anthropic API (Haiku) → guardarResumenCache (service_role)
+                     → audit log 'resumen_ia_generado' → return
+```
+
+### Patrones críticos del módulo IA
+
+```typescript
+// Modelo fijo — no cambiar sin revisión médica del prompt
+const MODEL = 'claude-haiku-4-5-20251001'
+
+// Cache usa service_role (bypasea RLS en fce_resumenes_ia)
+import { createServiceClient } from '@/lib/supabase/service'
+
+// Hash de contexto — 16 chars SHA-256, inputs: ultima_sesion, len(prescripciones), len(examenes_pendientes), motivo_consulta[:20]
+import { calcularContextoHash } from '@/lib/ia/cache'
+
+// fce_signos_vitales NO tiene id_clinica directa — filtrar via JOIN a fce_encuentros
+// fce_notas_soap NO tiene id_clinica — filtrar via id_encuentro en fce_encuentros
+// fce_prescripciones.medicamentos es jsonb — leer ahí, NO join a catálogo
+```
+
+### Variables de entorno requeridas
+- `ANTHROPIC_API_KEY` — solo server-side, sin `NEXT_PUBLIC_`
+- `SUPABASE_SERVICE_ROLE_KEY` — para insertar en `fce_resumenes_ia` y `logs_auditoria`
+
+### Disclaimers legales (texto literal — no modificar)
+- **Modal:** "Este resumen fue generado automáticamente a partir de los registros clínicos disponibles en el sistema. Es una herramienta de apoyo para el profesional tratante y no constituye un diagnóstico médico, recomendación terapéutica ni reemplaza el juicio clínico del profesional responsable de la atención."
+- **Tooltip botón:** "Síntesis de antecedentes — No reemplaza el juicio clínico"
+
+### Qué NO está implementado (Fase 2)
+- Límites de uso por plan / throttling mensual
+- Alertas proactivas batch nocturno
+- Historial de resúmenes en el tiempo
+- Compartir resumen con paciente
+- Streaming de respuesta LLM
+
+---
+
+## 16. RECURSOS
 
 - Supabase: `vigyhfpwyxihrjiygfsa` (sa-east-1)
 - Deploy: Vercel
 - Repos hermanos: `synapta`, `korporis-fce` (legacy)
+- Anthropic: modelo `claude-haiku-4-5-20251001` (Resumen IA), key en `.env.local`

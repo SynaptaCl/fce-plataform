@@ -93,9 +93,9 @@ export function PlanTratamientoItemForm({
     <form
       onSubmit={handleSubmit}
       className="rounded-xl border p-4 space-y-3"
-      style={{ borderColor: "var(--kp-primary)", background: "var(--surface-1)" }}
+      style={{ borderColor: "var(--color-kp-primary)", background: "var(--color-surface-1)" }}
     >
-      <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "var(--kp-primary)" }}>
+      <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "var(--color-kp-primary)" }}>
         Nuevo procedimiento
       </p>
 
@@ -110,9 +110,9 @@ export function PlanTratamientoItemForm({
             required
             className="flex-1 rounded-lg border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-kp-primary/20"
             style={{
-              borderColor: "var(--kp-border)",
-              color: "var(--ink-1)",
-              background: "var(--surface-0)",
+              borderColor: "var(--color-kp-border)",
+              color: "var(--color-ink-1)",
+              background: "var(--color-surface-0)",
             }}
           />
           {catalogo.length > 0 && (
@@ -120,7 +120,7 @@ export function PlanTratamientoItemForm({
               type="button"
               onClick={() => setShowPicker((v) => !v)}
               className="rounded-lg border px-3 py-2 text-xs font-medium flex items-center gap-1.5 transition-colors hover:bg-surface-0"
-              style={{ borderColor: "var(--kp-border)", color: "var(--ink-2)" }}
+              style={{ borderColor: "var(--color-kp-border)", color: "var(--color-ink-2)" }}
               title="Buscar en catálogo"
             >
               <BookOpen className="w-3.5 h-3.5" />
@@ -143,7 +143,7 @@ export function PlanTratamientoItemForm({
       {/* Pieza + Superficie */}
       <div className="grid grid-cols-2 gap-2">
         <div>
-          <label className="block text-xs mb-1" style={{ color: "var(--ink-3)" }}>
+          <label className="block text-xs mb-1" style={{ color: "var(--color-ink-3)" }}>
             Pieza (FDI)
           </label>
           <select
@@ -153,9 +153,9 @@ export function PlanTratamientoItemForm({
             }
             className="w-full rounded-lg border px-3 py-2 text-sm outline-none"
             style={{
-              borderColor: "var(--kp-border)",
-              color: "var(--ink-1)",
-              background: "var(--surface-0)",
+              borderColor: "var(--color-kp-border)",
+              color: "var(--color-ink-1)",
+              background: "var(--color-surface-0)",
             }}
           >
             <option value="">Sin pieza</option>
@@ -177,7 +177,7 @@ export function PlanTratamientoItemForm({
         </div>
 
         <div>
-          <label className="block text-xs mb-1" style={{ color: "var(--ink-3)" }}>
+          <label className="block text-xs mb-1" style={{ color: "var(--color-ink-3)" }}>
             Superficie
           </label>
           <input
@@ -188,9 +188,9 @@ export function PlanTratamientoItemForm({
             maxLength={10}
             className="w-full rounded-lg border px-3 py-2 text-sm outline-none"
             style={{
-              borderColor: "var(--kp-border)",
-              color: "var(--ink-1)",
-              background: "var(--surface-0)",
+              borderColor: "var(--color-kp-border)",
+              color: "var(--color-ink-1)",
+              background: "var(--color-surface-0)",
             }}
           />
         </div>
@@ -199,7 +199,7 @@ export function PlanTratamientoItemForm({
       {/* Prioridad + Valor */}
       <div className="grid grid-cols-2 gap-2">
         <div>
-          <label className="block text-xs mb-1" style={{ color: "var(--ink-3)" }}>
+          <label className="block text-xs mb-1" style={{ color: "var(--color-ink-3)" }}>
             Prioridad
           </label>
           <select
@@ -209,9 +209,9 @@ export function PlanTratamientoItemForm({
             }
             className="w-full rounded-lg border px-3 py-2 text-sm outline-none"
             style={{
-              borderColor: "var(--kp-border)",
-              color: "var(--ink-1)",
-              background: "var(--surface-0)",
+              borderColor: "var(--color-kp-border)",
+              color: "var(--color-ink-1)",
+              background: "var(--color-surface-0)",
             }}
           >
             {PRIORIDADES.map((p) => (
@@ -223,7 +223,7 @@ export function PlanTratamientoItemForm({
         </div>
 
         <div>
-          <label className="block text-xs mb-1" style={{ color: "var(--ink-3)" }}>
+          <label className="block text-xs mb-1" style={{ color: "var(--color-ink-3)" }}>
             Valor ($)
           </label>
           <input
@@ -240,9 +240,9 @@ export function PlanTratamientoItemForm({
             placeholder="0"
             className="w-full rounded-lg border px-3 py-2 text-sm outline-none"
             style={{
-              borderColor: "var(--kp-border)",
-              color: "var(--ink-1)",
-              background: "var(--surface-0)",
+              borderColor: "var(--color-kp-border)",
+              color: "var(--color-ink-1)",
+              background: "var(--color-surface-0)",
             }}
           />
         </div>
@@ -257,9 +257,9 @@ export function PlanTratamientoItemForm({
           rows={2}
           className="w-full rounded-lg border px-3 py-2 text-sm outline-none resize-none"
           style={{
-            borderColor: "var(--kp-border)",
-            color: "var(--ink-1)",
-            background: "var(--surface-0)",
+            borderColor: "var(--color-kp-border)",
+            color: "var(--color-ink-1)",
+            background: "var(--color-surface-0)",
           }}
         />
       </div>
@@ -275,7 +275,7 @@ export function PlanTratamientoItemForm({
           onClick={onCancel}
           disabled={loading}
           className="rounded-lg border px-4 py-2 text-sm font-medium transition-colors hover:bg-surface-0 disabled:opacity-50"
-          style={{ borderColor: "var(--kp-border)", color: "var(--ink-2)" }}
+          style={{ borderColor: "var(--color-kp-border)", color: "var(--color-ink-2)" }}
         >
           Cancelar
         </button>
@@ -283,7 +283,7 @@ export function PlanTratamientoItemForm({
           type="submit"
           disabled={loading}
           className="rounded-lg px-4 py-2 text-sm font-medium text-white transition-opacity disabled:opacity-50"
-          style={{ background: "var(--kp-primary)" }}
+          style={{ background: "var(--color-kp-primary)" }}
         >
           {loading ? "Guardando…" : "Agregar"}
         </button>
