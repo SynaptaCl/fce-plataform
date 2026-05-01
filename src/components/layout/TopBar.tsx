@@ -1,23 +1,93 @@
-import { Clock } from "lucide-react";
-import { formatDate } from "@/lib/utils";
+import type { ReactNode } from "react";
 
 interface TopBarProps {
-  title: string;
-  children?: React.ReactNode;
+  /** Breadcrumb label derived from the current route */
+  breadcrumb: ReactNode;
+  /** Additional actions/controls rendered on the right side */
+  children?: ReactNode;
+  /** Optional patient name for sub-routes under /pacientes/[id] */
+  patientName?: string;
 }
 
-export function TopBar({ title, children }: TopBarProps) {
+/**
+ * Returns the current date formatted in Spanish with America/Santiago timezone.
+ * Example: "vie, 1 de mayo 2026"
+ */
+function getSantiagoDate(): string {
+  const now = new Date();
+  const weekday = now.toLocaleDateString("es-CL", {
+    timeZone: "America/Santiago",
+    weekday: "short",
+  });
+  const day = now.toLocaleDateString("es-CL", {
+    timeZone: "America/Santiago",
+    day: "numeric",
+  });
+  const month = now.toLocaleDateString("es-CL", {
+    timeZone: "America/Santiago",
+    month: "long",
+  });
+  const year = now.toLocaleDateString("es-CL", {
+    timeZone: "America/Santiago",
+    year: "numeric",
+  });
+  // Trim trailing period that es-CL sometimes adds to weekday abbreviations
+  const weekdayClean = weekday.replace(/\.$/, "");
+  return `${weekdayClean}, ${day} de ${month} ${year}`;
+}
+
+export function TopBar({ breadcrumb, children }: TopBarProps) {
+  const dateLabel = getSantiagoDate();
+
   return (
-    <header className="bg-surface-1 shadow-sm border-b border-kp-border z-10 shrink-0">
-      <div className="flex justify-between items-center px-6 h-14">
-        <h1 className="text-lg font-bold text-ink-1">{title}</h1>
-        <div className="flex items-center gap-4">
-          {children}
-          <span className="text-sm text-ink-3 flex items-center gap-1.5">
-            <Clock className="w-4 h-4" />
-            {formatDate(new Date())}
-          </span>
-        </div>
+    <header
+      style={{
+        height: 48,
+        minHeight: 48,
+        background: "var(--color-surface-1, #FFFFFF)",
+        borderBottom: "0.5px solid var(--color-kp-border, #E2E8F0)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        paddingLeft: 20,
+        paddingRight: 20,
+        zIndex: 10,
+        flexShrink: 0,
+      }}
+    >
+      {/* Left: breadcrumb */}
+      <nav
+        aria-label="breadcrumb"
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 6,
+          fontSize: 14,
+          fontWeight: 600,
+          color: "var(--color-ink-1, #1E293B)",
+        }}
+      >
+        {breadcrumb}
+      </nav>
+
+      {/* Right: date + optional children */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 16,
+        }}
+      >
+        {children}
+        <span
+          style={{
+            fontSize: 13,
+            color: "var(--color-ink-3, #94A3B8)",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {dateLabel}
+        </span>
       </div>
     </header>
   );

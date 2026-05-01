@@ -1,10 +1,8 @@
 "use client";
 
-import { useCallback } from "react";
-import { useRouter, usePathname } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { Sidebar } from "./Sidebar";
 import { TopBar } from "./TopBar";
-import { createClient } from "@/lib/supabase/client";
 import type { BrandingConfig } from "@/lib/modules/registry";
 
 interface DashboardShellProps {
@@ -14,36 +12,33 @@ interface DashboardShellProps {
   especialidad: string | null;
   rol: string;
   branding: BrandingConfig | null;
+  /** Optional patient name forwarded from patient-detail routes */
+  patientName?: string;
 }
 
-const SECTION_TITLES: Record<string, string> = {
-  agenda:    "Agenda Diaria",
-  pacientes: "Pacientes",
-  ficha:     "Ficha Clínica",
-  fhir:      "Interoperabilidad FHIR",
-  config:    "Configuración",
-};
-
-const PATH_TO_SECTION: Array<[string, string]> = [
-  ["/dashboard/configuracion", "config"],
-  ["/dashboard/pacientes",     "pacientes"],
-  ["/dashboard",               "agenda"],
-];
-
-function getSectionFromPath(pathname: string): string {
-  if (pathname.includes("/fhir")) return "fhir";
-  for (const [prefix, section] of PATH_TO_SECTION) {
-    if (pathname.startsWith(prefix)) return section;
+/**
+ * Derives the breadcrumb ReactNode from the current pathname.
+ */
+function getBreadcrumb(pathname: string, patientName?: string): React.ReactNode {
+  if (pathname.startsWith("/dashboard/configuracion")) {
+    return "Configuración";
   }
-  return "agenda";
+  if (pathname.startsWith("/dashboard/pacientes")) {
+    const afterPacientes = pathname.slice("/dashboard/pacientes".length);
+    // /dashboard/pacientes/[id] or deeper
+    if (afterPacientes.length > 1) {
+      return (
+        <>
+          <span style={{ color: "var(--color-ink-3, #94A3B8)", fontWeight: 400 }}>Pacientes</span>
+          <span style={{ color: "var(--color-ink-3, #94A3B8)" }}>›</span>
+          <span>{patientName ?? "Detalle"}</span>
+        </>
+      );
+    }
+    return "Pacientes";
+  }
+  return "Agenda Diaria";
 }
-
-const SECTION_TO_PATH: Record<string, string> = {
-  agenda:    "/dashboard",
-  pacientes: "/dashboard/pacientes",
-  config:    "/dashboard/configuracion",
-  fhir:      "/dashboard/pacientes",
-};
 
 export function DashboardShell({
   children,
@@ -52,41 +47,49 @@ export function DashboardShell({
   especialidad,
   rol,
   branding,
+  patientName,
 }: DashboardShellProps) {
-  const router = useRouter();
   const pathname = usePathname();
-  const activeSection = getSectionFromPath(pathname);
-
-  const handleNavigate = useCallback(
-    (section: string) => {
-      const path = SECTION_TO_PATH[section];
-      if (path) router.push(path);
-    },
-    [router]
-  );
-
-  const handleLogout = useCallback(async () => {
-    const supabase = createClient();
-    await supabase.auth.signOut();
-    router.push("/login");
-  }, [router]);
+  const breadcrumb = getBreadcrumb(pathname, patientName);
 
   return (
-    <div className="flex h-screen overflow-hidden bg-surface-0">
+    <div
+      style={{
+        display: "flex",
+        height: "100vh",
+        overflow: "hidden",
+        background: "var(--color-surface-0, #F1F5F9)",
+      }}
+    >
+      {/* Fixed 56px sidebar */}
       <Sidebar
         practitionerName={practitionerName}
         practitionerInitials={practitionerInitials}
         especialidad={especialidad}
         rol={rol}
-        activeSection={activeSection}
-        onNavigate={handleNavigate}
-        onLogout={handleLogout}
         branding={branding}
       />
 
-      <div className="flex flex-1 flex-col overflow-hidden min-w-0">
-        <TopBar title={SECTION_TITLES[activeSection] ?? "Ficha Clínica Electrónica"} />
-        <main className="flex-1 overflow-auto p-6">{children}</main>
+      {/* Content column: TopBar + scrollable main */}
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          flex: 1,
+          minWidth: 0,
+          overflow: "hidden",
+        }}
+      >
+        <TopBar breadcrumb={breadcrumb} />
+        <main
+          style={{
+            flex: 1,
+            overflowY: "auto",
+            padding: 24,
+          }}
+        >
+          {children}
+        </main>
       </div>
     </div>
   );
