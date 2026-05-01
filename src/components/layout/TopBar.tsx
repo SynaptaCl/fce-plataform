@@ -5,8 +5,6 @@ interface TopBarProps {
   breadcrumb: ReactNode;
   /** Additional actions/controls rendered on the right side */
   children?: ReactNode;
-  /** Optional patient name for sub-routes under /pacientes/[id] */
-  patientName?: string;
 }
 
 /**

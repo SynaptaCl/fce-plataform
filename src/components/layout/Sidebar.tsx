@@ -28,7 +28,7 @@ function NavIconButton({ href, icon, label, active }: NavIconButtonProps) {
         width: 40,
         height: 40,
         borderRadius: 8,
-        color: active ? "var(--color-kp-accent, #00B0A8)" : "#64748B",
+        color: active ? "var(--color-kp-accent, #00B0A8)" : "var(--color-ink-3, #64748B)",
         backgroundColor: active ? "rgba(0, 176, 168, 0.15)" : undefined,
         transition: "background-color 0.15s, color 0.15s",
         textDecoration: "none",
