@@ -54,78 +54,102 @@ const ESPECIALIDADES_SIN_TIMELINE = ["Administración Clínica"];
 
 type BadgeVariant = "teal" | "info" | "warning" | "success";
 
+/**
+ * Entry types that can be signed/drafted.
+ * Others (signos_vitales, instrumento, evaluacion, egreso) are always neutral.
+ */
+const FIRMA_TYPES = new Set<TimelineEntry["type"]>([
+  "nota_clinica",
+  "soap",
+  "consentimiento",
+  "prescripcion",
+]);
+
 const TYPE_CONFIG: Record<
   TimelineEntry["type"],
   {
     label: string;
-    icon: React.ComponentType<{ className?: string }>;
+    icon: React.ComponentType<{ className?: string; size?: number }>;
     badgeVariant: BadgeVariant;
-    borderClass: string;
-    bgClass: string;
+    /** 3px left border color (CSS var string) */
+    borderColor: string;
+    /** Icon box background (CSS var or fixed palette constant) */
+    iconBg: string;
+    /** Tailwind text color class for the icon */
+    iconColorClass: string;
   }
 > = {
   soap: {
     label: "Nota SOAP",
     icon: FileText,
     badgeVariant: "teal",
-    borderClass: "border-l-kp-accent",
-    bgClass: "bg-kp-accent-xs",
+    borderColor: "var(--color-kp-primary, #006B6B)",
+    iconBg: "#EEF2FF",
+    iconColorClass: "text-[#4F46E5]",
   },
   evaluacion: {
     label: "Evaluación",
     icon: Stethoscope,
     badgeVariant: "info",
-    borderClass: "border-l-kp-info",
-    bgClass: "bg-kp-info-lt",
+    borderColor: "var(--color-kp-primary, #006B6B)",
+    iconBg: "#EEF2FF",
+    iconColorClass: "text-[#4F46E5]",
   },
   signos_vitales: {
     label: "Signos Vitales",
     icon: Activity,
     badgeVariant: "warning",
-    borderClass: "border-l-kp-secondary",
-    bgClass: "bg-kp-secondary-lt",
+    borderColor: "var(--color-ink-3, #94A3B8)",
+    iconBg: "var(--color-surface-0, #F1F5F9)",
+    iconColorClass: "text-ink-3",
   },
   consentimiento: {
     label: "Consentimiento",
     icon: FileSignature,
     badgeVariant: "success",
-    borderClass: "border-l-kp-success",
-    bgClass: "bg-kp-success-lt",
+    borderColor: "var(--color-ink-3, #94A3B8)",
+    iconBg: "var(--color-surface-0, #F1F5F9)",
+    iconColorClass: "text-ink-3",
   },
   nota_clinica: {
     label: "Nota Clínica",
     icon: FileText,
     badgeVariant: "teal",
-    borderClass: "border-l-kp-accent",
-    bgClass: "bg-kp-accent-xs",
+    borderColor: "var(--color-kp-primary, #006B6B)",
+    iconBg: "#EEF2FF",
+    iconColorClass: "text-[#4F46E5]",
   },
   instrumento: {
     label: "Instrumento",
     icon: ClipboardList,
     badgeVariant: "info",
-    borderClass: "border-l-kp-info",
-    bgClass: "bg-kp-info-lt",
+    borderColor: "var(--color-kp-accent, #00B0A8)",
+    iconBg: "var(--color-kp-accent-lt, #D5F5F4)",
+    iconColorClass: "text-kp-primary",
   },
   prescripcion: {
     label: "Prescripción",
     icon: Pill,
     badgeVariant: "info" as BadgeVariant,
-    borderClass: "border-l-kp-info",
-    bgClass: "bg-kp-info-lt",
+    borderColor: "var(--color-kp-secondary, #F5A623)",
+    iconBg: "#FEF3E2",
+    iconColorClass: "text-[#B45309]",
   },
   orden_examen: {
     label: "Orden de Examen",
     icon: ClipboardList,
     badgeVariant: "info" as BadgeVariant,
-    borderClass: "border-l-kp-info",
-    bgClass: "bg-kp-info-lt",
+    borderColor: "var(--color-kp-secondary, #F5A623)",
+    iconBg: "#FEF3E2",
+    iconColorClass: "text-[#B45309]",
   },
   egreso: {
     label: "Egreso",
     icon: LogOut,
     badgeVariant: "warning" as BadgeVariant,
-    borderClass: "border-l-kp-danger",
-    bgClass: "bg-kp-danger-lt",
+    borderColor: "var(--color-kp-danger, #DC2626)",
+    iconBg: "var(--color-kp-danger-lt, #FEE2E2)",
+    iconColorClass: "text-kp-danger",
   },
 };
 
@@ -232,6 +256,55 @@ function EntryContent({
 
 // ── TimelineCard ───────────────────────────────────────────────────────────
 
+/**
+ * Determines the 3px left border color for a card.
+ * Draft entries of firma-capable types get a neutral gray border.
+ */
+function getCardBorderColor(entry: TimelineEntry): string {
+  const cfg = TYPE_CONFIG[entry.type];
+  // Entry types that have firma concept: show colored border only when signed
+  if (FIRMA_TYPES.has(entry.type)) {
+    if (entry.firmado) return cfg.borderColor;
+    // Draft: subtle gray
+    return "var(--color-kp-border, #E2E8F0)";
+  }
+  // No firma concept: always colored border
+  return cfg.borderColor;
+}
+
+/**
+ * Footer bar shown at the bottom of expanded signed documents.
+ */
+function SignedFooterBar({
+  nombre,
+  fecha,
+}: {
+  nombre?: string;
+  fecha: string;
+}) {
+  const parts = ["Firmado"];
+  if (nombre) parts.push(nombre);
+  parts.push(formatDateTime(fecha));
+
+  return (
+    <div
+      style={{
+        borderTop: "0.5px solid var(--color-kp-border, #E2E8F0)",
+        padding: "8px 16px",
+        fontSize: "11px",
+        color: "var(--color-kp-success, #16A34A)",
+        background: "var(--color-kp-success-lt, #DCFCE7)",
+        display: "flex",
+        alignItems: "center",
+        gap: "6px",
+      }}
+    >
+      <Lock size={12} className="shrink-0" />
+      <span>{parts.join(" · ")}</span>
+    </div>
+  );
+}
+
 function TimelineCard({
   entry,
   expanded,
@@ -253,6 +326,17 @@ function TimelineCard({
   const TypeIcon = cfg.icon;
   const espLabel = entry.especialidad ?? null;
 
+  // Determine firma state
+  const hasFirmaConcept = FIRMA_TYPES.has(entry.type);
+  const isSigned = Boolean(entry.firmado);
+  const isDraft = hasFirmaConcept && !isSigned;
+
+  // Signed date: look in entry.data.firmado_at first, then fall back to entry.date
+  const firmadoAt =
+    typeof entry.data?.firmado_at === "string" ? entry.data.firmado_at : entry.date;
+
+  const cardBorderColor = getCardBorderColor(entry);
+
   // Secondary + collapsed → compact single-line row
   if (!isMain && !expanded) {
     return (
@@ -268,6 +352,21 @@ function TimelineCard({
         <span className="text-xs text-ink-2 flex-1 truncate min-w-0">
           {entry.titulo}
         </span>
+        {isDraft && (
+          <span
+            style={{
+              fontSize: "10px",
+              background: "var(--color-kp-secondary-lt, #FEF3E2)",
+              color: "var(--color-kp-secondary, #D97706)",
+              padding: "1px 5px",
+              borderRadius: "4px",
+              fontWeight: 500,
+              flexShrink: 0,
+            }}
+          >
+            Borrador
+          </span>
+        )}
         {espLabel && <Badge variant={cfg.badgeVariant}>{espLabel}</Badge>}
         <span className="text-[0.65rem] text-ink-3 whitespace-nowrap shrink-0">
           {formatRelativeDate(entry.date)}
@@ -280,40 +379,81 @@ function TimelineCard({
   // Full card (main entry or expanded secondary)
   return (
     <div
+      style={{
+        borderRadius: "10px",
+        border: "0.5px solid var(--color-kp-border, #E2E8F0)",
+        borderLeft: `3px solid ${cardBorderColor}`,
+        marginBottom: "10px",
+        overflow: "hidden",
+        background: "var(--color-surface-1, #FFFFFF)",
+        transition: "border-color 0.15s",
+      }}
       className={cn(
-        "bg-surface-1 rounded-xl border border-kp-border border-l-2 overflow-hidden",
         "transition-shadow hover:shadow-sm",
-        cfg.borderClass
+        // Draft cards invite editing on hover; signed cards are stable
+        isDraft && "hover:[border-color:var(--color-kp-accent,#00B0A8)]"
       )}
     >
       <button
         onClick={onToggle}
-        className="w-full flex items-start gap-3 px-4 py-3 text-left group cursor-pointer"
+        className="w-full flex items-start gap-3 text-left group cursor-pointer"
+        style={{ padding: "14px 16px" }}
         aria-expanded={expanded}
       >
+        {/* Type icon box */}
         <div
-          className={cn(
-            "mt-0.5 w-7 h-7 rounded-lg flex items-center justify-center shrink-0",
-            cfg.bgClass
-          )}
+          style={{
+            width: 28,
+            height: 28,
+            borderRadius: 6,
+            background: cfg.iconBg,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            flexShrink: 0,
+            marginTop: 2,
+          }}
         >
-          <TypeIcon className="w-3.5 h-3.5 text-ink-2" />
+          <TypeIcon size={14} className={cfg.iconColorClass} />
         </div>
 
+        {/* Header content */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-sm font-semibold text-ink-1">
+            <span style={{ fontSize: "13px", fontWeight: 500 }} className="text-ink-1">
               {entry.titulo}
             </span>
+            {/* Draft badge */}
+            {isDraft && (
+              <span
+                style={{
+                  fontSize: "10px",
+                  background: "var(--color-kp-secondary-lt, #FEF3E2)",
+                  color: "var(--color-kp-secondary, #D97706)",
+                  padding: "1px 5px",
+                  borderRadius: "4px",
+                  fontWeight: 500,
+                  flexShrink: 0,
+                }}
+              >
+                Borrador
+              </span>
+            )}
             {espLabel && <Badge variant={cfg.badgeVariant}>{espLabel}</Badge>}
-            {entry.firmado && (
+            {/* Lock icon for signed docs — right side */}
+            {isSigned && (
               <Lock
-                className="w-3 h-3 text-kp-success shrink-0"
+                size={12}
+                className="text-kp-accent shrink-0 ml-auto"
                 aria-label="Firmado"
               />
             )}
           </div>
-          <div className="flex flex-wrap items-center gap-3 mt-0.5 text-[0.65rem] text-ink-3">
+          {/* Meta row */}
+          <div
+            style={{ fontSize: "11px" }}
+            className="flex flex-wrap items-center gap-3 mt-0.5 text-ink-3"
+          >
             {entry.profesional_nombre && (
               <span className="flex items-center gap-1">
                 <User className="w-3 h-3" />
@@ -355,6 +495,13 @@ function TimelineCard({
               onVerOrden={onVerOrden}
             />
           </div>
+          {/* Signed footer bar — only for signed firma-capable types */}
+          {isSigned && hasFirmaConcept && (
+            <SignedFooterBar
+              nombre={entry.profesional_nombre}
+              fecha={firmadoAt}
+            />
+          )}
         </div>
       </div>
     </div>
