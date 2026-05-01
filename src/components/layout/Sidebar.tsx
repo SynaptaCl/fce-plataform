@@ -20,6 +20,7 @@ function NavIconButton({ href, icon, label, active }: NavIconButtonProps) {
     <Link
       href={href}
       title={label}
+      className={active ? undefined : "hover:bg-white/[0.06]"}
       style={{
         display: "flex",
         alignItems: "center",
@@ -28,20 +29,10 @@ function NavIconButton({ href, icon, label, active }: NavIconButtonProps) {
         height: 40,
         borderRadius: 8,
         color: active ? "var(--color-kp-accent, #00B0A8)" : "#64748B",
-        backgroundColor: active ? "rgba(0, 176, 168, 0.15)" : "transparent",
+        backgroundColor: active ? "rgba(0, 176, 168, 0.15)" : undefined,
         transition: "background-color 0.15s, color 0.15s",
         textDecoration: "none",
         position: "relative",
-      }}
-      onMouseEnter={(e) => {
-        if (!active) {
-          (e.currentTarget as HTMLAnchorElement).style.backgroundColor = "rgba(255,255,255,0.06)";
-        }
-      }}
-      onMouseLeave={(e) => {
-        if (!active) {
-          (e.currentTarget as HTMLAnchorElement).style.backgroundColor = "transparent";
-        }
       }}
     >
       {icon}
