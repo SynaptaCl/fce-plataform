@@ -1,7 +1,6 @@
 // src/components/modules/timeline/InstrumentoExpandedCard.tsx
 "use client";
 
-import { Badge } from "@/components/ui/Badge";
 import { Section, FieldLabel, EntryFooter, EncuentroLink } from "./_shared";
 import type { TimelineEntry } from "@/app/actions/timeline";
 
@@ -15,14 +14,40 @@ interface SchemaItem {
   label: string;
 }
 
-function getInterpretacionVariant(
+/**
+ * Returns colors for the interpretation badge based on risk level.
+ */
+function getInterpretacionStyle(
   interpretacion: string | null
-): "success" | "warning" | "info" {
-  if (!interpretacion) return "info";
+): { background: string; color: string } {
+  if (!interpretacion) {
+    return {
+      background: "var(--color-kp-success-lt, #DCFCE7)",
+      color: "var(--color-kp-success, #16A34A)",
+    };
+  }
   const lower = interpretacion.toLowerCase();
-  if (lower.includes("alto") || lower.includes("severo") || lower.includes("grave")) return "warning";
-  if (lower.includes("bajo") || lower.includes("normal") || lower.includes("leve")) return "success";
-  return "info";
+  if (
+    lower.includes("muy alto") ||
+    lower.includes("alto") ||
+    lower.includes("severo") ||
+    lower.includes("grave")
+  ) {
+    return {
+      background: "var(--color-kp-danger-lt, #FEE2E2)",
+      color: "var(--color-kp-danger, #DC2626)",
+    };
+  }
+  if (lower.includes("moderado") || lower.includes("medio")) {
+    return {
+      background: "var(--color-kp-secondary-lt, #FEF3E2)",
+      color: "var(--color-kp-secondary, #D97706)",
+    };
+  }
+  return {
+    background: "var(--color-kp-success-lt, #DCFCE7)",
+    color: "var(--color-kp-success, #16A34A)",
+  };
 }
 
 export function InstrumentoExpandedCard({ entry, patientId }: Props) {
@@ -39,20 +64,46 @@ export function InstrumentoExpandedCard({ entry, patientId }: Props) {
     ? `/dashboard/pacientes/${patientId}/encuentro/${entry.encuentroId}/clinico`
     : null;
 
+  const hasPuntaje = d.puntaje !== null && d.puntaje !== undefined;
+  const hasInterpretacion = Boolean(d.interpretacion);
+  const interpStyle = getInterpretacionStyle(
+    hasInterpretacion ? String(d.interpretacion) : null
+  );
+
   return (
     <div className="space-y-3">
-      <div className="flex flex-wrap items-center gap-2">
-        {d.puntaje !== null && d.puntaje !== undefined && (
-          <span className="text-sm font-bold text-ink-1">
-            Puntaje: {String(d.puntaje)}
-          </span>
-        )}
-        {d.interpretacion && (
-          <Badge variant={getInterpretacionVariant(String(d.interpretacion))}>
-            {String(d.interpretacion)}
-          </Badge>
-        )}
-      </div>
+      {/* Prominent score + interpretation */}
+      {(hasPuntaje || hasInterpretacion) && (
+        <div className="flex flex-col gap-1.5">
+          {hasPuntaje && (
+            <span
+              className="font-mono-clinical text-ink-1"
+              style={{ fontSize: "22px", fontWeight: 500, lineHeight: 1.2 }}
+            >
+              {String(d.puntaje)}
+              {d.puntaje_maximo !== null && d.puntaje_maximo !== undefined
+                ? ` / ${String(d.puntaje_maximo)} puntos`
+                : " puntos"}
+            </span>
+          )}
+          {hasInterpretacion && (
+            <span
+              style={{
+                display: "inline-flex",
+                alignSelf: "flex-start",
+                padding: "3px 8px",
+                borderRadius: "6px",
+                fontSize: "11px",
+                fontWeight: 500,
+                ...interpStyle,
+              }}
+            >
+              {String(d.interpretacion)}
+            </span>
+          )}
+        </div>
+      )}
+
       {Object.keys(respuestas).length > 0 && (
         <div>
           <FieldLabel>Respuestas</FieldLabel>
