@@ -133,13 +133,6 @@ export default async function PatientDetailPage({
 
       {/* Below-header alerts and launchers */}
       <div className="space-y-3 px-5 pt-4">
-        {/* Resumen IA — solo para roles con acceso FCE (no recepcionista) */}
-        {idClinica && !["recepcionista", "recepcion"].includes(rol) && (
-          <div className="flex justify-end">
-            <ResumenIAButton idPaciente={id} idClinica={idClinica} />
-          </div>
-        )}
-
         {/* Banner de egreso — si el paciente está egresado */}
         {p.estado_clinico === "egresado" && (
           <ReingresoBanner
@@ -178,9 +171,18 @@ export default async function PatientDetailPage({
             />
           </div>
 
-          {/* ── Columna 2: Panel resumen ── */}
-          <div className="xl:sticky xl:top-4 self-start">
-            <SummaryPanel summary={summary} patientId={id} especialidadesActivas={especialidadesActivas} />
+          {/* ── Columna 2: Panel resumen — oculto en viewports < xl ── */}
+          <div className="hidden xl:block xl:sticky xl:top-4 self-start">
+            <SummaryPanel
+              summary={summary}
+              patientId={id}
+              especialidadesActivas={especialidadesActivas}
+              resumenIASlot={
+                idClinica && !["recepcionista", "recepcion"].includes(rol)
+                  ? <ResumenIAButton idPaciente={id} idClinica={idClinica} />
+                  : undefined
+              }
+            />
           </div>
 
         </div>

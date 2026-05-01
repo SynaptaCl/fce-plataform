@@ -19,6 +19,7 @@ interface SummaryPanelProps {
   summary: PatientSummary;
   patientId: string;
   especialidadesActivas: string[];
+  resumenIASlot?: React.ReactNode;
 }
 
 // ── Section title component ────────────────────────────────────────────────
@@ -91,6 +92,7 @@ export function SummaryPanel({
   summary,
   patientId,
   especialidadesActivas,
+  resumenIASlot,
 }: SummaryPanelProps) {
   const base = `/dashboard/pacientes/${patientId}`;
 
@@ -121,6 +123,13 @@ export function SummaryPanel({
         maxHeight: "calc(100vh - 160px)",
       }}
     >
+      {/* ── ResumenIA slot — first section if provided ── */}
+      {resumenIASlot && (
+        <div style={{ marginBottom: 16 }}>
+          {resumenIASlot}
+        </div>
+      )}
+
       {/* ── Red Flags — always first if present ── */}
       {hasRedFlags && (
         <>
