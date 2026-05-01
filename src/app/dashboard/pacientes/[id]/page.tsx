@@ -7,7 +7,7 @@ import { getPatientTimeline } from "@/app/actions/timeline";
 import { PatientHeader } from "@/components/layout/PatientHeader";
 import { PatientActionNav } from "@/components/modules/PatientActionNav";
 import { ClinicalTimeline } from "@/components/modules/ClinicalTimeline";
-import { SummaryPanel } from "@/components/modules/SummaryPanel";
+import { SummaryPanel } from "@/components/shared/SummaryPanel";
 import { EncuentroLauncher } from "@/components/shared/EncuentroLauncher";
 import { EgresoLauncher } from "@/components/shared/EgresoLauncher";
 import { ReingresoBanner } from "@/components/shared/ReingresoBanner";

@@ -7,7 +7,7 @@ import { getClinicaConfigFromSession } from "@/lib/modules/config";
 import { getPatientById } from "@/app/actions/patients";
 import { getConsentimientos } from "@/app/actions/consentimiento";
 import { Card } from "@/components/ui/Card";
-import { ConsentManager } from "@/components/modules/ConsentManager";
+import { ConsentManager } from "@/components/shared/ConsentManager";
 import { calculateAge, formatRut } from "@/lib/utils";
 
 export async function generateMetadata({

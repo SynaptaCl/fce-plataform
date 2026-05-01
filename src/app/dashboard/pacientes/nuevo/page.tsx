@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ChevronLeft, FilePlus } from "lucide-react";
-import { PatientForm } from "@/components/modules/PatientForm";
+import { PatientForm } from "@/components/shared/PatientForm";
 import { Card } from "@/components/ui/Card";
 
 export const metadata = { title: "Nueva Ficha de Paciente" };

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ChevronLeft, Pencil } from "lucide-react";
 import { getPatientById } from "@/app/actions/patients";
-import { PatientForm } from "@/components/modules/PatientForm";
+import { PatientForm } from "@/components/shared/PatientForm";
 import { Card } from "@/components/ui/Card";
 import { formatRut } from "@/lib/utils";
 

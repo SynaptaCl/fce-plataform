@@ -3,7 +3,7 @@ import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getPdfPatientData } from "@/app/actions/exportar-pdf";
-import { PdfExportView } from "@/components/modules/PdfExportView";
+import { PdfExportView } from "@/components/shared/PdfExportView";
 
 export const metadata = { title: "Exportar PDF — FCE Korporis" };
 

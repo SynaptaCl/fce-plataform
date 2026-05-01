@@ -1,7 +1,7 @@
 import { Calendar, Clock, Users } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { getAgendaDiaria } from "@/app/actions/patients";
-import { AgendaTable } from "@/components/modules/AgendaTable";
+import { AgendaTable } from "@/components/shared/AgendaTable";
 import { AlertBanner } from "@/components/ui/AlertBanner";
 
 export const metadata = {

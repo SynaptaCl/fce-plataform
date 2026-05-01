@@ -9,7 +9,7 @@ import { getPatientById } from "@/app/actions/patients";
 import { getAuditLogs } from "@/app/actions/auditoria";
 import { Card } from "@/components/ui/Card";
 import { AlertBanner } from "@/components/ui/AlertBanner";
-import { AuditTimeline } from "@/components/modules/AuditTimeline";
+import { AuditTimeline } from "@/components/shared/AuditTimeline";
 import { formatRut } from "@/lib/utils";
 
 export async function generateMetadata({
