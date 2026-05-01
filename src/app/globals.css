@@ -38,9 +38,10 @@
   --color-kp-info-lt: #DBEAFE;
 
   /* ── Typography ── */
-  /* TODO: Replace with var(--font-outfit) / var(--font-plus-jakarta) when Google Fonts available */
-  --font-heading: "Outfit", system-ui, -apple-system, sans-serif;
-  --font-body: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
+  --font-sans: var(--font-dm-sans), system-ui, -apple-system, sans-serif;
+  --font-mono: var(--font-dm-mono), ui-monospace, monospace;
+  --font-heading: var(--font-dm-sans), system-ui, -apple-system, sans-serif;
+  --font-body: var(--font-dm-sans), system-ui, -apple-system, sans-serif;
 
   /* ── Radius ── */
   --radius-sm: 0.375rem;
@@ -53,8 +54,13 @@
 body {
   background: var(--color-surface-0);
   color: var(--color-ink-2);
-  font-family: var(--font-body), system-ui, sans-serif;
+  font-family: var(--font-dm-sans), system-ui, -apple-system, sans-serif;
   -webkit-font-smoothing: antialiased;
+}
+
+/* ── Mono utility ── */
+.font-mono-clinical {
+  font-family: var(--font-dm-mono), ui-monospace, monospace;
 }
 
 h1, h2, h3, h4, h5, h6 {
