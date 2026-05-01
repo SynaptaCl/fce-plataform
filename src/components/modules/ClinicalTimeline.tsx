@@ -357,7 +357,7 @@ function TimelineCard({
             style={{
               fontSize: "10px",
               background: "var(--color-kp-secondary-lt, #FEF3E2)",
-              color: "var(--color-kp-secondary, #D97706)",
+              color: "var(--color-kp-secondary, #F5A623)",
               padding: "1px 5px",
               borderRadius: "4px",
               fontWeight: 500,
@@ -431,7 +431,7 @@ function TimelineCard({
                 style={{
                   fontSize: "10px",
                   background: "var(--color-kp-secondary-lt, #FEF3E2)",
-                  color: "var(--color-kp-secondary, #D97706)",
+                  color: "var(--color-kp-secondary, #F5A623)",
                   padding: "1px 5px",
                   borderRadius: "4px",
                   fontWeight: 500,

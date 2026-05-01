@@ -102,7 +102,7 @@ export function PatientHeader({ patient, hasConsent, patientId }: PatientHeaderP
                 letterSpacing: "0.05em",
                 fontWeight: 600,
                 background: "var(--color-kp-secondary-lt, #FEF3E2)",
-                color: "var(--color-kp-secondary, #D97706)",
+                color: "var(--color-kp-secondary, #F5A623)",
                 padding: "2px 6px",
                 borderRadius: 4,
                 flexShrink: 0,

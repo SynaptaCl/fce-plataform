@@ -41,7 +41,7 @@ function getInterpretacionStyle(
   if (lower.includes("moderado") || lower.includes("medio")) {
     return {
       background: "var(--color-kp-secondary-lt, #FEF3E2)",
-      color: "var(--color-kp-secondary, #D97706)",
+      color: "var(--color-kp-secondary, #F5A623)",
     };
   }
   return {
