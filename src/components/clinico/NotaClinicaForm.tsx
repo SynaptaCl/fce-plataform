@@ -264,7 +264,7 @@ export function NotaClinicaForm({
 
         {/* Acciones */}
         {!readOnly && (
-          <div className="flex items-center gap-3 pt-2 border-t border-kp-border">
+          <div id="signature-section" className="flex items-center gap-3 pt-2 border-t border-kp-border">
             <Button
               type="submit"
               variant="secondary"

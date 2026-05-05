@@ -9,7 +9,6 @@ import { PatientActionNav } from "@/components/modules/PatientActionNav";
 import { ClinicalTimeline } from "@/components/modules/ClinicalTimeline";
 import { SummaryPanel } from "@/components/shared/SummaryPanel";
 import { EncuentroLauncher } from "@/components/shared/EncuentroLauncher";
-import { EgresoLauncher } from "@/components/shared/EgresoLauncher";
 import { ReingresoBanner } from "@/components/shared/ReingresoBanner";
 import { getProfesionalActivo } from "@/lib/fce/profesional";
 import { getEgresosByPaciente } from "@/app/actions/egresos";
@@ -127,14 +126,16 @@ export default async function PatientDetailPage({
       </div>
 
       {/* PatientHeader — banner M1 */}
-      <PatientHeader patient={p} hasConsent={hasConsent} patientId={id} />
-
-      {/* Resumen IA — solo para roles con acceso FCE (no recepcionista) */}
-      {idClinica && !["recepcionista", "recepcion"].includes(rol) && (
-        <div className="flex justify-end">
-          <ResumenIAButton idPaciente={id} idClinica={idClinica} />
-        </div>
-      )}
+      <PatientHeader
+        patient={p}
+        hasConsent={hasConsent}
+        patientId={id}
+        primaryAction={
+          especialidadProfesional && p.estado_clinico !== "egresado" ? (
+            <EncuentroLauncher patientId={id} especialidad={especialidadProfesional} />
+          ) : undefined
+        }
+      />
 
       {/* Banner de egreso — si el paciente está egresado */}
       {p.estado_clinico === "egresado" && (
@@ -144,18 +145,6 @@ export default async function PatientDetailPage({
           tipoEgreso={egresosFirmados[0]?.tipo_egreso ?? null}
         />
       )}
-
-      {/* Iniciar atención — solo para profesionales con especialidad activa y paciente no egresado */}
-      {especialidadProfesional && p.estado_clinico !== "egresado" && (
-        <EncuentroLauncher patientId={id} especialidad={especialidadProfesional} />
-      )}
-
-      {/* Egresar paciente — para roles permitidos con M9 activo */}
-      <EgresoLauncher
-        patientId={id}
-        estadoClinico={p.estado_clinico ?? "activo"}
-        rol={rol}
-      />
 
       {/*
         Grid 3 columnas:
@@ -167,7 +156,15 @@ export default async function PatientDetailPage({
 
         {/* ── Columna 1: Nav de acciones ── */}
         <div className="lg:sticky lg:top-4 self-start">
-          <PatientActionNav patientId={id} isAdmin={isAdmin} />
+          <PatientActionNav
+            patientId={id}
+            isAdmin={isAdmin}
+            resumenIA={
+              idClinica && !["recepcionista", "recepcion"].includes(rol) ? (
+                <ResumenIAButton idPaciente={id} idClinica={idClinica} />
+              ) : undefined
+            }
+          />
         </div>
 
         {/* ── Columna 2: Timeline clínico ── */}

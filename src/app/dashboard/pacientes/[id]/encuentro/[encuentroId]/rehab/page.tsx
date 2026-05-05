@@ -12,6 +12,7 @@ import {
 import { getPatientById } from "@/app/actions/patients";
 import { getProfesionalActivo } from "@/lib/fce/profesional";
 import { PrescripcionLauncher } from "@/components/shared/PrescripcionLauncher";
+import { FirmarHeaderButton } from "@/components/shared/FirmarHeaderButton";
 import type { SoapNote } from "@/types";
 import type { Evaluation } from "@/types";
 
@@ -44,7 +45,7 @@ export default async function RehabPage({
       getPatientById(id),
       supabase
         .from("fce_encuentros")
-        .select("id, especialidad, status")
+        .select("id, especialidad, status, created_at")
         .eq("id", encuentroId)
         .eq("id_paciente", id)
         .single(),
@@ -77,6 +78,30 @@ export default async function RehabPage({
 
   const encuentroFinalizado = encuentro.status === "finalizado";
   const readOnly = encuentroFinalizado || (soapNote?.firmado ?? false);
+
+  const horaInicio = encuentro.created_at
+    ? new Date(encuentro.created_at).toLocaleTimeString("es-CL", {
+        hour: "2-digit",
+        minute: "2-digit",
+        timeZone: "America/Santiago",
+      })
+    : null;
+
+  const statusBadge = encuentroFinalizado ? (
+    <span
+      className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium text-white"
+      style={{ background: "var(--color-kp-success)" }}
+    >
+      Encuentro cerrado
+    </span>
+  ) : (
+    <span
+      className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium text-white"
+      style={{ background: "var(--color-kp-warning)" }}
+    >
+      En progreso{horaInicio ? ` · ${horaInicio}` : ""}
+    </span>
+  );
 
   // Eval component por especialidad
   const especialidad = encuentro.especialidad as string;
@@ -121,7 +146,16 @@ export default async function RehabPage({
 
   return (
     <div className="space-y-4">
-      <PatientHeader patient={patient} hasConsent={false} patientId={id} />
+      {/* PatientHeader sticky — badge estado + Firmar y cerrar siempre visibles */}
+      <div className="sticky top-0 z-20">
+        <PatientHeader
+          patient={patient}
+          hasConsent={false}
+          patientId={id}
+          statusBadge={statusBadge}
+          primaryAction={!readOnly ? <FirmarHeaderButton /> : undefined}
+        />
+      </div>
 
       {/* Workspace */}
       <div className="rounded-xl border border-kp-border bg-surface-1">
@@ -136,15 +170,6 @@ export default async function RehabPage({
             </h1>
           </div>
           <div className="flex items-center gap-3">
-            {encuentroFinalizado ? (
-              <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-green-50 border border-green-200 text-green-800 text-xs font-medium">
-                Encuentro cerrado
-              </span>
-            ) : (
-              <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-800 text-xs font-medium">
-                En progreso
-              </span>
-            )}
             <PrescripcionLauncher patientId={patient.id} encuentroId={encuentroId} paciente={patient} />
           </div>
         </div>

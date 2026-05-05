@@ -339,7 +339,7 @@ function SignatureBlock({ onSign, isSigning, error, saved }: SignatureBlockProps
   const [confirmed, setConfirmed] = useState(false);
 
   return (
-    <div className="rounded-xl border-2 border-kp-border bg-surface-0 p-4 space-y-3">
+    <div id="signature-section" className="rounded-xl border-2 border-kp-border bg-surface-0 p-4 space-y-3">
       <div className="flex items-center gap-2">
         <PenLine className="w-4 h-4 text-kp-accent" />
         <h4 className="text-sm font-bold text-ink-1">Firma digital del profesional</h4>

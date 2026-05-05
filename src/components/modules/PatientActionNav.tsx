@@ -20,6 +20,7 @@ import type { ModuleId } from "@/lib/modules/registry";
 interface PatientActionNavProps {
   patientId: string;
   isAdmin: boolean;
+  resumenIA?: React.ReactNode;
 }
 
 interface NavItem {
@@ -28,7 +29,6 @@ interface NavItem {
   icon: React.ReactNode;
   href: string;
   adminOnly?: boolean;
-  /** Si está definido, el ítem solo se muestra si el módulo está activo. */
   moduleId?: ModuleId;
 }
 
@@ -37,13 +37,11 @@ interface NavGroup {
   items: NavItem[];
 }
 
-type NavEntry = NavGroup | { item: NavItem };
-
-function buildNav(patientId: string): NavEntry[] {
+function buildNav(patientId: string): NavGroup[] {
   const base = `/dashboard/pacientes/${patientId}`;
   return [
     {
-      title: "Evaluación",
+      title: "Registro",
       items: [
         {
           id: "signos",
@@ -52,62 +50,56 @@ function buildNav(patientId: string): NavEntry[] {
           href: `${base}/anamnesis`,
           moduleId: "M2_anamnesis",
         },
+        {
+          id: "consentimiento",
+          label: "Consentimientos",
+          icon: <FileSignature className="w-4 h-4" />,
+          href: `${base}/consentimiento`,
+          moduleId: "M5_consentimiento",
+        },
       ],
     },
     {
-      item: {
-        id: "consentimiento",
-        label: "Consentimientos",
-        icon: <FileSignature className="w-4 h-4" />,
-        href: `${base}/consentimiento`,
-        moduleId: "M5_consentimiento",
-      },
+      title: "Documentos",
+      items: [
+        {
+          id: "exportar-pdf",
+          label: "Exportar PDF",
+          icon: <FileDown className="w-4 h-4" />,
+          href: `${base}/exportar-pdf`,
+        },
+        {
+          id: "fhir",
+          label: "FHIR Preview",
+          icon: <Share2 className="w-4 h-4" />,
+          href: `${base}/fhir`,
+        },
+      ],
     },
     {
-      item: {
-        id: "egreso",
-        label: "Egresos",
-        icon: <LogOut className="w-4 h-4" />,
-        href: `${base}/egreso`,
-        moduleId: "M9_egresos",
-      },
-    },
-    {
-      item: {
-        id: "auditoria",
-        label: "Auditoría",
-        icon: <ShieldCheck className="w-4 h-4" />,
-        href: `${base}/auditoria`,
-        adminOnly: true,
-        moduleId: "M6_auditoria",
-      },
-    },
-    {
-      item: {
-        id: "exportar-pdf",
-        label: "Exportar PDF",
-        icon: <FileDown className="w-4 h-4" />,
-        href: `${base}/exportar-pdf`,
-      },
-    },
-    {
-      item: {
-        id: "fhir",
-        label: "FHIR Preview",
-        icon: <Share2 className="w-4 h-4" />,
-        href: `${base}/fhir`,
-      },
+      title: "Administración",
+      items: [
+        {
+          id: "egreso",
+          label: "Egresos",
+          icon: <LogOut className="w-4 h-4" />,
+          href: `${base}/egreso`,
+          moduleId: "M9_egresos",
+        },
+        {
+          id: "auditoria",
+          label: "Auditoría",
+          icon: <ShieldCheck className="w-4 h-4" />,
+          href: `${base}/auditoria`,
+          adminOnly: true,
+          moduleId: "M6_auditoria",
+        },
+      ],
     },
   ];
 }
 
-function NavLink({
-  item,
-  isActive,
-}: {
-  item: NavItem;
-  isActive: boolean;
-}) {
+function NavLink({ item, isActive }: { item: NavItem; isActive: boolean }) {
   return (
     <Link
       href={item.href}
@@ -121,9 +113,7 @@ function NavLink({
       <span
         className={cn(
           "shrink-0 transition-colors",
-          isActive
-            ? "text-kp-accent"
-            : "text-ink-3 group-hover:text-kp-accent"
+          isActive ? "text-kp-accent" : "text-ink-3 group-hover:text-kp-accent"
         )}
       >
         {item.icon}
@@ -133,17 +123,14 @@ function NavLink({
   );
 }
 
-export function PatientActionNav({
-  patientId,
-  isAdmin,
-}: PatientActionNavProps) {
+export function PatientActionNav({ patientId, isAdmin, resumenIA }: PatientActionNavProps) {
   const pathname = usePathname();
   const router = useRouter();
   const config = useClinicaConfig();
   const modulosActivos = config.modulosActivos;
   const [quickNoteOpen, setQuickNoteOpen] = useState(false);
 
-  const entries = buildNav(patientId);
+  const groups = buildNav(patientId);
 
   function isVisible(item: NavItem): boolean {
     if (item.adminOnly && !isAdmin) return false;
@@ -158,15 +145,25 @@ export function PatientActionNav({
   return (
     <nav className="bg-surface-1 rounded-xl border border-kp-border overflow-hidden">
       {/* Header */}
-      <div className="px-4 py-3 border-b border-kp-border flex items-center justify-between">
+      <div className="px-4 py-3 border-b border-kp-border">
         <p className="text-[0.6rem] font-bold text-ink-3 uppercase tracking-widest">
           Acciones
         </p>
       </div>
 
-      {/* Nav entries */}
       <div className="p-2 space-y-1">
-        {/* Nota rápida — acceso directo sin flujo de encuentro */}
+        {/* Slot Resumen IA — sin grupo */}
+        {resumenIA && (
+          <>
+            <div className="px-1">{resumenIA}</div>
+            <div className="my-1 border-t border-kp-border" />
+          </>
+        )}
+
+        {/* Nota rápida — primera acción del grupo Registro */}
+        <p className="px-3 pt-1 pb-0.5 text-[0.58rem] font-bold text-ink-4 uppercase tracking-wider">
+          Registro
+        </p>
         <button
           onClick={() => setQuickNoteOpen(true)}
           className={cn(
@@ -179,38 +176,28 @@ export function PatientActionNav({
           </span>
           <span className="leading-tight text-xs font-medium">Nota rápida</span>
         </button>
-        <div className="my-1 border-t border-kp-border" />
 
-
-
-        {entries.map((entry, idx) => {
-          if ("title" in entry) {
-            const visibleItems = entry.items.filter(isVisible);
-            if (visibleItems.length === 0) return null;
-            return (
-              <div key={entry.title}>
-                {idx > 0 && <div className="my-1 border-t border-kp-border" />}
-                <p className="px-3 pt-1 pb-0.5 text-[0.58rem] font-bold text-ink-4 uppercase tracking-wider">
-                  {entry.title}
-                </p>
-                <div className="space-y-0.5">
-                  {visibleItems.map((item) => (
-                    <NavLink
-                      key={item.id}
-                      item={item}
-                      isActive={isActiveHref(item.href)}
-                    />
-                  ))}
-                </div>
-              </div>
-            );
-          }
-          const { item } = entry;
-          if (!isVisible(item)) return null;
+        {/* Grupos semánticos */}
+        {groups.map((group, idx) => {
+          const visibleItems = group.items.filter(isVisible);
+          if (visibleItems.length === 0) return null;
           return (
-            <div key={item.id}>
-              <div className="my-1 border-t border-kp-border" />
-              <NavLink item={item} isActive={isActiveHref(item.href)} />
+            <div key={group.title}>
+              {idx > 0 && <div className="my-1 border-t border-kp-border" />}
+              {idx > 0 && (
+                <p className="px-3 pt-1 pb-0.5 text-[0.58rem] font-bold text-ink-4 uppercase tracking-wider">
+                  {group.title}
+                </p>
+              )}
+              <div className="space-y-0.5">
+                {visibleItems.map((item) => (
+                  <NavLink
+                    key={item.id}
+                    item={item}
+                    isActive={isActiveHref(item.href)}
+                  />
+                ))}
+              </div>
             </div>
           );
         })}

@@ -8,9 +8,17 @@ interface PatientHeaderProps {
   patient: Patient;
   hasConsent: boolean;
   patientId?: string;
+  primaryAction?: React.ReactNode;
+  statusBadge?: React.ReactNode;
 }
 
-export function PatientHeader({ patient, hasConsent, patientId }: PatientHeaderProps) {
+export function PatientHeader({
+  patient,
+  hasConsent,
+  patientId,
+  primaryAction,
+  statusBadge,
+}: PatientHeaderProps) {
   const initials = `${patient.nombre?.charAt(0) ?? ""}${patient.apellido_paterno?.charAt(0) ?? ""}`.toUpperCase() || "?";
   const age = calculateAge(patient.fecha_nacimiento);
   const fullName =
@@ -32,7 +40,6 @@ export function PatientHeader({ patient, hasConsent, patientId }: PatientHeaderP
           ? `${dir.calle}${dir.numero && !dir.calle.includes(dir.numero) ? " " + dir.numero : ""}`
           : null,
         dir.comuna && dir.comuna !== dir.calle ? dir.comuna : null,
-        dir.region ?? null,
       ]
         .filter(Boolean)
         .join(", ") || null
@@ -79,24 +86,30 @@ export function PatientHeader({ patient, hasConsent, patientId }: PatientHeaderP
             </span>
           )}
         </div>
-        <div className="flex gap-2 mt-1.5">
+        <div className="flex gap-2 mt-1.5 flex-wrap">
           <Badge variant="teal">Paciente activo</Badge>
           {hasConsent && (
             <Badge variant="success">Consentimiento firmado</Badge>
           )}
+          {statusBadge}
         </div>
       </div>
 
-      {/* Editar paciente */}
-      {patientId && (
-        <Link
-          href={`/dashboard/pacientes/${patientId}/editar`}
-          className="flex items-center gap-1.5 shrink-0 px-3 py-2 text-xs font-semibold text-kp-accent border border-kp-accent/30 rounded-lg hover:bg-kp-accent-xs transition-colors"
-          title="Editar datos del paciente"
-        >
-          <Pencil className="w-3.5 h-3.5" />
-          Editar paciente
-        </Link>
+      {/* Acciones derecha */}
+      {(primaryAction || patientId) && (
+        <div className="flex items-center gap-2 shrink-0">
+          {primaryAction}
+          {patientId && (
+            <Link
+              href={`/dashboard/pacientes/${patientId}/editar`}
+              className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-kp-accent border border-kp-accent/30 rounded-lg hover:bg-kp-accent-xs transition-colors"
+              title="Editar datos del paciente"
+            >
+              <Pencil className="w-3.5 h-3.5" />
+              Editar paciente
+            </Link>
+          )}
+        </div>
       )}
     </div>
   );
