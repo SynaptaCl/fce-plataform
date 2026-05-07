@@ -110,7 +110,7 @@ export function DiagnosticoChip({
         </button>
       )}
 
-      {/* Tooltip — only when showTooltip=true AND NOT readOnly (onRemove is defined) */}
+      {/* Tooltip — when showTooltip=true (independent of readOnly state) */}
       {showTooltipFeature && tooltipVisible && (
         <span
           className={cn(
