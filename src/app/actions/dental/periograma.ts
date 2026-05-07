@@ -11,6 +11,7 @@ import {
 } from "@/lib/dental/periograma";
 import type { ActionResult } from "@/app/actions/patients";
 import type { Periograma, PeriogramaPiezaDatos } from "@/types/periograma";
+import type { ICDCodeSnap } from "@/lib/icd/types";
 
 async function requireAuth() {
   const supabase = await createClient();
@@ -54,6 +55,7 @@ export async function savePeriograma(
   patientId: string,
   datos: PeriogramaPiezaDatos[],
   notas: string | null,
+  diagnosticoIcd?: ICDCodeSnap,
 ): Promise<ActionResult<{ id: string }>> {
   const { supabase, user } = await requireAuth();
 
@@ -91,6 +93,7 @@ export async function savePeriograma(
         indice_sangrado,
         profundidad_media,
         sitios_patologicos,
+        diagnostico_icd: diagnosticoIcd ?? {},
         updated_at: new Date().toISOString(),
       })
       .eq("id", existing.id);
@@ -115,6 +118,7 @@ export async function savePeriograma(
         indice_sangrado,
         profundidad_media,
         sitios_patologicos,
+        diagnostico_icd: diagnosticoIcd ?? {},
         firmado: false,
         registrado_por: profesional.id,
       })

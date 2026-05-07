@@ -19,6 +19,8 @@ import {
 } from "@/lib/dental/periograma";
 import { savePeriograma, signPeriograma } from "@/app/actions/dental/periograma";
 import type { Periograma, PeriogramaPiezaDatos } from "@/types/periograma";
+import { DiagnosticoSearch } from '@/components/dental/DiagnosticoSearch';
+import type { ICDCodeSnap } from '@/lib/icd/types';
 
 type Face = "vestibular" | "lingual";
 type PointIdx = 0 | 1 | 2;
@@ -72,6 +74,10 @@ export function PeriogramaForm({
     () => initDatos(TODAS, periogramaExistente?.datos ?? []),
   );
   const [notas, setNotas]                 = useState(periogramaExistente?.notas ?? "");
+  const [diagnosticoIcd, setDiagnosticoIcd] = useState<ICDCodeSnap | null>(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (periogramaExistente as any)?.diagnostico_icd?.code ? (periogramaExistente as any).diagnostico_icd as ICDCodeSnap : null
+  );
   const [periogramaId, setPeriogramaId]   = useState<string | null>(periogramaExistente?.id ?? null);
   const [firmado, setFirmado]             = useState(periogramaExistente?.firmado ?? false);
   const [firmadoAt, setFirmadoAt]         = useState<string | null>(periogramaExistente?.firmado_at ?? null);
@@ -120,6 +126,7 @@ export function PeriogramaForm({
         patientId,
         Object.values(datos),
         notas || null,
+        diagnosticoIcd ?? undefined,
       );
       if (result.success) {
         setPeriogramaId(result.data.id);
@@ -433,6 +440,18 @@ export function PeriogramaForm({
             <PeriogramaChart datos={datos} />
           </div>
         )}
+      </div>
+
+      {/* ── Diagnóstico periodontal ICD-11 ── */}
+      <div className="space-y-1.5">
+        <label className="text-sm font-medium text-ink-2">
+          Diagnóstico periodontal ICD-11 <span className="text-ink-3 font-normal">(opcional)</span>
+        </label>
+        <DiagnosticoSearch
+          value={diagnosticoIcd ? [diagnosticoIcd] : []}
+          onChange={(codes) => setDiagnosticoIcd(codes[codes.length - 1] ?? null)}
+          readOnly={readOnly || firmado}
+        />
       </div>
 
       {/* ── Observaciones ── */}
