@@ -194,7 +194,7 @@ src/app/dashboard/pacientes/[id]/encuentro/[encuentroId]/
 src/app/actions/
   ├── patients.ts, anamnesis.ts, consentimiento.ts, auditoria.ts, timeline.ts, exportar-pdf.ts
   ├── encuentros.ts, prescripciones.ts, ordenes-examen.ts
-  ├── rehab/{soap.ts, evaluacion.ts}
+  ├── rehab/{soap.ts, evaluacion.ts, cif.ts}
   └── clinico/nota-clinica.ts
 
 src/components/
@@ -204,7 +204,7 @@ src/components/
   │   ├── timeline/ → SoapExpandedCard, EvaluacionExpandedCard, PrescripcionExpandedCard,
   │   │               OrdenExamenExpandedCard, y demás cards del timeline
   │   └── ResumenIA/ → ResumenIAButton, ResumenIAModal, ResumenIAReport (index.ts)
-  ├── rehab/       → SoapForm, CifMapper, KinesiologiaEval, FonoaudiologiaEval, MasoterapiaEval
+  ├── rehab/       → SoapForm, CifMapper, CifSearch, KinesiologiaEval, FonoaudiologiaEval, MasoterapiaEval
   ├── clinico/     → NotaClinicaForm, InstrumentosPanel
   └── shared/      → EncuentroLauncher, BodyMap, ScaleSlider,
                      FirmarHeaderButton (scroll a #signature-section en workspaces),
@@ -283,6 +283,8 @@ Para trabajar "para" una clínica, leer `clinics/<slug>/CLAUDE.md` y respetar su
 | M9 | Egresos: tipos, acciones, form, timeline, integración ficha |
 | Resumen IA | Botón on-demand en ficha: extracción 7 tablas → Anthropic Haiku → caché + audit |
 | UX-01 | Rediseño ficha paciente: PatientHeader con slots, PatientActionNav grupos semánticos, workspaces sticky |
+| R-ICD-1 | DiagnosticoSearch ICD-11 MMS integrado en NotaClinicaForm + PeriogramaForm + Timeline chips FHIR |
+| R-ICD-2 | CifSearch autocomplete ICF API — reemplaza input libre en CifMapper (actions/rehab/cif.ts + CifSearch.tsx) |
 
 ### Pendientes
 

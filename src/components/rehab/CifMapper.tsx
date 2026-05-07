@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { ScaleSlider } from "@/components/shared/ScaleSlider";
 import type { CifItem, CifAssessment, CifDomainType, CifQuantifier } from "@/types";
 import { CIF_QUANTIFIER_LABELS } from "@/types";
+import { CifSearch } from "@/components/rehab/CifSearch";
 
 // ── Tabs ───────────────────────────────────────────────────────────────────
 
@@ -15,6 +16,16 @@ const TABS: { key: keyof CifAssessment; label: string; domain: CifDomainType; co
   { key: "participacion", label: "Participación", domain: "participacion", codeHint: "d640" },
   { key: "contexto", label: "Factores Contextuales", domain: "factores_ambientales", codeHint: "e115" },
 ];
+
+// ── Helpers ────────────────────────────────────────────────────────────────
+
+function getDominioPrefix(domain: CifDomainType): string {
+  if (domain === 'funciones_corporales') return 'b';
+  if (domain === 'estructuras_corporales') return 's';
+  if (domain === 'actividades' || domain === 'participacion') return 'd';
+  if (domain === 'factores_ambientales') return 'e';
+  return '';
+}
 
 // ── Props ──────────────────────────────────────────────────────────────────
 
@@ -122,6 +133,7 @@ export function CifMapper({ value, onChange, readOnly = false }: CifMapperProps)
             onUpdate={(patch) => updateItem(activeTab, item.id, patch)}
             onRemove={() => removeItem(activeTab, item.id)}
             codeHint={activeTabDef.codeHint}
+            dominioPrefix={getDominioPrefix(activeTabDef.domain)}
           />
         ))}
       </div>
@@ -150,9 +162,10 @@ interface CifItemRowProps {
   onUpdate: (patch: Partial<CifItem>) => void;
   onRemove: () => void;
   codeHint: string;
+  dominioPrefix: string;
 }
 
-function CifItemRow({ item, showFacilitator, readOnly, onUpdate, onRemove, codeHint }: CifItemRowProps) {
+function CifItemRow({ item, showFacilitator, readOnly, onUpdate, onRemove, codeHint, dominioPrefix }: CifItemRowProps) {
   const [expanded, setExpanded] = useState(false);
 
   const quantifierColor =
@@ -186,26 +199,13 @@ function CifItemRow({ item, showFacilitator, readOnly, onUpdate, onRemove, codeH
             : <ChevronRight className="w-3.5 h-3.5" />}
         </button>
 
-        {/* Code */}
-        <input
-          type="text"
+        <CifSearch
+          value={item.code}
+          description={item.description}
+          dominioPrefix={dominioPrefix}
           placeholder={codeHint}
           readOnly={readOnly}
-          value={item.code}
-          onChange={(e) => onUpdate({ code: e.target.value })}
-          className="w-16 px-2 py-1 text-xs font-mono text-kp-primary bg-kp-accent-xs border border-kp-accent/20 rounded focus:outline-none focus:ring-1 focus:ring-kp-accent/40 disabled:bg-surface-0"
-          disabled={readOnly}
-        />
-
-        {/* Description */}
-        <input
-          type="text"
-          placeholder="Descripción del ítem CIF…"
-          readOnly={readOnly}
-          value={item.description}
-          onChange={(e) => onUpdate({ description: e.target.value })}
-          className="flex-1 px-2 py-1 text-xs text-ink-1 bg-surface-0 border border-kp-border rounded focus:outline-none focus:ring-1 focus:ring-kp-accent/40 disabled:bg-surface-0"
-          disabled={readOnly}
+          onSelect={(result) => onUpdate({ code: result.code, description: result.description })}
         />
 
         {/* Quantifier badge */}
