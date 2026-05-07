@@ -13,7 +13,8 @@
     "test:sprint-r7": "tsx scripts/test-sprint-r7.ts",
     "test:sprint-r9": "tsx scripts/test-sprint-r9.ts",
     "test:sprint-r10": "tsx scripts/test-sprint-r10.ts",
-    "test:sprint-r11": "tsx scripts/test-sprint-r11.ts"
+    "test:sprint-r11": "tsx scripts/test-sprint-r11.ts",
+    "test:sprint-icd1": "tsx scripts/test-sprint-icd1.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.92.0",
