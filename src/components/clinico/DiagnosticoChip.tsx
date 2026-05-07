@@ -41,8 +41,8 @@ export function DiagnosticoChip({
   const [tooltipLoading, setTooltipLoading] = useState(false);
   const hideTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Tooltip is shown when showTooltip=true AND NOT readOnly (i.e., onRemove is defined)
-  const showTooltipFeature = showTooltip && !isReadOnly;
+  // Tooltip is shown when showTooltip=true (independent of readOnly state)
+  const showTooltipFeature = showTooltip;
 
   const handleMouseEnter = async () => {
     if (!showTooltipFeature) return;

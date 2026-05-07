@@ -129,7 +129,7 @@ export function DiagnosticoSearch({
               key={snap.uri}
               code={snap}
               onRemove={readOnly ? undefined : () => handleRemove(snap.uri)}
-              showTooltip={!readOnly}
+              showTooltip={true}
             />
           ))}
         </div>
