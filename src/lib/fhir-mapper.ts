@@ -464,6 +464,104 @@ export function mapSoapToConditions(soap: DbSoapNote): FhirCondition[] {
   }));
 }
 
+// ── DbNotaClinica para FHIR ─────────────────────────────────────────────────
+
+const ICD11_MMS_SYSTEM = 'http://id.who.int/icd/release/11/mms';
+const ICD10_SYSTEM = 'http://hl7.org/fhir/sid/icd-10';
+
+export interface DbNotaClinica {
+  id: string;
+  id_paciente: string;
+  id_encuentro?: string | null;
+  diagnostico?: string | null;
+  cie10_codigos?: string[] | null;
+  icd_codigos?: Array<{
+    code: string;
+    title: string;
+    uri: string;
+    version?: string;
+  }> | null;
+  firmado?: boolean;
+  firmado_at?: string | null;
+  created_at: string;
+}
+
+// ── mapNotaClinicaToConditions ────────────────────────────────────────────────
+
+export function mapNotaClinicaToConditions(nota: DbNotaClinica): FhirCondition[] {
+  // Si hay icd_codigos (ICD-11): mapear cada uno a un Condition FHIR
+  if (nota.icd_codigos && nota.icd_codigos.length > 0) {
+    return nota.icd_codigos.map((snap) => ({
+      resourceType: 'Condition' as const,
+      meta: { profile: [`${FHIR_BASE}/CoreDiagnosticoCl`] },
+      clinicalStatus: {
+        coding: [{ system: CONDITION_CLINICAL, code: 'active' }],
+      },
+      category: [{
+        coding: [{
+          system: CONDITION_CATEGORY,
+          code: 'encounter-diagnosis',
+          display: 'Encounter Diagnosis',
+        }],
+      }],
+      code: {
+        text: snap.title,
+        coding: snap.code ? [{
+          system: ICD11_MMS_SYSTEM,
+          code: snap.code,
+          display: snap.title,
+        }] : undefined,
+      },
+      subject: { reference: `Patient/${nota.id_paciente}` },
+    }));
+  }
+
+  // Fallback: si solo hay cie10_codigos (legacy ICD-10)
+  if (nota.cie10_codigos && nota.cie10_codigos.length > 0) {
+    return nota.cie10_codigos.map((code) => ({
+      resourceType: 'Condition' as const,
+      meta: { profile: [`${FHIR_BASE}/CoreDiagnosticoCl`] },
+      clinicalStatus: {
+        coding: [{ system: CONDITION_CLINICAL, code: 'active' }],
+      },
+      category: [{
+        coding: [{
+          system: CONDITION_CATEGORY,
+          code: 'encounter-diagnosis',
+          display: 'Encounter Diagnosis',
+        }],
+      }],
+      code: {
+        text: code,
+        coding: [{ system: ICD10_SYSTEM, code, display: code }],
+      },
+      subject: { reference: `Patient/${nota.id_paciente}` },
+    }));
+  }
+
+  // Fallback: solo diagnóstico de texto libre
+  if (nota.diagnostico) {
+    return [{
+      resourceType: 'Condition' as const,
+      meta: { profile: [`${FHIR_BASE}/CoreDiagnosticoCl`] },
+      clinicalStatus: {
+        coding: [{ system: CONDITION_CLINICAL, code: 'active' }],
+      },
+      category: [{
+        coding: [{
+          system: CONDITION_CATEGORY,
+          code: 'encounter-diagnosis',
+          display: 'Encounter Diagnosis',
+        }],
+      }],
+      code: { text: nota.diagnostico },
+      subject: { reference: `Patient/${nota.id_paciente}` },
+    }];
+  }
+
+  return [];
+}
+
 // ── mapSoapToCarePlan ─────────────────────────────────────────────────────────
 
 export function mapSoapToCarePlan(soap: DbSoapNote): FhirCarePlan {

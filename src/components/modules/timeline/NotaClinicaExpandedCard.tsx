@@ -4,6 +4,8 @@
 import { Badge } from "@/components/ui/Badge";
 import { Section, EntryFooter, EncuentroLink, formatDate } from "./_shared";
 import type { TimelineEntry } from "@/app/actions/timeline";
+import { DiagnosticoChip } from '@/components/clinico/DiagnosticoChip';
+import type { ICDCodeSnap } from '@/lib/icd/types';
 
 interface Props {
   entry: TimelineEntry;
@@ -26,8 +28,22 @@ export function NotaClinicaExpandedCard({ entry, patientId }: Props) {
       {d.contenido && (
         <Section label="Contenido">{String(d.contenido)}</Section>
       )}
-      {d.diagnostico && (
+      {d.diagnostico && !(Array.isArray(d.icd_codigos) && (d.icd_codigos as ICDCodeSnap[]).length > 0) && (
         <Section label="Diagnóstico">{String(d.diagnostico)}</Section>
+      )}
+      {/* ICD-11 códigos estructurados — mostrar chips si existen */}
+      {Array.isArray(d.icd_codigos) && (d.icd_codigos as ICDCodeSnap[]).length > 0 && (
+        <div>
+          <p className="font-bold text-ink-3 uppercase tracking-wide text-[0.6rem] mb-1.5">
+            Diagnóstico ICD-11
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            {(d.icd_codigos as ICDCodeSnap[]).map((snap) => (
+              <DiagnosticoChip key={snap.uri} code={snap} showTooltip={true} />
+              // sin onRemove → readOnly
+            ))}
+          </div>
+        </div>
       )}
       {cie10.length > 0 && (
         <div>
