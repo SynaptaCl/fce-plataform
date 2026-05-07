@@ -13,6 +13,8 @@ import { Input } from "@/components/ui/Input";
 import { AlertBanner } from "@/components/ui/AlertBanner";
 import { upsertNotaClinica, signNotaClinica } from "@/app/actions/clinico/nota-clinica";
 import type { NotaClinica } from "@/types/nota-clinica";
+import { DiagnosticoSearch } from '@/components/clinico/DiagnosticoSearch';
+import type { ICDCodeSnap } from '@/lib/icd/types';
 
 // ── Props ────────────────────────────────────────────────────────────────────
 
@@ -41,6 +43,10 @@ export function NotaClinicaForm({
   const [isPendingSign, startSignTransition] = useTransition();
 
   const readOnly = readOnlyProp || firmado;
+
+  const [icdCodigos, setIcdCodigos] = useState<ICDCodeSnap[]>(
+    (notaExistente as any)?.icd_codigos ?? []
+  );
 
   // CIE-10: array interno representado como string separado por comas en UI
   const [cie10Input, setCie10Input] = useState(
@@ -75,6 +81,8 @@ export function NotaClinicaForm({
     const result = await upsertNotaClinica(encuentroId, patientId, {
       ...data,
       cie10_codigos: cie10,
+      icd_codigos: icdCodigos,
+      icd_version: 'ICD-11 2025-01',
     });
 
     if (!result.success) { setServerError(result.error); return; }
@@ -168,21 +176,28 @@ export function NotaClinicaForm({
           )}
         </div>
 
-        {/* Diagnóstico */}
+        {/* Diagnóstico ICD-11 */}
         <div className="space-y-1.5">
           <label className="text-sm font-medium text-ink-2">
-            Diagnóstico <span className="text-ink-3 font-normal">(opcional)</span>
+            Diagnóstico ICD-11 <span className="text-ink-3 font-normal">(opcional)</span>
           </label>
-          <Textarea
-            {...register("diagnostico")}
-            disabled={readOnly}
-            rows={3}
-            placeholder="Diagnóstico clínico o impresión diagnóstica…"
-            className={cn(readOnly && "opacity-70 cursor-not-allowed")}
+          <DiagnosticoSearch
+            value={icdCodigos}
+            onChange={setIcdCodigos}
+            readOnly={readOnly}
           />
-          {errors.diagnostico && (
-            <p className="text-xs text-red-600">{errors.diagnostico.message}</p>
+          {/* Fallback: diagnóstico de texto libre (notas antiguas sin código ICD) */}
+          {icdCodigos.length === 0 && notaExistente?.diagnostico && (
+            <div className="flex items-center gap-2 mt-1">
+              <span
+                className="inline-flex items-center px-2.5 py-1 rounded-full text-xs border border-kp-border bg-surface-0 text-ink-2"
+              >
+                diagnóstico sin código ICD: {notaExistente.diagnostico}
+              </span>
+            </div>
           )}
+          {/* Campo diagnóstico texto (hidden, backwards compat) */}
+          <input type="hidden" {...register("diagnostico")} />
         </div>
 
         {/* CIE-10 */}
