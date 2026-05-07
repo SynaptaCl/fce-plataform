@@ -60,3 +60,10 @@ export type {
   PlanTratamientoItem,
   ProcedimientoCatalogo,
 } from "./plan-tratamiento";
+export type {
+  ICDSearchResult,
+  ICDEntity,
+  ICDCodeSnap,
+  DiagnosticoGuardado,
+  DiagnosticoSearchProps,
+} from "./diagnostico";
