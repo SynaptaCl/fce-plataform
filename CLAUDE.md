@@ -1,6 +1,6 @@
 # CLAUDE.md — FCE Platform (fce-plataform)
 
-> Última actualización: 2026-05-01 (Resumen IA)
+> Última actualización: 2026-05-05 (UX-01 Rediseño Ficha)
 > Este documento es la fuente de verdad para Claude Code. Leerlo antes de cualquier cambio.
 
 ---
@@ -207,6 +207,7 @@ src/components/
   ├── rehab/       → SoapForm, CifMapper, KinesiologiaEval, FonoaudiologiaEval, MasoterapiaEval
   ├── clinico/     → NotaClinicaForm, InstrumentosPanel
   └── shared/      → EncuentroLauncher, BodyMap, ScaleSlider,
+                     FirmarHeaderButton (scroll a #signature-section en workspaces),
                      Prescripcion* (13 componentes M7),
                      OrdenExamen* (9 componentes M8: Launcher, Form, DetalleModal,
                        PdfView, FirmaPanel, ExamenSelector, ExamenCard, List)
@@ -281,6 +282,7 @@ Para trabajar "para" una clínica, leer `clinics/<slug>/CLAUDE.md` y respetar su
 | R14 | Mejoras UX: SummaryPanel + Timeline colapsable + Nota rápida |
 | M9 | Egresos: tipos, acciones, form, timeline, integración ficha |
 | Resumen IA | Botón on-demand en ficha: extracción 7 tablas → Anthropic Haiku → caché + audit |
+| UX-01 | Rediseño ficha paciente: PatientHeader con slots, PatientActionNav grupos semánticos, workspaces sticky |
 
 ### Pendientes
 
@@ -317,7 +319,46 @@ Para trabajar "para" una clínica, leer `clinics/<slug>/CLAUDE.md` y respetar su
 
 ---
 
-## 15. MÓDULO RESUMEN IA
+## 15. PATRONES UX (desde UX-01)
+
+### PatientHeader — slots de composición
+
+```tsx
+<PatientHeader
+  patient={p}
+  hasConsent={hasConsent}
+  patientId={id}
+  primaryAction={<EncuentroLauncher ... />}  // CTA principal derecha
+  statusBadge={<span style={{ background: "var(--color-kp-warning)" }}>En progreso</span>}
+/>
+```
+
+- `primaryAction?: React.ReactNode` — renderizado a la derecha junto al botón "Editar paciente"
+- `statusBadge?: React.ReactNode` — renderizado en la fila de badges bajo el nombre
+- Usar `var(--color-kp-warning)` / `var(--color-kp-success)` con `color: "#fff"` en inline style para badges de estado
+
+### PatientActionNav — slots y grupos
+
+```tsx
+<PatientActionNav
+  patientId={id}
+  isAdmin={isAdmin}
+  resumenIA={<ResumenIAButton ... />}  // slot encima de todos los grupos
+/>
+```
+
+Grupos fijos: **Registro** (Nota rápida · Signos vitales · Consentimientos) | **Documentos** (Exportar PDF · FHIR Preview) | **Administración** (Egresos · Auditoría)
+
+### Workspaces de encuentro — sticky header
+
+En `/clinico/page.tsx` y `/rehab/page.tsx`:
+- `PatientHeader` envuelto en `<div className="sticky top-0 z-20">` para que el badge de estado y "Firmar y cerrar" siempre sean visibles
+- `FirmarHeaderButton` hace scroll a `id="signature-section"` que existe en `NotaClinicaForm` (div de acciones) y en `SoapForm` (SignatureBlock)
+- La query de `fce_encuentros` incluye `created_at` para mostrar la hora de inicio en el badge
+
+---
+
+## 16. MÓDULO RESUMEN IA
 
 ### Arquitectura
 
