@@ -21,6 +21,7 @@ async function getToken(): Promise<string> {
     grant_type: 'client_credentials',
     client_id: clientId,
     client_secret: clientSecret,
+    scope: 'icdapi_access',
   });
 
   const response = await fetch(AUTH_ENDPOINT, {
@@ -59,6 +60,7 @@ export async function icdFetch(
         Authorization: `Bearer ${token}`,
         'API-Version': 'v2',
         Accept: 'application/json',
+        'Accept-Language': 'es',
       },
     });
   };
@@ -66,7 +68,6 @@ export async function icdFetch(
   let response = await doRequest();
 
   if (response.status === 401) {
-    // Invalidar cache y reintentar una vez
     cachedToken = null;
     tokenExpiresAt = 0;
     response = await doRequest();
@@ -80,5 +81,18 @@ export async function icdFetch(
     throw new Error('[ICD] Server error ' + response.status);
   }
 
-  return response.json();
+  if (!response.ok) {
+    const body = await response.text();
+    throw new Error(`[ICD] HTTP ${response.status}: ${body.slice(0, 200)}`);
+  }
+
+  const text = await response.text();
+ 
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    console.error('[ICD CLIENT] JSON parse failed, body:', text.slice(0, 300));
+    throw new Error('[ICD] Respuesta no es JSON válido');
+  }
 }

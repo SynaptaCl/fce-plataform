@@ -1,0 +1,19 @@
+# Dependencies
+node_modules/
+
+# Build outputs
+.next/
+out/
+dist/
+
+# Environment
+.env
+.env.*
+
+# Supabase local
+supabase/.branches/
+supabase/.temp/
+
+# Project-specific exclusions
+.worktrees/
+docs/
