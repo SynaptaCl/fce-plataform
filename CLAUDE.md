@@ -1,6 +1,6 @@
 # CLAUDE.md — FCE Platform (fce-plataform)
 
-> Última actualización: 2026-05-05 (UX-01 Rediseño Ficha)
+> Última actualización: 2026-05-07 (R-ICD-2 CifSearch + auditoría completa)
 > Este documento es la fuente de verdad para Claude Code. Leerlo antes de cualquier cambio.
 
 ---
@@ -59,9 +59,13 @@ Next.js 16.2.3 (Turbopack) · TypeScript strict · Tailwind v4 · Supabase (`@su
 
 ## 5. PALETA DE COLORES
 
-Tokens `kp-*` se inyectan como CSS variables desde `clinicas.config.branding` (jsonb) via `BrandingInjector`. Componentes usan siempre `var(--kp-*)`. Nunca leer `config.branding` directamente — usar `config.tokensColor` del provider.
+Tokens `kp-*` se inyectan como CSS variables desde `clinicas.config.branding` (jsonb) via `BrandingInjector`. Componentes usan siempre `var(--color-kp-*)`. Nunca leer `config.branding` directamente — usar `config.tokensColor` del provider.
 
-Tokens estáticos en globals.css: `surface-0` (#F1F5F9), `surface-1` (#FFFFFF), `ink-1` (#1E293B), `ink-2` (#475569), `ink-3` (#94A3B8), `kp-border` (#E2E8F0).
+**CRÍTICO — bug frecuente**: usar `var(--color-kp-primary)` NO `var(--kp-primary)`. El prefijo completo es `--color-kp-*`. Sin `--color-` el token no resuelve y el elemento queda sin color.
+
+Tokens estáticos en globals.css: `--color-surface-0` (#F1F5F9), `--color-surface-1` (#FFFFFF), `--color-ink-1` (#1E293B), `--color-ink-2` (#475569), `--color-ink-3` (#94A3B8), `--color-kp-border` (#E2E8F0).
+
+Tokens dinámicos inyectados por clínica (ejemplos): `--color-kp-primary`, `--color-kp-accent`, `--color-kp-success`, `--color-kp-warning`, `--color-kp-danger`, `--color-kp-accent-xs`, `--color-kp-danger-lt`, `--color-kp-warning-lt`.
 
 ---
 
@@ -74,12 +78,15 @@ Tokens estáticos en globals.css: `surface-0` (#F1F5F9), `surface-1` (#FFFFFF), 
 4. UI CONDICIONAL        → Sidebar + rutas filtradas por config
 ```
 
-**Dos modelos clínicos coexisten**:
+**Tres modelos clínicos coexisten**:
 - `rehabilitacion` (Kine, Fono, Maso, TO, Podología) → M3 Evaluación + M4 SOAP
-- `clinico_general` (Medicina, Enfermería, Psico, Nutri, Odonto) → M3b Instrumentos + M4b Nota Clínica
+- `clinico_general` (Medicina, Enfermería, Psico, Nutri) → M3b Instrumentos + M4b Nota Clínica
+- `dental` (Odontología) → DentalWorkspace (odontograma + periograma + plan tratamiento + procedimientos + ICD-11)
 - `ninguno` (Admin Clínica)
 
 La bifurcación ocurre en `encuentro/[encuentroId]/page.tsx` via `getModeloDeEspecialidad()` de `src/lib/modules/modelos.ts`. Es la **única fuente de verdad** del mapeo especialidad → modelo.
+
+El workspace dental vive en `/encuentro/[encuentroId]/dental/page.tsx` y usa `DentalWorkspace` de `src/components/dental/`.
 
 ---
 
@@ -181,49 +188,102 @@ Ambos son `false` por defecto. Se activan manualmente por clínica. Verificar co
 ### permissions.ts — LEGACY, no usar en código nuevo
 `canAccessFCE` usa `"recepcion"` (viejo). Usar `requireAccesoFCE(rol)` de `guards.ts`.
 
+### ActionResult — dónde importar
+```typescript
+// En archivos bajo src/app/actions/
+import type { ActionResult } from '@/app/actions/patients'; // ✅ patrón usado en rehab/, clinico/
+// O directamente desde guards:
+import type { ActionResult } from '@/lib/modules/guards'; // ✅ fuente original
+// ❌ NO existe en @/types
+```
+
+### Token CSS — regla crítica
+```typescript
+// ✅ CORRECTO
+style={{ color: 'var(--color-kp-primary)' }}
+// ❌ INCORRECTO — no resuelve
+style={{ color: 'var(--kp-primary)' }}
+```
+
+### ICD-11 API — variables de entorno requeridas
+```bash
+ICD_API_CLIENT_ID=...       # Credencial WHO API — solo server-side
+ICD_API_CLIENT_SECRET=...   # Credencial WHO API — solo server-side
+```
+El cliente `src/lib/icd/client.ts` cachea el OAuth2 token en memoria de proceso (renovación automática 5 min antes de expirar). Si falta alguna env var, lanza error en el primer request.
+
 ---
 
 ## 10. ESTRUCTURA DEL PROYECTO (primer nivel)
 
 ```
 src/app/dashboard/pacientes/[id]/encuentro/[encuentroId]/
-  ├── page.tsx          → Router: redirect a /rehab o /clinico según modelo
-  ├── rehab/page.tsx    → SoapForm + EvalComponent (R7)
-  └── clinico/page.tsx  → NotaClinicaForm + InstrumentosPanel + PrescripcionLauncher + OrdenExamenLauncher
+  ├── page.tsx          → Router: redirect a /rehab | /clinico | /dental según modelo
+  ├── rehab/page.tsx    → SoapForm + EvalComponent
+  ├── clinico/page.tsx  → NotaClinicaForm + InstrumentosPanel + PrescripcionLauncher + OrdenExamenLauncher
+  └── dental/page.tsx   → DentalWorkspace (odontograma + periograma + plan + ICD-11)
 
 src/app/actions/
-  ├── patients.ts, anamnesis.ts, consentimiento.ts, auditoria.ts, timeline.ts, exportar-pdf.ts
-  ├── encuentros.ts, prescripciones.ts, ordenes-examen.ts
-  ├── rehab/{soap.ts, evaluacion.ts, cif.ts}
-  └── clinico/nota-clinica.ts
+  ├── patients.ts, anamnesis.ts, consentimiento.ts, auditoria.ts
+  ├── encuentros.ts, egresos.ts, timeline.ts, exportar-pdf.ts, resumen-ia.ts
+  ├── prescripciones.ts, ordenes-examen.ts
+  ├── rehab/    → soap.ts, evaluacion.ts, cif.ts
+  ├── clinico/  → nota-clinica.ts, nota-rapida.ts, instrumentos.ts, catalogo-instrumentos.ts, diagnostico.ts
+  └── dental/   → odontograma.ts, periograma.ts, plan-tratamiento.ts, procedimientos.ts
 
 src/components/
-  ├── ui/          → Átomos (Button, Input, Card, Badge, AlertBanner, etc.)
-  ├── layout/      → Sidebar, TopBar, DashboardShell, PatientHeader, BrandingInjector
-  ├── modules/     → M1-M6 compartidos (PatientForm, AnamnesisForm, ClinicalTimeline, etc.)
-  │   ├── timeline/ → SoapExpandedCard, EvaluacionExpandedCard, PrescripcionExpandedCard,
-  │   │               OrdenExamenExpandedCard, y demás cards del timeline
+  ├── ui/       → Button, Input, Card, Badge, AlertBanner, Select, Textarea,
+  │               SignatureBlock, LoadingSpinner, LoadingPage
+  ├── layout/   → Sidebar, TopBar, DashboardShell, PatientHeader, BrandingInjector
+  ├── modules/  → ClinicalTimeline, EvaluacionTimeline, PatientActionNav, PatientNav
+  │   ├── timeline/ → SoapExpandedCard, EvaluacionExpandedCard, NotaClinicaExpandedCard,
+  │   │               PrescripcionExpandedCard, OrdenExamenExpandedCard, InstrumentoExpandedCard,
+  │   │               ConsentimientoExpandedCard, SignosVitalesExpandedCard, _shared.tsx
   │   └── ResumenIA/ → ResumenIAButton, ResumenIAModal, ResumenIAReport (index.ts)
-  ├── rehab/       → SoapForm, CifMapper, CifSearch, KinesiologiaEval, FonoaudiologiaEval, MasoterapiaEval
-  ├── clinico/     → NotaClinicaForm, InstrumentosPanel
-  └── shared/      → EncuentroLauncher, BodyMap, ScaleSlider,
-                     FirmarHeaderButton (scroll a #signature-section en workspaces),
-                     Prescripcion* (13 componentes M7),
-                     OrdenExamen* (9 componentes M8: Launcher, Form, DetalleModal,
-                       PdfView, FirmaPanel, ExamenSelector, ExamenCard, List)
+  ├── rehab/    → SoapForm, CifMapper, CifSearch, KinesiologiaEval, FonoaudiologiaEval,
+  │               MasoterapiaEval, GenericEval (index.ts)
+  ├── clinico/  → NotaClinicaForm, InstrumentosPanel, InstrumentoLauncher,
+  │               InstrumentoResultadoCard, EscalaSimpleRenderer, QuickNoteModal,
+  │               DiagnosticoSearch, DiagnosticoChip
+  │               instrumentos-custom/ → ApgarScore, GlasgowComaScale
+  ├── dental/   → DentalWorkspace, OdontogramaInteractivo, OdontogramaPieza, OdontogramaLeyenda,
+  │               PiezaDetailPanel, PeriogramaForm, PeriogramaChart,
+  │               PlanTratamientoPanel, PlanTratamientoItemForm,
+  │               ProcedimientoPicker, DiagnosticoSearch (wrapper dental ICD-11)
+  └── shared/   → EncuentroLauncher, BodyMap, ScaleSlider, SummaryPanel,
+                   FirmarHeaderButton, VitalSignsPanel, AnamnesisForm,
+                   PatientForm, PatientList, ConsentManager, AuditTimeline,
+                   FhirPreview, PdfExportView, RedFlagsChecklist,
+                   EgresoForm, EgresoCard, EgresoLauncher, ReingresoBanner, EpicrisisPdfView,
+                   Prescripcion* (PrescripcionLauncher, Form, List, DetalleModal,
+                     FirmaPanel, MedicamentoSelector, MedicamentoCard, MedicamentoEditor,
+                     IndicacionGeneralEditor, RecetaPdfView),
+                   OrdenExamen* (Launcher, Form, List, DetalleModal,
+                     FirmaPanel, ExamenSelector, ExamenCard, OrdenExamenPdfView)
 
 src/lib/
-  ├── modules/        → registry.ts, config.ts, guards.ts, modelos.ts, provider.tsx
+  ├── modules/        → registry.ts, config.ts, guards.ts (ActionResult aquí), modelos.ts, provider.tsx
   ├── fce/            → profesional.ts (getProfesionalActivo)
-  ├── prescripciones/ → pdf-renderer.ts, share-helpers.ts, snapshot.ts, validations.ts
+  ├── icd/            → client.ts (OAuth2 WHO), types.ts, search.ts (buscarDiagnostico/buscarCIF), entity.ts
+  ├── dental/         → fdi.ts (numeración FDI), periograma.ts, plan.ts
+  ├── instrumentos/   → calcular.ts, interpretar.ts, registry-custom.ts
+  ├── medicamentos/   → catalogo.ts
+  ├── prescripciones/ → pdf-renderer.ts, share-helpers.ts, snapshot.ts, validations.ts, plantillas.ts
   ├── ordenes-examen/ → pdf-renderer.ts, share-helpers.ts, validations.ts
+  ├── egresos/        → pdf-renderer.ts (epicrisis)
   ├── ia/             → contexto-clinico.ts, prompt.ts, cache.ts
   │   └── extraccion/ → demografico.ts, anamnesis.ts, signos-vitales.ts, medicacion.ts,
   │                      alertas.ts, evolucion.ts, examenes.ts, instrumentos.ts
-  └── supabase/       → client.ts, server.ts, service.ts (service_role), types.ts
+  ├── supabase/       → client.ts, server.ts, service.ts (service_role), types.ts
+  └── (raíz)         → audit.ts, constants.ts, fhir-mapper.ts, utils.ts, validations.ts
 
-src/types/ → patient.ts, encounter.ts, soap.ts, nota-clinica.ts, prescripcion.ts,
-             medicamento.ts, orden-examen.ts, timeline.ts, resumen-ia.ts, etc.
+src/types/
+  → patient.ts, encounter.ts, soap.ts, nota-clinica.ts, anamnesis.ts, consent.ts,
+    evaluation.ts, instrumento.ts, cif.ts, prescripcion.ts, medicamento.ts,
+    orden-examen.ts, egreso.ts, timeline.ts, resumen-ia.ts, audit.ts,
+    diagnostico.ts (re-exporta ICDSearchResult/ICDCodeSnap/DiagnosticoGuardado + DiagnosticoSearchProps),
+    odontograma.ts, periograma.ts, plan-tratamiento.ts, practitioner.ts
+
 clinics/{korporis,nuvident,renata}/CLAUDE.md
 ```
 
@@ -246,7 +306,7 @@ npm run test:sprint-r7   # Tests regresión (33 checks)
 feat(sprint-rN)(scope): descripción
 fix(sprint-rN)(scope): descripción
 ```
-Scopes: `(clinico)`, `(rehab)`, `(shared)`, `(registry)`, `(guards)`, `(branding)`, `(m9)`.
+Scopes: `(clinico)`, `(rehab)`, `(dental)`, `(shared)`, `(registry)`, `(guards)`, `(branding)`, `(m9)`, `(icd)`.
 
 ---
 
@@ -304,6 +364,7 @@ Para trabajar "para" una clínica, leer `clinics/<slug>/CLAUDE.md` y respetar su
 | M8 activo en Renata + Nuvident | 2026-04-24 |
 | `fce_egresos` + `pacientes.estado_clinico` + M9 activo en Renata | 2026-04-27 |
 | `fce_resumenes_ia` (migración ya aplicada) | 2026-04-30 |
+| Columnas ICD-11 en `fce_notas_clinicas` + `fce_periogramas` — **generadas en R-ICD-1, PENDIENTES de aplicar** | 2026-05-07 |
 
 ### Deuda técnica
 
@@ -318,6 +379,7 @@ Para trabajar "para" una clínica, leer `clinics/<slug>/CLAUDE.md` y respetar su
 | Seed examenes_catalogo vacío — poblar antes de activar en producción | Media |
 | `estado_resultados` de órdenes de examen siempre `pendiente` — gestión en Fase 2 | Baja |
 | `04-criterios-tecnicos.md` desactualizado post-R13 | Media |
+| Migrations ICD-11 pendientes (`fce_notas_clinicas` + `fce_periogramas`) — SQL en `scripts/test-sprint-icd1.ts` | Alta |
 
 ---
 
@@ -409,7 +471,72 @@ import { calcularContextoHash } from '@/lib/ia/cache'
 
 ---
 
-## 16. RECURSOS
+## 17. MÓDULO ICD-11
+
+### Arquitectura
+
+```
+src/lib/icd/
+  client.ts  → OAuth2 con WHO (ICD_API_CLIENT_ID + ICD_API_CLIENT_SECRET)
+               Token cacheado en memoria de proceso, renovación automática 5 min antes de expirar
+               Retry automático en 401; lanza error en 429 o 5xx
+  types.ts   → ICDSearchResult, ICDEntity, ICDCodeSnap, DiagnosticoGuardado
+  search.ts  → buscarDiagnostico(query, lang) — endpoint /icd/release/11/mms/search
+               buscarCIF(query, lang)         — endpoint /icd/release/11/icf/search
+  entity.ts  → getEntidadICD(id)             — detalle completo de una entidad
+
+src/types/diagnostico.ts → re-exporta tipos ICD + DiagnosticoSearchProps
+```
+
+### Server actions ICD
+```
+actions/clinico/diagnostico.ts  → searchDiagnostico() — MMS, para nota clínica
+actions/rehab/cif.ts            → searchCIF(query, dominioPrefix?) — ICF, para CifMapper
+```
+Ambas retornan `ActionResult<ICDSearchResult[]>` con degradación elegante (vacío si falla API).
+
+### Componentes ICD
+
+| Componente | Ubicación | Uso |
+|---|---|---|
+| `DiagnosticoSearch` | `components/clinico/` | Búsqueda MMS multi-selección con chips |
+| `DiagnosticoChip` | `components/clinico/` | Chip individual código+título ICD-11 |
+| `DiagnosticoSearch` | `components/dental/` | Wrapper dental del anterior (readOnly + contexto FDI) |
+| `CifSearch` | `components/rehab/` | Autocomplete ICF por dominio (b/s/d/e) con debounce 300ms |
+
+### Patrones críticos ICD
+
+```typescript
+// Los snapshots se guardan como ICDCodeSnap[] en jsonb — NO FK a catálogo
+// Los diagnósticos son inmutables post-firma (igual que el resto de la nota)
+
+// ICDCodeSnap — campos obligatorios al guardar
+interface ICDCodeSnap {
+  code: string;    // "A09" — puede ser vacío en entidades ICF sin código
+  title: string;   // Título OMS en español
+  uri: string;     // URL entidad en id.who.int
+  version: string; // "2024-01"
+  language: string; // "es"
+  addedAt: string; // ISO datetime
+  addedBy: string; // auth_id del profesional
+}
+
+// DiagnosticoGuardado = ICDCodeSnap[] — se almacena en jsonb de la tabla
+```
+
+### Variables de entorno ICD
+```bash
+ICD_API_CLIENT_ID=...      # Credencial OAuth2 WHO — obligatoria, server-side
+ICD_API_CLIENT_SECRET=...  # Credencial OAuth2 WHO — obligatoria, server-side
+```
+Sin estas variables, cualquier llamada a `icdFetch()` lanzará error. Los componentes de búsqueda tienen degradación elegante (input libre si API no responde).
+
+### Migrations ICD-11 pendientes
+Las columnas `diagnosticos_icd` en `fce_notas_clinicas` y `fce_periogramas` fueron generadas en R-ICD-1 pero **aún no se han aplicado en producción**. Ver `scripts/test-sprint-icd1.ts` para el SQL.
+
+---
+
+## 18. RECURSOS
 
 - Supabase: `vigyhfpwyxihrjiygfsa` (sa-east-1)
 - Deploy: Vercel
