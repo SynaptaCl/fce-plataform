@@ -1,3 +1,4 @@
+import type React from "react";
 import Link from "next/link";
 import { Pencil, Download } from "lucide-react";
 import { calculateAge, formatRut } from "@/lib/utils";
@@ -7,9 +8,17 @@ interface PatientHeaderProps {
   patient: Patient;
   hasConsent: boolean;
   patientId?: string;
+  primaryAction?: React.ReactNode;
+  statusBadge?: React.ReactNode;
 }
 
-export function PatientHeader({ patient, hasConsent, patientId }: PatientHeaderProps) {
+export function PatientHeader({
+  patient,
+  hasConsent,
+  patientId,
+  primaryAction,
+  statusBadge,
+}: PatientHeaderProps) {
   const initials =
     `${patient.nombre?.charAt(0) ?? ""}${patient.apellido_paterno?.charAt(0) ?? ""}`.toUpperCase() ||
     "?";
@@ -193,6 +202,8 @@ export function PatientHeader({ patient, hasConsent, patientId }: PatientHeaderP
 
       {/* Actions — flex-shrink: 0 */}
       <div style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 6 }}>
+        {statusBadge}
+        {primaryAction}
         {patientId && (
           <Link
             href={`/dashboard/pacientes/${patientId}/editar`}
