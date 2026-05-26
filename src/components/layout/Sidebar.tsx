@@ -16,12 +16,12 @@ import { createClient } from "@/lib/supabase/client";
 
 const ROLES_CON_CONFIG = ["admin", "director", "superadmin"];
 const STORAGE_KEY = "fce-sidebar-expanded";
-const W_EXPANDED = 220;
-const W_COLLAPSED = 56;
+const W_EXPANDED = 240;
+const W_COLLAPSED = 58;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function getClinicInitials(branding: BrandingConfig | null): string {
+function getClinicInitials(branding: BrandingConfig | null, fallback: string): string {
   if (branding?.clinic_initials) return branding.clinic_initials;
   if (branding?.clinic_short_name) {
     return branding.clinic_short_name
@@ -32,14 +32,14 @@ function getClinicInitials(branding: BrandingConfig | null): string {
       .join("")
       .toUpperCase();
   }
-  return "FC";
+  return fallback.slice(0, 2).toUpperCase() || "FC";
 }
 
-function getClinicName(branding: BrandingConfig | null): string {
-  return branding?.clinic_short_name ?? "FCE";
+function getClinicDisplayName(branding: BrandingConfig | null, fullName: string): string {
+  return branding?.clinic_short_name ?? fullName;
 }
 
-// ── Sub-components ────────────────────────────────────────────────────────────
+// ── NavItem ────────────────────────────────────────────────────────────────────
 
 interface NavItemProps {
   href: string;
@@ -54,29 +54,31 @@ function NavItem({ href, icon, label, active, expanded }: NavItemProps) {
     <Link
       href={href}
       title={!expanded ? label : undefined}
+      className="fce-sb-nav"
       style={{
         display: "flex",
         alignItems: "center",
         gap: 10,
-        height: 40,
-        borderRadius: 8,
-        paddingLeft: expanded ? 12 : 0,
-        paddingRight: expanded ? 12 : 0,
-        width: expanded ? "100%" : 40,
+        height: 38,
+        paddingLeft: expanded ? 10 : 0,
+        paddingRight: expanded ? 10 : 0,
+        width: expanded ? "100%" : 38,
         justifyContent: expanded ? "flex-start" : "center",
-        color: active ? "var(--color-kp-accent, #00B0A8)" : "var(--color-ink-3, #94A3B8)",
-        backgroundColor: active ? "rgba(0, 176, 168, 0.15)" : undefined,
-        transition: "background-color 0.15s, color 0.15s",
+        color: active
+          ? "var(--color-kp-accent, #00B0A8)"
+          : "rgba(255,255,255,0.5)",
+        background: active ? "rgba(0,176,168,0.13)" : "transparent",
+        boxShadow: active ? "inset 3px 0 0 var(--color-kp-accent, #00B0A8)" : "none",
         textDecoration: "none",
         flexShrink: 0,
         overflow: "hidden",
         whiteSpace: "nowrap",
+        borderRadius: active && expanded ? "0 8px 8px 0" : "8px",
       }}
-      className={active ? undefined : "hover:bg-white/[0.06]"}
     >
-      <span style={{ flexShrink: 0 }}>{icon}</span>
+      <span style={{ flexShrink: 0, display: "flex" }}>{icon}</span>
       {expanded && (
-        <span style={{ fontSize: 13, fontWeight: 500, overflow: "hidden", textOverflow: "ellipsis" }}>
+        <span style={{ fontSize: 13, fontWeight: 500, letterSpacing: "0.01em" }}>
           {label}
         </span>
       )}
@@ -84,7 +86,7 @@ function NavItem({ href, icon, label, active, expanded }: NavItemProps) {
   );
 }
 
-// ── Sidebar ───────────────────────────────────────────────────────────────────
+// ── Sidebar ────────────────────────────────────────────────────────────────────
 
 interface SidebarProps {
   practitionerName: string;
@@ -92,6 +94,7 @@ interface SidebarProps {
   especialidad: string | null;
   rol: string;
   branding: BrandingConfig | null;
+  clinicFullName: string;
 }
 
 export function Sidebar({
@@ -100,6 +103,7 @@ export function Sidebar({
   especialidad,
   rol,
   branding,
+  clinicFullName,
 }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
@@ -132,71 +136,101 @@ export function Sidebar({
     return "agenda";
   })();
 
-  const clinicInitials = getClinicInitials(branding);
-  const clinicName = getClinicName(branding);
+  const clinicInitials = getClinicInitials(branding, clinicFullName);
+  const clinicDisplayName = getClinicDisplayName(branding, clinicFullName);
+  const showSubtitle = expanded && clinicFullName && clinicDisplayName !== clinicFullName;
   const showConfig = ROLES_CON_CONFIG.includes(rol);
   const specialtyLabel = especialidad ?? "Profesional";
 
-  // Avoid layout shift before localStorage is read
   const width = mounted ? (expanded ? W_EXPANDED : W_COLLAPSED) : W_COLLAPSED;
 
   return (
     <aside
+      className="fce-sb-root"
       style={{
         width,
         minWidth: width,
         maxWidth: width,
-        background: "var(--color-kp-primary-deep, #004545)",
         display: "flex",
         flexDirection: "column",
         alignItems: expanded ? "stretch" : "center",
-        paddingTop: 12,
-        paddingBottom: 12,
-        paddingLeft: expanded ? 8 : 0,
-        paddingRight: expanded ? 8 : 0,
+        paddingTop: 14,
+        paddingBottom: 14,
+        paddingLeft: expanded ? 10 : 0,
+        paddingRight: expanded ? 10 : 0,
         zIndex: 20,
         position: "sticky",
         top: 0,
         height: "100vh",
         overflowY: "auto",
         overflowX: "hidden",
-        transition: "width 0.2s ease, min-width 0.2s ease, max-width 0.2s ease, padding 0.2s ease",
+        transition: "width 0.22s cubic-bezier(0.4,0,0.2,1), min-width 0.22s cubic-bezier(0.4,0,0.2,1), max-width 0.22s cubic-bezier(0.4,0,0.2,1), padding 0.22s cubic-bezier(0.4,0,0.2,1)",
         flexShrink: 0,
       }}
     >
+      <style>{`
+        .fce-sb-root {
+          background: linear-gradient(
+            170deg,
+            var(--color-kp-primary-deep, #004545) 0%,
+            color-mix(in srgb, var(--color-kp-primary-deep, #004545) 78%, #000 22%) 100%
+          );
+        }
+        .fce-sb-nav {
+          transition: background 0.14s ease, color 0.14s ease, box-shadow 0.14s ease;
+        }
+        .fce-sb-nav:hover {
+          background: rgba(255,255,255,0.07) !important;
+          color: rgba(255,255,255,0.85) !important;
+        }
+        .fce-sb-btn {
+          transition: background 0.14s ease, color 0.14s ease;
+        }
+        .fce-sb-btn:hover {
+          background: rgba(255,255,255,0.08) !important;
+          color: rgba(255,255,255,0.9) !important;
+        }
+        .fce-sb-logout {
+          transition: background 0.14s ease, color 0.14s ease;
+        }
+        .fce-sb-logout:hover {
+          background: rgba(239,68,68,0.1) !important;
+          color: rgba(252,165,165,1) !important;
+        }
+      `}</style>
+
       {/* ── Clinic identity + toggle ── */}
       <div
         style={{
           display: "flex",
           alignItems: "center",
-          gap: 8,
-          paddingLeft: expanded ? 4 : 0,
-          paddingRight: expanded ? 4 : 0,
           justifyContent: expanded ? "space-between" : "center",
+          gap: 8,
           flexShrink: 0,
           overflow: "hidden",
+          marginBottom: expanded && showSubtitle ? 2 : 0,
         }}
       >
-        {/* Logo / initials */}
-        <div
-          style={{ display: "flex", alignItems: "center", gap: 10, overflow: "hidden", minWidth: 0 }}
-        >
+        {/* Logo + name */}
+        <div style={{ display: "flex", alignItems: "center", gap: 10, overflow: "hidden", minWidth: 0 }}>
+          {/* Logo container */}
           <div
-            title={!expanded ? clinicName : undefined}
+            title={!expanded ? clinicDisplayName : undefined}
             style={{
-              width: 32,
-              height: 32,
-              borderRadius: 8,
-              background: "rgba(255,255,255,0.12)",
+              width: 36,
+              height: 36,
+              borderRadius: 10,
+              background: "rgba(255,255,255,0.1)",
+              border: "1px solid rgba(255,255,255,0.14)",
+              boxShadow: "0 2px 8px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.08)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               color: "white",
-              fontSize: 11,
+              fontSize: 12,
               fontWeight: 700,
-              letterSpacing: "0.04em",
+              letterSpacing: "0.05em",
               flexShrink: 0,
-              cursor: "default",
               userSelect: "none",
             }}
           >
@@ -204,80 +238,99 @@ export function Sidebar({
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={branding.logo_url}
-                alt={clinicName}
+                alt={clinicDisplayName}
                 width={24}
                 height={24}
-                style={{ objectFit: "contain", borderRadius: 4 }}
+                style={{ objectFit: "contain", borderRadius: 5 }}
               />
             ) : (
               clinicInitials
             )}
           </div>
+
+          {/* Clinic name */}
           {expanded && (
-            <span
-              style={{
-                color: "white",
-                fontSize: 13,
-                fontWeight: 600,
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-              }}
-            >
-              {clinicName}
-            </span>
+            <div style={{ overflow: "hidden", minWidth: 0 }}>
+              <div
+                style={{
+                  color: "white",
+                  fontSize: 14,
+                  fontWeight: 600,
+                  letterSpacing: "0.01em",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                  lineHeight: 1.2,
+                }}
+              >
+                {clinicDisplayName}
+              </div>
+              {showSubtitle && (
+                <div
+                  style={{
+                    color: "rgba(255,255,255,0.38)",
+                    fontSize: 11,
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                    marginTop: 1,
+                    lineHeight: 1.2,
+                  }}
+                >
+                  {clinicFullName}
+                </div>
+              )}
+            </div>
           )}
         </div>
 
-        {/* Toggle button — right side when expanded, centered row when collapsed */}
+        {/* Collapse toggle (expanded state) */}
         {expanded && (
           <button
             onClick={toggle}
             title="Contraer menú"
+            className="fce-sb-btn"
             style={{
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               width: 28,
               height: 28,
-              borderRadius: 6,
+              borderRadius: 7,
               border: "none",
               background: "transparent",
               cursor: "pointer",
-              color: "rgba(255,255,255,0.4)",
+              color: "rgba(255,255,255,0.35)",
               flexShrink: 0,
-              transition: "background-color 0.15s, color 0.15s",
             }}
-            className="hover:bg-white/[0.08] hover:!text-white"
           >
-            <ChevronLeft size={16} />
+            <ChevronLeft size={15} />
           </button>
         )}
       </div>
 
-      {/* Toggle button — only visible when collapsed, centered below logo */}
+      {/* Expand toggle (collapsed state) */}
       {!expanded && (
         <button
           onClick={toggle}
           title="Expandir menú"
+          className="fce-sb-btn"
           style={{
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
             width: 28,
             height: 28,
-            borderRadius: 6,
+            borderRadius: 7,
             border: "none",
             background: "transparent",
             cursor: "pointer",
-            color: "rgba(255,255,255,0.35)",
+            color: "rgba(255,255,255,0.3)",
             flexShrink: 0,
             marginTop: 6,
-            transition: "background-color 0.15s, color 0.15s",
           }}
-          className="hover:bg-white/[0.08] hover:!text-white"
         >
-          <ChevronRight size={16} />
+          <ChevronRight size={15} />
         </button>
       )}
 
@@ -285,12 +338,11 @@ export function Sidebar({
       <div
         style={{
           height: 1,
-          background: "rgba(255,255,255,0.12)",
+          background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.12) 30%, rgba(255,255,255,0.12) 70%, transparent)",
           marginTop: 16,
-          marginBottom: 16,
+          marginBottom: 14,
           flexShrink: 0,
-          width: expanded ? "100%" : 32,
-          alignSelf: "center",
+          alignSelf: "stretch",
         }}
       />
 
@@ -305,14 +357,14 @@ export function Sidebar({
       >
         <NavItem
           href="/dashboard"
-          icon={<Calendar size={20} />}
+          icon={<Calendar size={18} />}
           label="Agenda"
           active={activeSection === "agenda"}
           expanded={expanded}
         />
         <NavItem
           href="/dashboard/pacientes"
-          icon={<Users size={20} />}
+          icon={<Users size={18} />}
           label="Pacientes"
           active={activeSection === "pacientes"}
           expanded={expanded}
@@ -320,7 +372,7 @@ export function Sidebar({
         {showConfig && (
           <NavItem
             href="/dashboard/configuracion"
-            icon={<Settings size={20} />}
+            icon={<Settings size={18} />}
             label="Configuración"
             active={activeSection === "config"}
             expanded={expanded}
@@ -336,11 +388,21 @@ export function Sidebar({
         style={{
           display: "flex",
           flexDirection: "column",
-          gap: 8,
+          gap: 6,
           alignItems: expanded ? "stretch" : "center",
           flexShrink: 0,
         }}
       >
+        {/* Top separator */}
+        <div
+          style={{
+            height: 1,
+            background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.1) 30%, rgba(255,255,255,0.1) 70%, transparent)",
+            marginBottom: 6,
+            alignSelf: "stretch",
+          }}
+        />
+
         {/* Professional info */}
         <div
           style={{
@@ -348,51 +410,58 @@ export function Sidebar({
             alignItems: "center",
             gap: 10,
             paddingLeft: expanded ? 4 : 0,
+            paddingRight: expanded ? 4 : 0,
             overflow: "hidden",
           }}
         >
+          {/* Avatar */}
           <div
             title={!expanded ? `${practitionerName} · ${specialtyLabel}` : undefined}
             style={{
-              width: 32,
-              height: 32,
+              width: 34,
+              height: 34,
               borderRadius: "50%",
-              background: "var(--color-kp-primary, #006B6B)",
+              background: "linear-gradient(135deg, var(--color-kp-primary, #006B6B), var(--color-kp-accent, #00B0A8))",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               color: "white",
-              fontSize: 11,
+              fontSize: 12,
               fontWeight: 700,
-              cursor: "default",
+              letterSpacing: "0.03em",
               userSelect: "none",
               flexShrink: 0,
-              border: "2px solid rgba(255,255,255,0.15)",
+              boxShadow: "0 0 0 2px rgba(255,255,255,0.12)",
             }}
           >
             {practitionerInitials}
           </div>
+
+          {/* Name + specialty */}
           {expanded && (
-            <div style={{ overflow: "hidden", minWidth: 0 }}>
+            <div style={{ overflow: "hidden", minWidth: 0, flex: 1 }}>
               <div
                 style={{
-                  color: "white",
+                  color: "rgba(255,255,255,0.92)",
                   fontSize: 13,
                   fontWeight: 500,
                   overflow: "hidden",
                   textOverflow: "ellipsis",
                   whiteSpace: "nowrap",
+                  lineHeight: 1.3,
                 }}
               >
                 {practitionerName}
               </div>
               <div
                 style={{
-                  color: "rgba(255,255,255,0.5)",
+                  color: "rgba(255,255,255,0.4)",
                   fontSize: 11,
                   overflow: "hidden",
                   textOverflow: "ellipsis",
                   whiteSpace: "nowrap",
+                  lineHeight: 1.3,
+                  marginTop: 1,
                 }}
               >
                 {specialtyLabel}
@@ -405,33 +474,32 @@ export function Sidebar({
         <button
           onClick={handleLogout}
           title={!expanded ? "Cerrar sesión" : undefined}
+          className="fce-sb-logout"
           style={{
             display: "flex",
             alignItems: "center",
-            gap: 10,
+            gap: 9,
             height: 36,
             borderRadius: 8,
             border: "none",
             background: "transparent",
             cursor: "pointer",
-            paddingLeft: expanded ? 12 : 0,
-            paddingRight: expanded ? 12 : 0,
-            width: expanded ? "100%" : 40,
+            paddingLeft: expanded ? 10 : 0,
+            paddingRight: expanded ? 10 : 0,
+            width: expanded ? "100%" : 38,
             justifyContent: expanded ? "flex-start" : "center",
-            color: "rgba(255,255,255,0.45)",
-            transition: "background-color 0.15s, color 0.15s",
+            color: "rgba(255,255,255,0.38)",
             flexShrink: 0,
             overflow: "hidden",
             whiteSpace: "nowrap",
+            marginTop: 2,
           }}
-          className="hover:bg-white/[0.06] hover:!text-white"
         >
-          <LogOut size={18} style={{ flexShrink: 0 }} />
+          <LogOut size={16} style={{ flexShrink: 0 }} />
           {expanded && (
             <span style={{ fontSize: 13 }}>Cerrar sesión</span>
           )}
         </button>
-
       </div>
     </aside>
   );

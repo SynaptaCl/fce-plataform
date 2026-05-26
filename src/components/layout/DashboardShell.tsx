@@ -12,6 +12,7 @@ interface DashboardShellProps {
   especialidad: string | null;
   rol: string;
   branding: BrandingConfig | null;
+  clinicFullName: string;
   /** Optional patient name forwarded from patient-detail routes */
   patientName?: string;
 }
@@ -47,6 +48,7 @@ export function DashboardShell({
   especialidad,
   rol,
   branding,
+  clinicFullName,
   patientName,
 }: DashboardShellProps) {
   const pathname = usePathname();
@@ -61,13 +63,13 @@ export function DashboardShell({
         background: "var(--color-surface-0, #F1F5F9)",
       }}
     >
-      {/* Fixed 56px sidebar */}
       <Sidebar
         practitionerName={practitionerName}
         practitionerInitials={practitionerInitials}
         especialidad={especialidad}
         rol={rol}
         branding={branding}
+        clinicFullName={clinicFullName}
       />
 
       {/* Content column: TopBar + scrollable main */}

@@ -46,7 +46,7 @@ export default async function DashboardLayout({
   // Fetch paralelo: branding (para Sidebar) + FCE config (para ClinicaSessionProvider) + perfil profesional
   const [brandingResult, fceConfig, profesionalActivo] = await Promise.all([
     idClinica
-      ? supabase.from("clinicas").select("config").eq("id", idClinica).single()
+      ? supabase.from("clinicas").select("nombre, config").eq("id", idClinica).single()
       : Promise.resolve({ data: null }),
     idClinica ? getClinicaConfig(idClinica, supabase) : Promise.resolve(null),
     getProfesionalActivo(supabase, user.id, idClinica ?? undefined),
@@ -54,6 +54,7 @@ export default async function DashboardLayout({
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const branding: BrandingConfig | null = (brandingResult.data?.config as any)?.branding ?? null;
+  const clinicFullName: string = (brandingResult.data as any)?.nombre ?? "Clínica";
 
   // Fallback session config si la clínica no tiene clinicas_fce_config aún
   const sessionConfig: ClinicaConfig = fceConfig ?? {
@@ -85,6 +86,7 @@ export default async function DashboardLayout({
         especialidad={especialidadDisplay}
         rol={rol}
         branding={branding}
+        clinicFullName={clinicFullName}
       >
         {children}
       </DashboardShell>
