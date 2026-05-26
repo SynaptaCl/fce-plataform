@@ -127,6 +127,8 @@ export default async function ClinicoPage({
               patientId={id}
               notaExistente={nota}
               readOnly={readOnly}
+              especialidad={encuentro.especialidad}
+              idClinica={idClinica ?? ""}
             />
           </div>
           <div className="w-full lg:w-80 xl:w-96 p-6 bg-surface-0">

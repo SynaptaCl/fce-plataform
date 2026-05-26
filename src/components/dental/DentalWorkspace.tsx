@@ -19,6 +19,7 @@ interface DentalWorkspaceProps {
   paciente: Patient;
   encuentroId: string;
   especialidad: string;
+  idClinica: string;
   notaExistente: NotaClinica | null;
   periogramaExistente: Periograma | null;
   planInicial: PlanTratamiento | null;
@@ -40,6 +41,7 @@ export function DentalWorkspace({
   paciente,
   encuentroId,
   especialidad,
+  idClinica,
   notaExistente,
   periogramaExistente,
   planInicial,
@@ -134,6 +136,8 @@ export function DentalWorkspace({
                 patientId={paciente.id}
                 notaExistente={notaExistente}
                 readOnly={readOnly}
+                especialidad={especialidad}
+                idClinica={idClinica}
               />
             </div>
             <div className="w-full lg:w-80 xl:w-96 lg:pl-6 mt-6 lg:mt-0">

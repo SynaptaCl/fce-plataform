@@ -40,6 +40,7 @@ export default async function DentalPage({
     .single();
 
   const rol = adminRes.data?.rol ?? "";
+  const idClinica = adminRes.data?.id_clinica ?? "";
   const canAccess = ["superadmin", "director", "admin", "profesional"].includes(rol);
   if (!canAccess) redirect("/dashboard");
 
@@ -84,6 +85,7 @@ export default async function DentalPage({
         paciente={patient}
         encuentroId={encuentroId}
         especialidad={encuentro.especialidad}
+        idClinica={idClinica}
         notaExistente={nota}
         periogramaExistente={periograma}
         planInicial={planInicial}

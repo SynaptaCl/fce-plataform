@@ -15,6 +15,9 @@ import { upsertNotaClinica, signNotaClinica } from "@/app/actions/clinico/nota-c
 import type { NotaClinica } from "@/types/nota-clinica";
 import { DiagnosticoSearch } from '@/components/clinico/DiagnosticoSearch';
 import type { ICDCodeSnap } from '@/lib/icd/types';
+import { CopilotoNotaButton } from '@/components/modules/CopilotoNota'
+import { CopilotoNotaPanel } from '@/components/modules/CopilotoNota'
+import type { BorradorNota } from '@/lib/ia/copiloto-nota/types'
 
 // ── Props ────────────────────────────────────────────────────────────────────
 
@@ -23,6 +26,8 @@ interface NotaClinicaFormProps {
   patientId: string;
   notaExistente?: NotaClinica | null;
   readOnly?: boolean;
+  especialidad: string;
+  idClinica: string;
 }
 
 // ── Componente principal ─────────────────────────────────────────────────────
@@ -32,6 +37,8 @@ export function NotaClinicaForm({
   patientId,
   notaExistente,
   readOnly: readOnlyProp = false,
+  especialidad,
+  idClinica,
 }: NotaClinicaFormProps) {
   const [notaId, setNotaId] = useState<string | undefined>(notaExistente?.id);
   const [serverError, setServerError] = useState<string | null>(null);
@@ -53,9 +60,13 @@ export function NotaClinicaForm({
     (notaExistente?.cie10_codigos ?? []).join(", ")
   );
 
+  const [borradorActivo, setBorradorActivo] = useState<BorradorNota | null>(null)
+
   const {
     register,
     handleSubmit,
+    getValues,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<NotaClinicaSchemaType>({
     resolver: zodResolver(notaClinicaSchema),
@@ -111,6 +122,18 @@ export function NotaClinicaForm({
     });
   }
 
+  function handleInsertar() {
+    if (!borradorActivo) return
+    const actual = getValues("contenido")
+    setValue(
+      "contenido",
+      actual.trim()
+        ? `${actual}\n\n---\n\n${borradorActivo.contenido}`
+        : borradorActivo.contenido
+    )
+    setBorradorActivo(null)
+  }
+
   return (
     <div className="space-y-6">
       {/* Estado: firmada */}
@@ -158,9 +181,19 @@ export function NotaClinicaForm({
 
         {/* Contenido (obligatorio) */}
         <div className="space-y-1.5">
-          <label className="text-sm font-medium text-ink-1">
-            Nota clínica <span className="text-red-500">*</span>
-          </label>
+          <div className="flex items-center justify-between">
+            <label className="text-sm font-medium text-ink-1">
+              Nota clínica <span className="text-red-500">*</span>
+            </label>
+            {!readOnly && (
+              <CopilotoNotaButton
+                encuentroId={encuentroId}
+                idClinica={idClinica}
+                getBullets={() => getValues("contenido")}
+                onBorradorReady={setBorradorActivo}
+              />
+            )}
+          </div>
           <Textarea
             {...register("contenido")}
             disabled={readOnly}
@@ -175,6 +208,15 @@ export function NotaClinicaForm({
             <p className="text-xs text-red-600">{errors.contenido.message}</p>
           )}
         </div>
+
+        {/* Panel copiloto — aparece entre la nota y el diagnóstico cuando hay borrador */}
+        {borradorActivo && !readOnly && (
+          <CopilotoNotaPanel
+            borrador={borradorActivo}
+            onInsertar={handleInsertar}
+            onDescartar={() => setBorradorActivo(null)}
+          />
+        )}
 
         {/* Diagnóstico ICD-11 */}
         <div className="space-y-1.5">
