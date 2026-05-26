@@ -9,7 +9,6 @@ import type { BorradorNota, EstructurarNotaInput } from '@/lib/ia/copiloto-nota/
 interface CopilotoNotaButtonProps {
   encuentroId: string
   idClinica: string
-  especialidad: string
   /** Devuelve el texto actual del textarea en el momento del click */
   getBullets: () => string
   /** Llamado con el borrador cuando la acción tiene éxito */
@@ -21,7 +20,6 @@ type Estado = 'idle' | 'cargando' | 'error'
 export function CopilotoNotaButton({
   encuentroId,
   idClinica,
-  especialidad,
   getBullets,
   onBorradorReady,
 }: CopilotoNotaButtonProps) {
