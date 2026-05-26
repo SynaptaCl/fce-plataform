@@ -151,7 +151,14 @@
       "Bash(Format-Table FullName)",
       "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\alexi\\\\fce-plataform\" -Recurse -Filter \"DiagnosticoChip.tsx\" -ErrorAction SilentlyContinue)",
       "Bash(Select-Object -First 5)",
-      "Bash(Test-Path *)"
+      "Bash(Test-Path *)",
+      "Read(//c/c/Users/alexi/synapta/**)",
+      "Bash(mkdir -p \"C:\\\\Users\\\\alexi\\\\synapta\\\\docs\\\\superpowers\\\\plans\")",
+      "Bash(ls /mnt/c/Users/ 2>/dev/null)",
+      "mcp__363fad75-1b71-485c-8c4d-203106b352d3__execute_sql",
+      "mcp__363fad75-1b71-485c-8c4d-203106b352d3__apply_migration",
+      "Bash(npm test *)",
+      "Bash(powershell -Command \"Get-ChildItem -Path 'C:\\\\Users\\\\alexi\\\\synapta' -Recurse -Include 'globals.css', 'Button.tsx', 'Navbar.tsx', 'tailwind.config.js', 'tailwind.config.ts', 'ContactForm.tsx', 'InteractiveWaveBackground*' -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName\")"
     ]
   },
   "mcpServers": {
