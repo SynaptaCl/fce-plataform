@@ -1,3 +1,5 @@
+import type { ICDCodeSnap } from '@/lib/icd/types';
+
 export interface NotaClinica {
   id: string;
   id_clinica: string;
@@ -9,6 +11,7 @@ export interface NotaClinica {
 
   diagnostico: string | null;
   cie10_codigos: string[] | null;
+  icd_codigos?: ICDCodeSnap[] | null;
 
   plan: string | null;
   proxima_sesion: string | null;

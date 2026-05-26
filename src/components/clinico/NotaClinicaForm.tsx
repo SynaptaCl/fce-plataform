@@ -49,7 +49,7 @@ export function NotaClinicaForm({
   const readOnly = readOnlyProp || firmado;
 
   const [icdCodigos, setIcdCodigos] = useState<ICDCodeSnap[]>(
-    (notaExistente as any)?.icd_codigos ?? []
+    notaExistente?.icd_codigos ?? []
   );
 
   // CIE-10: array interno representado como string separado por comas en UI

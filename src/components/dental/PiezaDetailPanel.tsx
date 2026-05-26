@@ -60,6 +60,7 @@ export function PiezaDetailPanel({
 
   // Reset state when pieza changes
   useEffect(() => {
+    /* eslint-disable react-hooks/set-state-in-effect */
     setEstado(entry?.estado ?? "sano");
     setSuperficies(entry?.superficies ?? {});
     setMovilidad(entry?.movilidad ?? null);
@@ -67,6 +68,7 @@ export function PiezaDetailPanel({
     setProcedimiento("");
     setServerError(null);
     setLoadingHistorial(true);
+    /* eslint-enable react-hooks/set-state-in-effect */
     getHistorialPieza(patientId, pieza).then((res) => {
       setHistorial(res.success ? res.data : []);
       setLoadingHistorial(false);

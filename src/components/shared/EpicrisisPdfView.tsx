@@ -24,12 +24,7 @@ export function EpicrisisPdfView({ egresoId, patientId }: EpicrisisPdfViewProps)
   const [sharing, setSharing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<EgresoConContexto | null>(null);
-  const [canShare, setCanShare] = useState(false);
-
-  // Detect share API on client only (avoid SSR mismatch)
-  useEffect(() => {
-    setCanShare(typeof navigator !== "undefined" && "share" in navigator);
-  }, []);
+  const [canShare] = useState(() => typeof window !== "undefined" && "share" in navigator);
 
   // Fetch egreso data on mount
   useEffect(() => {

@@ -32,6 +32,7 @@ export function CifSearch({
 
   // Sync external value changes
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setCodeInput(value);
     setDescInput(description);
   }, [value, description]);

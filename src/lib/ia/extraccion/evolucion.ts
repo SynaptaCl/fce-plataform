@@ -61,7 +61,7 @@ export async function extraerEvolucion(
     if (ns.firmado_por) profs_ids.add(ns.firmado_por)
   }
 
-  let prof_map = new Map<string, string>()
+  const prof_map = new Map<string, string>()
   if (profs_ids.size > 0) {
     const { data: profs } = await supabase
       .from('profesionales')
