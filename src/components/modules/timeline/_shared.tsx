@@ -3,6 +3,8 @@
 
 import Link from "next/link";
 import { Lock } from "lucide-react";
+import { format } from "date-fns";
+import { es } from "date-fns/locale";
 import type { CifAssessment, CifItem } from "@/types/cif";
 import { CIF_QUANTIFIER_LABELS } from "@/types/cif";
 
@@ -12,12 +14,8 @@ export function formatDate(iso: string): string {
   if (!iso) return "—";
   try {
     const d = new Date(iso);
-    return d.toLocaleDateString("es-CL", {
-      day: "2-digit",
-      month: "short",
-      year: "numeric",
-      ...(iso.includes("T") ? { hour: "2-digit", minute: "2-digit" } : {}),
-    });
+    const fmt = iso.includes("T") ? "dd MMM yyyy, HH:mm" : "dd MMM yyyy";
+    return format(d, fmt, { locale: es });
   } catch {
     return iso;
   }

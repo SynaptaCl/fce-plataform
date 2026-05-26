@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { format } from "date-fns";
+import { es } from "date-fns/locale";
 import {
   ChevronDown,
   ChevronUp,
@@ -184,14 +186,7 @@ function normalizeEsp(esp: string): string {
 
 function formatDateTime(iso: string) {
   if (!iso) return "—";
-  const d = new Date(iso);
-  return d.toLocaleDateString("es-CL", {
-    day: "2-digit",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  return format(new Date(iso), "dd MMM yyyy, HH:mm", { locale: es });
 }
 
 function formatRelativeDate(iso: string): string {
