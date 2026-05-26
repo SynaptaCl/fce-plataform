@@ -39,7 +39,6 @@ const PRIORIDADES: { value: PrioridadItem; label: string }[] = [
   { value: "electivo", label: "Electivo" },
 ];
 
-const TODAS_PIEZAS = [...PIEZAS_ADULTO, ...PIEZAS_NINO];
 
 export function PlanTratamientoItemForm({
   catalogo,

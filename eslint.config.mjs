@@ -13,7 +13,7 @@ const eslintConfig = defineConfig([
     "build/**",
     "next-env.d.ts",
     // Git worktrees — cada worktree tiene su propio .next y node_modules
-    ".worktrees/**",
+    ".claude/**",
   ]),
 ]);
 

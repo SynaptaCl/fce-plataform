@@ -19,14 +19,12 @@ import {
   addItemPlan,
   updateItemEstado,
   removeItemPlan,
-  cerrarPlan,
 } from "@/app/actions/dental/plan-tratamiento";
 import {
   calcularProgreso,
   calcularPresupuestoTotal,
   calcularMontoRealizado,
 } from "@/lib/dental/plan";
-import { getLabelPieza } from "@/lib/dental/fdi";
 import type {
   PlanTratamiento,
   PlanTratamientoItem,
@@ -104,9 +102,6 @@ function EstadoBadge({ estado }: { estado: EstadoItem }) {
 
 function ItemRow({
   item,
-  planId,
-  patientId,
-  encuentroId,
   readOnly,
   onEstadoChange,
   onRemove,

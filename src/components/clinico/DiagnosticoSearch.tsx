@@ -141,6 +141,10 @@ export function DiagnosticoSearch({
         <div ref={containerRef} className="relative">
           {/* Input */}
           <div
+            role="combobox"
+            aria-expanded={dropdownOpen}
+            aria-haspopup="listbox"
+            aria-controls="diag-search-listbox"
             className={cn(
               'flex items-center gap-2 px-3 py-2 rounded-lg text-sm',
               'border border-kp-border bg-surface-1',
@@ -158,7 +162,6 @@ export function DiagnosticoSearch({
               spellCheck={false}
               aria-label="Búsqueda de diagnóstico ICD-11"
               aria-autocomplete="list"
-              aria-expanded={dropdownOpen}
             />
             {isLoading && (
               <Loader2
@@ -178,6 +181,7 @@ export function DiagnosticoSearch({
                 'border border-kp-border bg-surface-1',
                 'max-h-72 overflow-y-auto',
               )}
+              id="diag-search-listbox"
               role="listbox"
               aria-label="Resultados de búsqueda ICD-11"
             >

@@ -154,14 +154,3 @@ export function DentalWorkspace({
   );
 }
 
-function PlaceholderTab({ titulo, descripcion }: { titulo: string; descripcion: string }) {
-  return (
-    <div className="flex flex-col items-center justify-center py-16 gap-3 text-center">
-      <div className="w-12 h-12 rounded-full bg-surface-0 flex items-center justify-center">
-        <ClipboardList className="w-6 h-6 text-ink-3" />
-      </div>
-      <h3 className="text-sm font-semibold text-ink-1">{titulo}</h3>
-      <p className="text-sm text-ink-3 max-w-sm">{descripcion}</p>
-    </div>
-  );
-}

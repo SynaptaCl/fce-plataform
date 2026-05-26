@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { PenLine, Lock, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -46,7 +46,7 @@ export function EgresoForm({
   const {
     register,
     handleSubmit,
-    watch,
+    control,
     formState: { errors, isSubmitting },
   } = useForm<EgresoSchemaType>({
     resolver: zodResolver(egresoSchema),
@@ -61,7 +61,7 @@ export function EgresoForm({
     },
   });
 
-  const tipoEgreso = watch("tipo_egreso");
+  const tipoEgreso = useWatch({ control, name: "tipo_egreso" });
 
   async function onSubmit(data: EgresoSchemaType) {
     setServerError(null);

@@ -96,7 +96,7 @@ export async function generarResumenIA(
     let parsed: Omit<ReporteIA, 'desde_cache'>
     try {
       parsed = JSON.parse(raw)
-    } catch (parseErr) {
+    } catch {
       console.error('[FCE][IA] JSON parse failed.')
       console.error('[FCE][IA] Stop reason:', response.stop_reason)
       console.error('[FCE][IA] Output tokens:', response.usage.output_tokens, '/', 2048)
