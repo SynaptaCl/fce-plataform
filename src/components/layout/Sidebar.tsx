@@ -1,52 +1,42 @@
 "use client";
 
-import { useState } from "react";
-import { cn } from "@/lib/utils";
-import {
-  Activity,
-  Calendar,
-  User,
-  Settings,
-  ShieldCheck,
-  LogOut,
-  ChevronLeft,
-} from "lucide-react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { Calendar, Users, Settings } from "lucide-react";
 import type { BrandingConfig } from "@/lib/modules/registry";
 
 /** Roles que tienen acceso a configuración */
 const ROLES_CON_CONFIG = ["admin", "director", "superadmin"];
 
-/** Labels legibles para roles no-profesionales */
-const ROL_DISPLAY: Record<string, string> = {
-  admin: "Administración Clínica",
-  director: "Dirección Clínica",
-  superadmin: "Synapta Admin",
-};
-
-interface NavItemProps {
+interface NavIconButtonProps {
+  href: string;
   icon: React.ReactNode;
-  text: string;
-  active?: boolean;
-  collapsed?: boolean;
-  onClick?: () => void;
+  label: string;
+  active: boolean;
 }
 
-function NavItem({ icon, text, active = false, collapsed = false, onClick }: NavItemProps) {
+function NavIconButton({ href, icon, label, active }: NavIconButtonProps) {
   return (
-    <button
-      onClick={onClick}
-      title={collapsed ? text : undefined}
-      className={cn(
-        "flex items-center w-full px-4 py-3 transition-colors cursor-pointer",
-        active
-          ? "bg-kp-accent/10 text-kp-accent border-l-4 border-kp-accent"
-          : "text-ink-3 hover:bg-white/5 hover:text-white border-l-4 border-transparent",
-        collapsed && "justify-center px-0"
-      )}
+    <Link
+      href={href}
+      title={label}
+      className={active ? undefined : "hover:bg-white/[0.06]"}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        width: 40,
+        height: 40,
+        borderRadius: 8,
+        color: active ? "var(--color-kp-accent, #00B0A8)" : "var(--color-ink-3, #64748B)",
+        backgroundColor: active ? "rgba(0, 176, 168, 0.15)" : undefined,
+        transition: "background-color 0.15s, color 0.15s",
+        textDecoration: "none",
+        position: "relative",
+      }}
     >
-      <span className={cn("w-5 h-5 shrink-0", !collapsed && "mr-3")}>{icon}</span>
-      {!collapsed && <span className="text-sm font-medium">{text}</span>}
-    </button>
+      {icon}
+    </Link>
   );
 }
 
@@ -55,10 +45,25 @@ interface SidebarProps {
   practitionerInitials: string;
   especialidad: string | null;
   rol: string;
-  activeSection: string;
-  onNavigate: (section: string) => void;
-  onLogout: () => void;
   branding: BrandingConfig | null;
+}
+
+function getClinicInitials(branding: BrandingConfig | null): string {
+  if (branding?.clinic_initials) return branding.clinic_initials;
+  if (branding?.clinic_short_name) {
+    return branding.clinic_short_name
+      .split(" ")
+      .map((w: string) => w[0])
+      .filter(Boolean)
+      .slice(0, 2)
+      .join("")
+      .toUpperCase();
+  }
+  return "FC";
+}
+
+function getClinicName(branding: BrandingConfig | null): string {
+  return branding?.clinic_short_name ?? "FCE";
 }
 
 export function Sidebar({
@@ -66,120 +71,141 @@ export function Sidebar({
   practitionerInitials,
   especialidad,
   rol,
-  activeSection,
-  onNavigate,
-  onLogout,
   branding,
 }: SidebarProps) {
-  const [collapsed, setCollapsed] = useState(false);
+  const pathname = usePathname();
 
-  const clinicName = branding?.clinic_short_name ?? "FCE";
-  const logoUrl    = branding?.logo_url ?? null;
+  const activeSection = (() => {
+    if (pathname.startsWith("/dashboard/configuracion")) return "config";
+    if (pathname.startsWith("/dashboard/pacientes")) return "pacientes";
+    return "agenda";
+  })();
 
-  // Para roles admin/director/superadmin muestra el label del rol
-  // Para profesionales muestra la especialidad raw del catálogo
-  const subtitleDisplay = ROL_DISPLAY[rol] ?? especialidad ?? "Profesional";
+  const clinicInitials = getClinicInitials(branding);
+  const clinicName = getClinicName(branding);
+  const showConfig = ROLES_CON_CONFIG.includes(rol);
+  const specialtyLabel = especialidad ?? "Profesional";
 
   return (
     <aside
-      className={cn(
-        "bg-surface-dark text-ink-3 flex flex-col shadow-xl z-20 transition-all duration-300",
-        collapsed ? "w-16" : "w-64"
-      )}
+      style={{
+        width: 56,
+        minWidth: 56,
+        maxWidth: 56,
+        background: "var(--color-kp-primary-deep, #004545)",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        paddingTop: 12,
+        paddingBottom: 12,
+        zIndex: 20,
+        position: "sticky",
+        top: 0,
+        height: "100vh",
+        overflowY: "auto",
+      }}
     >
-      {/* Logo */}
-      <div className="h-16 flex items-center px-4 border-b border-white/10 justify-between">
-        <div className="flex items-center min-w-0">
-          {logoUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={logoUrl}
-              alt={`${clinicName} logo`}
-              width={28}
-              height={28}
-              className="shrink-0 object-contain"
-            />
-          ) : (
-            <Activity className="text-kp-accent w-6 h-6 shrink-0" />
-          )}
-          {!collapsed && (
-            <span className="text-white font-bold tracking-wider ml-3 text-sm truncate">
-              {clinicName}
-            </span>
-          )}
-        </div>
-        <button
-          onClick={() => setCollapsed(!collapsed)}
-          className="text-ink-3 hover:text-white transition-colors cursor-pointer shrink-0 ml-1"
-        >
-          <ChevronLeft
-            className={cn("w-4 h-4 transition-transform", collapsed && "rotate-180")}
+      {/* Clinic logo / initials */}
+      <div
+        title={clinicName}
+        style={{
+          width: 32,
+          height: 32,
+          borderRadius: 8,
+          background: "rgba(255,255,255,0.12)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          color: "white",
+          fontSize: 11,
+          fontWeight: 700,
+          letterSpacing: "0.04em",
+          flexShrink: 0,
+          cursor: "default",
+          userSelect: "none",
+        }}
+      >
+        {branding?.logo_url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={branding.logo_url}
+            alt={clinicName}
+            width={24}
+            height={24}
+            style={{ objectFit: "contain", borderRadius: 4 }}
           />
-        </button>
+        ) : (
+          clinicInitials
+        )}
       </div>
 
-      {/* User */}
-      {!collapsed && (
-        <div className="p-4 border-b border-white/10">
-          <div className="text-[0.6rem] text-ink-3 font-semibold uppercase tracking-wider mb-2">
-            Usuario Activo
-          </div>
-          <div className="flex items-center">
-            <div className="w-8 h-8 rounded-full bg-kp-primary flex items-center justify-center text-white text-xs font-bold shrink-0">
-              {practitionerInitials}
-            </div>
-            <div className="ml-3 min-w-0">
-              <div className="text-sm font-bold text-white truncate">{practitionerName}</div>
-              <div className="text-xs text-kp-accent">{subtitleDisplay}</div>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Separator */}
+      <div
+        style={{
+          width: 32,
+          height: 1,
+          background: "rgba(255,255,255,0.12)",
+          marginTop: 16,
+          marginBottom: 16,
+          flexShrink: 0,
+        }}
+      />
 
-      {/* Nav */}
-      <nav className="flex-1 py-3">
-        <NavItem
-          icon={<Calendar />}
-          text="Agenda Diaria"
+      {/* Nav icons */}
+      <nav
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          gap: 4,
+        }}
+      >
+        <NavIconButton
+          href="/dashboard"
+          icon={<Calendar size={20} />}
+          label="Agenda"
           active={activeSection === "agenda"}
-          collapsed={collapsed}
-          onClick={() => onNavigate("agenda")}
         />
-        <NavItem
-          icon={<User />}
-          text="Pacientes"
+        <NavIconButton
+          href="/dashboard/pacientes"
+          icon={<Users size={20} />}
+          label="Pacientes"
           active={activeSection === "pacientes"}
-          collapsed={collapsed}
-          onClick={() => onNavigate("pacientes")}
         />
-        {ROLES_CON_CONFIG.includes(rol) && (
-          <NavItem
-            icon={<Settings />}
-            text="Configuración"
+        {showConfig && (
+          <NavIconButton
+            href="/dashboard/configuracion"
+            icon={<Settings size={20} />}
+            label="Configuración"
             active={activeSection === "config"}
-            collapsed={collapsed}
-            onClick={() => onNavigate("config")}
           />
         )}
       </nav>
 
-      {/* Footer */}
-      <div className="border-t border-white/10">
-        <NavItem
-          icon={<LogOut />}
-          text="Cerrar sesión"
-          collapsed={collapsed}
-          onClick={onLogout}
-        />
-        <div
-          className={cn(
-            "px-4 py-3 text-[0.6rem] text-ink-3 flex items-center",
-            collapsed ? "justify-center" : "gap-2"
-          )}
-        >
-          <ShieldCheck className="w-3.5 h-3.5 text-kp-success shrink-0" />
-          {!collapsed && <span>TLS 1.3 Activo</span>}
-        </div>
+      {/* Spacer */}
+      <div style={{ flex: 1 }} />
+
+      {/* Professional avatar */}
+      <div
+        title={`${practitionerName}${specialtyLabel !== "Profesional" ? ` · ${specialtyLabel}` : ""}`}
+        style={{
+          width: 32,
+          height: 32,
+          borderRadius: "50%",
+          background: "var(--color-kp-primary, #006B6B)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          color: "white",
+          fontSize: 11,
+          fontWeight: 700,
+          cursor: "default",
+          userSelect: "none",
+          flexShrink: 0,
+          border: "2px solid rgba(255,255,255,0.15)",
+        }}
+      >
+        {practitionerInitials}
       </div>
     </aside>
   );

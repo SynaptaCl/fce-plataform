@@ -5,10 +5,11 @@ import { createClient } from "@/lib/supabase/server";
 import { getPatientById } from "@/app/actions/patients";
 import { getPatientTimeline } from "@/app/actions/timeline";
 import { PatientHeader } from "@/components/layout/PatientHeader";
-import { PatientActionNav } from "@/components/modules/PatientActionNav";
+import { ActionBar } from "@/components/shared/ActionBar";
 import { ClinicalTimeline } from "@/components/modules/ClinicalTimeline";
 import { SummaryPanel } from "@/components/shared/SummaryPanel";
 import { EncuentroLauncher } from "@/components/shared/EncuentroLauncher";
+import { EgresoLauncher } from "@/components/shared/EgresoLauncher";
 import { ReingresoBanner } from "@/components/shared/ReingresoBanner";
 import { getProfesionalActivo } from "@/lib/fce/profesional";
 import { getEgresosByPaciente } from "@/app/actions/egresos";
@@ -55,7 +56,6 @@ export default async function PatientDetailPage({
 
   const idClinica = adminRes.data?.id_clinica ?? null;
   const rol = adminRes.data?.rol ?? "";
-  const isAdmin = ["admin", "director", "superadmin"].includes(rol);
 
   // ── Fetch paralelo ─────────────────────────────────────────────────────
   const [patientResult, timelineResult, consentResult, fceConfigRes, profesional, egresosResult] =
@@ -111,9 +111,9 @@ export default async function PatientDetailPage({
     : emptySummary;
 
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col" style={{ gap: 0 }}>
       {/* Breadcrumb */}
-      <div className="flex items-center gap-1.5 text-sm text-ink-3">
+      <div className="flex items-center gap-1.5 text-sm text-ink-3 px-5 py-3">
         <Link
           href="/dashboard/pacientes"
           className="flex items-center gap-1 hover:text-kp-accent transition-colors"
@@ -125,63 +125,67 @@ export default async function PatientDetailPage({
         <span className="text-ink-2 font-medium truncate">{fullName}</span>
       </div>
 
-      {/* PatientHeader — banner M1 */}
-      <PatientHeader
-        patient={p}
-        hasConsent={hasConsent}
-        patientId={id}
-        primaryAction={
-          especialidadProfesional && p.estado_clinico !== "egresado" ? (
-            <EncuentroLauncher patientId={id} especialidad={especialidadProfesional} />
-          ) : undefined
-        }
-      />
+      {/* PatientHeader — compact single line */}
+      <PatientHeader patient={p} hasConsent={hasConsent} patientId={id} />
 
-      {/* Banner de egreso — si el paciente está egresado */}
-      {p.estado_clinico === "egresado" && (
-        <ReingresoBanner
+      {/* ActionBar — horizontal chips */}
+      <ActionBar patientId={id} />
+
+      {/* Below-header alerts and launchers */}
+      <div className="space-y-3 px-5 pt-4">
+        {/* Banner de egreso — si el paciente está egresado */}
+        {p.estado_clinico === "egresado" && (
+          <ReingresoBanner
+            patientId={id}
+            egresoFirmadoAt={egresosFirmados[0]?.firmado_at ?? null}
+            tipoEgreso={egresosFirmados[0]?.tipo_egreso ?? null}
+          />
+        )}
+
+        {/* Iniciar atención — solo para profesionales con especialidad activa y paciente no egresado */}
+        {especialidadProfesional && p.estado_clinico !== "egresado" && (
+          <EncuentroLauncher patientId={id} especialidad={especialidadProfesional} />
+        )}
+
+        {/* Egresar paciente — para roles permitidos con M9 activo */}
+        <EgresoLauncher
           patientId={id}
-          egresoFirmadoAt={egresosFirmados[0]?.firmado_at ?? null}
-          tipoEgreso={egresosFirmados[0]?.tipo_egreso ?? null}
+          estadoClinico={p.estado_clinico ?? "activo"}
+          rol={rol}
         />
-      )}
 
-      {/*
-        Grid 3 columnas:
-          xl  (≥1280px): [220px  |  1fr  |  280px]
-          lg  (≥1024px): [200px  |  1fr]            — panel resumen oculto
-          <lg (mobile):  [1col stacked]
-      */}
-      <div className="grid grid-cols-1 lg:grid-cols-[200px_1fr] xl:grid-cols-[220px_1fr_280px] gap-4 items-start">
+        {/*
+          Grid 2 columnas:
+            xl  (≥1280px): [1fr  |  280px]
+            <xl (mobile):  [1col stacked]
+        */}
+        <div className="grid grid-cols-1 xl:grid-cols-[1fr_280px] gap-4 items-start">
 
-        {/* ── Columna 1: Nav de acciones ── */}
-        <div className="lg:sticky lg:top-4 self-start">
-          <PatientActionNav
-            patientId={id}
-            isAdmin={isAdmin}
-            resumenIA={
-              idClinica && !["recepcionista", "recepcion"].includes(rol) ? (
-                <ResumenIAButton idPaciente={id} idClinica={idClinica} />
-              ) : undefined
-            }
-          />
+          {/* ── Columna 1: Timeline clínico ── */}
+          <div id="clinical-timeline" className="min-w-0">
+            <ClinicalTimeline
+              entries={entries}
+              currentUserId={user.id}
+              patientId={id}
+              especialidadesActivas={especialidadesActivas}
+            />
+          </div>
+
+          {/* ── Columna 2: Panel resumen — oculto en viewports < xl ── */}
+          <div className="hidden xl:block xl:sticky xl:top-4 self-start">
+            <SummaryPanel
+              summary={summary}
+              patientId={id}
+              especialidadesActivas={especialidadesActivas}
+              resumenIASlot={
+                idClinica && !["recepcionista", "recepcion"].includes(rol)
+                  ? <ResumenIAButton idPaciente={id} idClinica={idClinica} />
+                  : undefined
+              }
+            />
+          </div>
+
         </div>
-
-        {/* ── Columna 2: Timeline clínico ── */}
-        <div id="clinical-timeline" className="min-w-0">
-          <ClinicalTimeline
-            entries={entries}
-            currentUserId={user.id}
-            patientId={id}
-            especialidadesActivas={especialidadesActivas}
-          />
-        </div>
-
-        {/* ── Columna 3: Panel resumen (mobile+md: bajo timeline; lg: oculto; xl: col 3) ── */}
-        <div className="lg:hidden xl:block xl:sticky xl:top-4 self-start">
-          <SummaryPanel summary={summary} patientId={id} especialidadesActivas={especialidadesActivas} />
-        </div>
-
       </div>
     </div>
   );

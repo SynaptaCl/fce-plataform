@@ -1,5 +1,20 @@
 import type { Metadata } from "next";
+import { DM_Sans, DM_Mono } from "next/font/google";
 import "./globals.css";
+
+const dmSans = DM_Sans({
+  subsets: ["latin"],
+  weight: ["400", "500", "600"],
+  variable: "--font-dm-sans",
+  display: "swap",
+});
+
+const dmMono = DM_Mono({
+  subsets: ["latin"],
+  weight: ["400", "500"],
+  variable: "--font-dm-mono",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: {
@@ -10,20 +25,16 @@ export const metadata: Metadata = {
     "Ficha Clínica Electrónica de Korporis Centro de Salud — Kinesiología, Fonoaudiología y Masoterapia",
 };
 
-/*
- * TODO: En producción (Vercel), reemplazar por Google Fonts:
- *   import { Outfit, Plus_Jakarta_Sans } from "next/font/google";
- * y agregar las variables --font-outfit / --font-plus-jakarta al <html>.
- * En este entorno de desarrollo las Google Fonts no están disponibles.
- */
-
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="es-CL" className="h-full antialiased">
+    <html
+      lang="es-CL"
+      className={`h-full antialiased ${dmSans.variable} ${dmMono.variable}`}
+    >
       <body className="min-h-full flex flex-col">{children}</body>
     </html>
   );

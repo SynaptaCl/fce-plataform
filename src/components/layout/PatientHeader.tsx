@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { FileSignature, Pencil } from "lucide-react";
-import { Badge } from "@/components/ui/Badge";
+import { Pencil, Download } from "lucide-react";
 import { calculateAge, formatRut } from "@/lib/utils";
 import type { Patient } from "@/types";
 
@@ -8,109 +7,240 @@ interface PatientHeaderProps {
   patient: Patient;
   hasConsent: boolean;
   patientId?: string;
-  primaryAction?: React.ReactNode;
-  statusBadge?: React.ReactNode;
 }
 
-export function PatientHeader({
-  patient,
-  hasConsent,
-  patientId,
-  primaryAction,
-  statusBadge,
-}: PatientHeaderProps) {
-  const initials = `${patient.nombre?.charAt(0) ?? ""}${patient.apellido_paterno?.charAt(0) ?? ""}`.toUpperCase() || "?";
-  const age = calculateAge(patient.fecha_nacimiento);
+export function PatientHeader({ patient, hasConsent, patientId }: PatientHeaderProps) {
+  const initials =
+    `${patient.nombre?.charAt(0) ?? ""}${patient.apellido_paterno?.charAt(0) ?? ""}`.toUpperCase() ||
+    "?";
+
   const fullName =
     [patient.nombre, patient.apellido_paterno, patient.apellido_materno]
       .filter(Boolean)
       .join(" ") || "Sin nombre";
+
+  const age = calculateAge(patient.fecha_nacimiento);
+
   const previsionLabel =
     patient.prevision?.tipo === "FONASA"
       ? `FONASA ${patient.prevision.tramo || ""}`.trim()
       : patient.prevision?.tipo === "Isapre"
         ? patient.prevision.isapre || "Isapre"
-        : "Particular";
+        : patient.prevision?.tipo === "Particular"
+          ? "Particular"
+          : null;
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const dir = patient.direccion as any;
-  const direccionStr = dir
-    ? [
-        dir.calle
-          ? `${dir.calle}${dir.numero && !dir.calle.includes(dir.numero) ? " " + dir.numero : ""}`
-          : null,
-        dir.comuna && dir.comuna !== dir.calle ? dir.comuna : null,
-      ]
-        .filter(Boolean)
-        .join(", ") || null
-    : null;
+  const sexDisplay =
+    patient.sexo_registral === "M"
+      ? "M"
+      : patient.sexo_registral === "F"
+        ? "F"
+        : null;
+
+  const isEgresado = patient.estado_clinico === "egresado";
 
   return (
-    <div className="bg-surface-1 rounded-xl border border-kp-border px-6 py-4 flex items-start gap-4">
-      {/* Avatar */}
-      <div className="w-12 h-12 bg-kp-primary/10 border-2 border-kp-accent/20 rounded-lg flex items-center justify-center text-kp-primary text-lg font-bold shrink-0">
+    <div
+      style={{
+        background: "var(--color-surface-1, #FFFFFF)",
+        borderBottom: "0.5px solid var(--color-kp-border, #E2E8F0)",
+        padding: "16px 20px",
+      }}
+      className="flex items-center gap-3"
+    >
+      {/* Avatar 44×44 */}
+      <div
+        style={{
+          width: 44,
+          height: 44,
+          borderRadius: "50%",
+          background: "var(--color-kp-accent-xs, #E6FAF9)",
+          color: "var(--color-kp-primary-deep, #004545)",
+          fontWeight: 600,
+          fontSize: 15,
+          flexShrink: 0,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          userSelect: "none",
+        }}
+        aria-hidden="true"
+      >
         {initials}
       </div>
 
-      {/* Info */}
-      <div className="flex-1 min-w-0">
-        <h2 className="text-lg font-bold text-ink-1 flex items-center gap-2">
-          {fullName}
-          {hasConsent && (
-            <span title="Consentimiento Informado Firmado">
-              <FileSignature className="w-4 h-4 text-kp-success" />
+      {/* Info — flex: 1 */}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        {/* Line 1: name + status badge */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <span
+            style={{
+              fontSize: 15,
+              fontWeight: 600,
+              color: "var(--color-ink-1, #1E293B)",
+              lineHeight: 1.3,
+            }}
+            className="truncate"
+          >
+            {fullName}
+          </span>
+
+          {isEgresado ? (
+            <span
+              style={{
+                fontSize: 10,
+                textTransform: "uppercase",
+                letterSpacing: "0.05em",
+                fontWeight: 600,
+                background: "var(--color-kp-secondary-lt, #FEF3E2)",
+                color: "var(--color-kp-secondary, #F5A623)",
+                padding: "2px 6px",
+                borderRadius: 4,
+                flexShrink: 0,
+              }}
+            >
+              Egresado
+            </span>
+          ) : (
+            <span
+              style={{
+                fontSize: 10,
+                textTransform: "uppercase",
+                letterSpacing: "0.05em",
+                fontWeight: 600,
+                background: "var(--color-kp-success-lt, #DCFCE7)",
+                color: "var(--color-kp-success, #16A34A)",
+                padding: "2px 6px",
+                borderRadius: 4,
+                flexShrink: 0,
+              }}
+            >
+              Activo
             </span>
           )}
-        </h2>
-        <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1 text-sm text-ink-2">
-          <span>
-            <span className="font-medium text-ink-1">RUT:</span>{" "}
-            {formatRut(patient.rut)}
-          </span>
-          <span>
-            <span className="font-medium text-ink-1">Edad:</span>{" "}
-            {age !== null ? `${age} años` : "Sin registro"} ({patient.sexo_registral ?? "—"})
-          </span>
-          <span>
-            <span className="font-medium text-ink-1">Previsión:</span>{" "}
-            {previsionLabel}
-          </span>
-          <span>
-            <span className="font-medium text-ink-1">Ocupación:</span>{" "}
-            {patient.ocupacion ?? "Sin registro"}
-          </span>
-          {direccionStr && (
-            <span>
-              <span className="font-medium text-ink-1">Dirección:</span>{" "}
-              {direccionStr}
+
+          {hasConsent && (
+            <span
+              style={{
+                fontSize: 10,
+                textTransform: "uppercase",
+                letterSpacing: "0.05em",
+                fontWeight: 600,
+                background: "var(--color-kp-info-lt, #DBEAFE)",
+                color: "var(--color-kp-info, #2563EB)",
+                padding: "2px 6px",
+                borderRadius: 4,
+                flexShrink: 0,
+              }}
+            >
+              CI firmado
             </span>
           )}
         </div>
-        <div className="flex gap-2 mt-1.5 flex-wrap">
-          <Badge variant="teal">Paciente activo</Badge>
-          {hasConsent && (
-            <Badge variant="success">Consentimiento firmado</Badge>
+
+        {/* Line 2: RUT · age · sex · prevision · ocupacion */}
+        <div
+          style={{
+            fontSize: 11,
+            color: "var(--color-ink-3, #94A3B8)",
+            marginTop: 2,
+            display: "flex",
+            flexWrap: "wrap",
+            gap: "0 0",
+            alignItems: "center",
+          }}
+        >
+          {patient.rut && (
+            <>
+              <span
+                className="font-mono-clinical"
+                style={{ color: "var(--color-ink-3, #94A3B8)" }}
+              >
+                {formatRut(patient.rut)}
+              </span>
+              {(age !== null || sexDisplay || previsionLabel || patient.ocupacion) && (
+                <span style={{ margin: "0 4px" }}> · </span>
+              )}
+            </>
           )}
-          {statusBadge}
+          {age !== null && (
+            <>
+              <span>{age} años</span>
+              {(sexDisplay || previsionLabel || patient.ocupacion) && (
+                <span style={{ margin: "0 4px" }}> · </span>
+              )}
+            </>
+          )}
+          {sexDisplay && (
+            <>
+              <span>{sexDisplay}</span>
+              {(previsionLabel || patient.ocupacion) && (
+                <span style={{ margin: "0 4px" }}> · </span>
+              )}
+            </>
+          )}
+          {previsionLabel && (
+            <>
+              <span>{previsionLabel}</span>
+              {patient.ocupacion && (
+                <span style={{ margin: "0 4px" }}> · </span>
+              )}
+            </>
+          )}
+          {patient.ocupacion && <span>{patient.ocupacion}</span>}
         </div>
       </div>
 
-      {/* Acciones derecha */}
-      {(primaryAction || patientId) && (
-        <div className="flex items-center gap-2 shrink-0">
-          {primaryAction}
-          {patientId && (
-            <Link
-              href={`/dashboard/pacientes/${patientId}/editar`}
-              className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-kp-accent border border-kp-accent/30 rounded-lg hover:bg-kp-accent-xs transition-colors"
-              title="Editar datos del paciente"
-            >
-              <Pencil className="w-3.5 h-3.5" />
-              Editar paciente
-            </Link>
-          )}
-        </div>
-      )}
+      {/* Actions — flex-shrink: 0 */}
+      <div style={{ flexShrink: 0, display: "flex", alignItems: "center", gap: 6 }}>
+        {patientId && (
+          <Link
+            href={`/dashboard/pacientes/${patientId}/editar`}
+            title="Editar datos del paciente"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 4,
+              padding: "5px 10px",
+              borderRadius: 6,
+              fontSize: 12,
+              fontWeight: 500,
+              border: "0.5px solid var(--color-kp-border, #E2E8F0)",
+              color: "var(--color-ink-2, #475569)",
+              background: "transparent",
+              textDecoration: "none",
+              transition: "border-color 0.15s, color 0.15s",
+            }}
+            className="hover:border-kp-accent hover:text-kp-accent"
+          >
+            <Pencil style={{ width: 13, height: 13 }} />
+            Editar
+          </Link>
+        )}
+
+        {patientId && (
+          <Link
+            href={`/dashboard/pacientes/${patientId}/exportar-pdf`}
+            title="Exportar PDF"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              width: 30,
+              height: 30,
+              borderRadius: 6,
+              border: "0.5px solid var(--color-kp-border, #E2E8F0)",
+              color: "var(--color-ink-3, #94A3B8)",
+              background: "transparent",
+              textDecoration: "none",
+              transition: "border-color 0.15s, color 0.15s",
+            }}
+            className="hover:border-kp-accent hover:text-kp-accent"
+          >
+            <Download style={{ width: 14, height: 14 }} />
+          </Link>
+        )}
+      </div>
     </div>
   );
 }
