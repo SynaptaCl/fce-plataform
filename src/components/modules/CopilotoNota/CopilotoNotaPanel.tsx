@@ -1,16 +1,22 @@
 // src/components/modules/CopilotoNota/CopilotoNotaPanel.tsx
 'use client'
 
-import { Check, X, Wand2 } from 'lucide-react'
+import { Check, ChevronsDown, RefreshCw, X, Wand2 } from 'lucide-react'
 import type { BorradorNota } from '@/lib/ia/copiloto-nota/types'
 
 interface CopilotoNotaPanelProps {
   borrador: BorradorNota
-  onInsertar: () => void
+  tieneContenido: boolean
+  onInsertar: (modo: 'agregar' | 'reemplazar') => void
   onDescartar: () => void
 }
 
-export function CopilotoNotaPanel({ borrador, onInsertar, onDescartar }: CopilotoNotaPanelProps) {
+export function CopilotoNotaPanel({
+  borrador,
+  tieneContenido,
+  onInsertar,
+  onDescartar,
+}: CopilotoNotaPanelProps) {
   return (
     <div
       className="rounded-lg border p-4 space-y-3"
@@ -68,16 +74,42 @@ export function CopilotoNotaPanel({ borrador, onInsertar, onDescartar }: Copilot
       </div>
 
       {/* Acciones */}
-      <div className="flex items-center gap-2">
-        <button
-          type="button"
-          onClick={onInsertar}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md text-white transition-colors"
-          style={{ background: 'var(--color-kp-primary, #4f46e5)' }}
-        >
-          <Check className="w-3.5 h-3.5" />
-          Insertar en nota
-        </button>
+      <div className="flex items-center gap-2 flex-wrap">
+        {tieneContenido ? (
+          <>
+            <button
+              type="button"
+              onClick={() => onInsertar('agregar')}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md text-white transition-colors"
+              style={{ background: 'var(--color-kp-primary, #4f46e5)' }}
+            >
+              <ChevronsDown className="w-3.5 h-3.5" />
+              Agregar al final
+            </button>
+            <button
+              type="button"
+              onClick={() => onInsertar('reemplazar')}
+              className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md border transition-colors"
+              style={{
+                borderColor: 'var(--color-kp-primary, #4f46e5)',
+                color: 'var(--color-kp-primary, #4f46e5)',
+              }}
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              Reemplazar
+            </button>
+          </>
+        ) : (
+          <button
+            type="button"
+            onClick={() => onInsertar('agregar')}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-md text-white transition-colors"
+            style={{ background: 'var(--color-kp-primary, #4f46e5)' }}
+          >
+            <Check className="w-3.5 h-3.5" />
+            Insertar en nota
+          </button>
+        )}
         <button
           type="button"
           onClick={onDescartar}

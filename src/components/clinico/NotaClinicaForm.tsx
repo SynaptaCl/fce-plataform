@@ -119,14 +119,14 @@ export function NotaClinicaForm({
     });
   }
 
-  function handleInsertar() {
+  function handleInsertar(modo: 'agregar' | 'reemplazar') {
     if (!borradorActivo) return
     const actual = getValues("contenido")
     setValue(
       "contenido",
-      actual.trim()
-        ? `${actual}\n\n---\n\n${borradorActivo.contenido}`
-        : borradorActivo.contenido
+      modo === 'reemplazar' || !actual.trim()
+        ? borradorActivo.contenido
+        : `${actual}\n\n---\n\n${borradorActivo.contenido}`
     )
     setBorradorActivo(null)
   }
@@ -210,6 +210,7 @@ export function NotaClinicaForm({
         {borradorActivo && !readOnly && (
           <CopilotoNotaPanel
             borrador={borradorActivo}
+            tieneContenido={getValues("contenido").trim().length > 0}
             onInsertar={handleInsertar}
             onDescartar={() => setBorradorActivo(null)}
           />
