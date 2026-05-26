@@ -1,6 +1,6 @@
 # CLAUDE.md — FCE Platform (fce-plataform)
 
-> Última actualización: 2026-05-07 (R-ICD-2 CifSearch + auditoría completa)
+> Última actualización: 2026-05-26 (Copiloto de Escritura — IA inline en NotaClinicaForm)
 > Este documento es la fuente de verdad para Claude Code. Leerlo antes de cualquier cambio.
 
 ---
@@ -227,6 +227,7 @@ src/app/actions/
   ├── patients.ts, anamnesis.ts, consentimiento.ts, auditoria.ts
   ├── encuentros.ts, egresos.ts, timeline.ts, exportar-pdf.ts, resumen-ia.ts
   ├── prescripciones.ts, ordenes-examen.ts
+  ├── copiloto-nota.ts
   ├── rehab/    → soap.ts, evaluacion.ts, cif.ts
   ├── clinico/  → nota-clinica.ts, nota-rapida.ts, instrumentos.ts, catalogo-instrumentos.ts, diagnostico.ts
   └── dental/   → odontograma.ts, periograma.ts, plan-tratamiento.ts, procedimientos.ts
@@ -239,7 +240,8 @@ src/components/
   │   ├── timeline/ → SoapExpandedCard, EvaluacionExpandedCard, NotaClinicaExpandedCard,
   │   │               PrescripcionExpandedCard, OrdenExamenExpandedCard, InstrumentoExpandedCard,
   │   │               ConsentimientoExpandedCard, SignosVitalesExpandedCard, _shared.tsx
-  │   └── ResumenIA/ → ResumenIAButton, ResumenIAModal, ResumenIAReport (index.ts)
+  │   ├── ResumenIA/ → ResumenIAButton, ResumenIAModal, ResumenIAReport (index.ts)
+  │   └── CopilotoNota/ → CopilotoNotaButton, CopilotoNotaPanel (index.ts)
   ├── rehab/    → SoapForm, CifMapper, CifSearch, KinesiologiaEval, FonoaudiologiaEval,
   │               MasoterapiaEval, GenericEval (index.ts)
   ├── clinico/  → NotaClinicaForm, InstrumentosPanel, InstrumentoLauncher,
@@ -272,8 +274,9 @@ src/lib/
   ├── ordenes-examen/ → pdf-renderer.ts, share-helpers.ts, validations.ts
   ├── egresos/        → pdf-renderer.ts (epicrisis)
   ├── ia/             → contexto-clinico.ts, prompt.ts, cache.ts
-  │   └── extraccion/ → demografico.ts, anamnesis.ts, signos-vitales.ts, medicacion.ts,
-  │                      alertas.ts, evolucion.ts, examenes.ts, instrumentos.ts
+  │   ├── extraccion/ → demografico.ts, anamnesis.ts, signos-vitales.ts, medicacion.ts,
+  │   │                  alertas.ts, evolucion.ts, examenes.ts, instrumentos.ts
+  │   └── copiloto-nota/ → types.ts, prompt.ts, parser.ts
   ├── supabase/       → client.ts, server.ts, service.ts (service_role), types.ts
   └── (raíz)         → audit.ts, constants.ts, fhir-mapper.ts, utils.ts, validations.ts
 
@@ -345,6 +348,7 @@ Para trabajar "para" una clínica, leer `clinics/<slug>/CLAUDE.md` y respetar su
 | UX-01 | Rediseño ficha paciente: PatientHeader con slots, PatientActionNav grupos semánticos, workspaces sticky |
 | R-ICD-1 | DiagnosticoSearch ICD-11 MMS integrado en NotaClinicaForm + PeriogramaForm + Timeline chips FHIR |
 | R-ICD-2 | CifSearch autocomplete ICF API — reemplaza input libre en CifMapper (actions/rehab/cif.ts + CifSearch.tsx) |
+| Copiloto Escritura | IA inline en NotaClinicaForm: bullets → nota clínica en prosa. Modelo `claude-sonnet-4-6`, server action `copiloto-nota.ts`, audit `nota_estructurada_ia` |
 
 ### Pendientes
 
@@ -541,4 +545,85 @@ Las columnas `diagnosticos_icd` en `fce_notas_clinicas` y `fce_periogramas` fuer
 - Supabase: `vigyhfpwyxihrjiygfsa` (sa-east-1)
 - Deploy: Vercel
 - Repos hermanos: `synapta`, `korporis-fce` (legacy)
-- Anthropic: modelo `claude-haiku-4-5-20251001` (Resumen IA), key en `.env.local`
+- Anthropic: `claude-haiku-4-5-20251001` (Resumen IA) · `claude-sonnet-4-6` (Copiloto Escritura), key `ANTHROPIC_API_KEY` en `.env.local`
+
+---
+
+## 19. MÓDULO COPILOTO DE ESCRITURA
+
+### Propósito
+
+IA embebida en `NotaClinicaForm` que convierte apuntes/bullets del profesional en una nota clínica redactada en prosa. El profesional puede insertar el borrador en el textarea o descartarlo; nunca escribe directamente en `fce_notas_clinicas`.
+
+### Arquitectura
+
+```
+CopilotoNotaButton (click — lee textarea en ese instante con getBullets())
+  → estructurarNota({ idEncuentro, idClinica, bullets })  [server action]
+      → auth: createClient() → getUser() → admin_users → requireAccesoFCE(rol)
+      → validar bullets (no vacío, ≤ 5000 chars)
+      → leer fce_encuentros: especialidad, id_paciente, status, id_clinica
+          guards: id_clinica coincide + status === 'en_progreso'
+      → Anthropic(claude-sonnet-4-6) messages.create(max_tokens: 1024)
+      → parseBorradorNota(rawText) → { contenido }
+      → borrador = { contenido, especialidad }  ← especialidad viene de DB, no de Claude
+      → audit INSERT logs_auditoria (service_role): accion 'nota_estructurada_ia'
+      → return { success: true, data: borrador }
+  onBorradorReady → CopilotoNotaPanel (inline en el form)
+  "Insertar en nota" → append con "\n\n---\n\n" (NUNCA reemplaza)
+  "Descartar" → cierra el panel
+```
+
+Sin caché — el input varía en cada uso.
+
+### Modelo y elección
+
+`claude-sonnet-4-6` (NO Haiku) — la nota se firma como documento clínico; mayor calidad de redacción justifica el costo. **No cambiar sin revisión del prompt.**
+
+Contraste con Resumen IA: Haiku funciona ahí porque resume registros existentes; aquí el modelo redacta desde bullets ambiguos, requiere mayor precisión.
+
+### Archivos
+
+```
+src/lib/ia/copiloto-nota/
+  types.ts   → EstructurarNotaInput, BorradorNota
+  prompt.ts  → buildSystemPrompt(especialidad), buildUserPrompt(bullets)
+  parser.ts  → parseBorradorNota(rawText): { contenido }
+               NOTA: parser solo extrae contenido — especialidad la aporta la action desde fce_encuentros
+
+src/app/actions/copiloto-nota.ts  ('use server')
+  → estructurarNota(input): Promise<ActionResult<BorradorNota>>
+
+src/components/modules/CopilotoNota/
+  index.ts
+  CopilotoNotaButton.tsx   → props: encuentroId, idClinica, getBullets, onBorradorReady
+  CopilotoNotaPanel.tsx    → props: borrador, onInsertar, onDescartar
+```
+
+### Props de integración
+
+`NotaClinicaForm` recibe `idClinica: string` (ya existente). El componente `CopilotoNotaButton` **no recibe `especialidad`** — la action la lee de DB para evitar drift cliente/servidor.
+
+`DentalWorkspace` también pasa `idClinica` a `NotaClinicaForm` (modelo dental usa la misma form).
+
+### Reglas críticas
+
+- `type="button"` en todos los botones de `CopilotoNotaPanel` — están dentro de un `<form>` y no deben disparar submit
+- `getBullets` se llama al momento del click, no es reactivo — el textarea puede tener contenido existente
+- Insertar **siempre aneja**, nunca reemplaza: `${actual}\n\n---\n\n${borrador.contenido}`; si textarea vacío, inserta directo
+- Audit obligatorio con `createServiceClient()` incluso si el profesional descarta el borrador (se audita la llamada a Anthropic, no la inserción)
+
+### Disclaimer (texto literal — no modificar)
+
+> "Borrador generado por IA a partir de los apuntes ingresados. Debe ser revisado y editado por el profesional responsable antes de firmar."
+
+### Variables de entorno
+
+Misma key que Resumen IA: `ANTHROPIC_API_KEY` (ya en `.env.local` y Vercel). Sin `NEXT_PUBLIC_`.
+
+### Qué NO hace
+
+- No escribe en `fce_notas_clinicas`
+- No tiene caché
+- No toca el flujo de firma
+- No está disponible para rol recepcionista (`requireAccesoFCE` lo bloquea)
