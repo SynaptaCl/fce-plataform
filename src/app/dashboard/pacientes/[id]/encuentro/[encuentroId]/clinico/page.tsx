@@ -29,7 +29,7 @@ export default async function ClinicoPage({
     .eq("activo", true)
     .single();
 
-  const idClinica = adminRes.data?.id_clinica ?? null;
+  const idClinica = adminRes.data?.id_clinica ?? '';
   const rol = adminRes.data?.rol ?? "";
 
   const [patientResult, encuentroRes, notaResult] = await Promise.all([
@@ -127,8 +127,7 @@ export default async function ClinicoPage({
               patientId={id}
               notaExistente={nota}
               readOnly={readOnly}
-              especialidad={encuentro.especialidad}
-              idClinica={idClinica ?? ""}
+              idClinica={idClinica}
             />
           </div>
           <div className="w-full lg:w-80 xl:w-96 p-6 bg-surface-0">

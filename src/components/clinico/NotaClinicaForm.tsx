@@ -15,8 +15,7 @@ import { upsertNotaClinica, signNotaClinica } from "@/app/actions/clinico/nota-c
 import type { NotaClinica } from "@/types/nota-clinica";
 import { DiagnosticoSearch } from '@/components/clinico/DiagnosticoSearch';
 import type { ICDCodeSnap } from '@/lib/icd/types';
-import { CopilotoNotaButton } from '@/components/modules/CopilotoNota'
-import { CopilotoNotaPanel } from '@/components/modules/CopilotoNota'
+import { CopilotoNotaButton, CopilotoNotaPanel } from '@/components/modules/CopilotoNota'
 import type { BorradorNota } from '@/lib/ia/copiloto-nota/types'
 
 // ── Props ────────────────────────────────────────────────────────────────────
@@ -26,7 +25,6 @@ interface NotaClinicaFormProps {
   patientId: string;
   notaExistente?: NotaClinica | null;
   readOnly?: boolean;
-  especialidad: string;
   idClinica: string;
 }
 
@@ -37,7 +35,6 @@ export function NotaClinicaForm({
   patientId,
   notaExistente,
   readOnly: readOnlyProp = false,
-  especialidad,
   idClinica,
 }: NotaClinicaFormProps) {
   const [notaId, setNotaId] = useState<string | undefined>(notaExistente?.id);

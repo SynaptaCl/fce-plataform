@@ -136,7 +136,6 @@ export function DentalWorkspace({
                 patientId={paciente.id}
                 notaExistente={notaExistente}
                 readOnly={readOnly}
-                especialidad={especialidad}
                 idClinica={idClinica}
               />
             </div>
