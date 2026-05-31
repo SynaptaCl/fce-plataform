@@ -1,5 +1,6 @@
 'use client';
 
+import React from "react";
 import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
 import type { InstrumentoSchema, RegistroExternoResultado } from "@/types/instrumento";
@@ -8,14 +9,23 @@ import type { InstrumentoSchema, RegistroExternoResultado } from "@/types/instru
 
 function toExterno(valor: Record<string, number | string>): RegistroExternoResultado {
   return {
-    modulo_version: valor.modulo_version as string | undefined,
-    puntaje_general: valor.puntaje_general as string | undefined,
-    clasificacion: valor.clasificacion as string | undefined,
-    observaciones: valor.observaciones as string | undefined,
-    adjunto_url: valor.adjunto_url as string | undefined,
-    subescalas: valor.subescalas_json
-      ? (JSON.parse(valor.subescalas_json as string) as { label: string; valor: string }[])
-      : undefined,
+    modulo_version: typeof valor.modulo_version === "string" ? valor.modulo_version : undefined,
+    puntaje_general: typeof valor.puntaje_general === "string" ? valor.puntaje_general : undefined,
+    clasificacion: typeof valor.clasificacion === "string" ? valor.clasificacion : undefined,
+    observaciones: typeof valor.observaciones === "string" ? valor.observaciones : undefined,
+    adjunto_url: typeof valor.adjunto_url === "string" ? valor.adjunto_url : undefined,
+    subescalas: (() => {
+      const raw = valor.subescalas_json;
+      if (!raw) return undefined;
+      try {
+        const parsed = JSON.parse(raw as string);
+        return Array.isArray(parsed)
+          ? (parsed as { label: string; valor: string }[])
+          : undefined;
+      } catch {
+        return undefined;
+      }
+    })(),
   };
 }
 
@@ -49,6 +59,13 @@ export function RegistroResultadoExterno({
 }: RegistroResultadoExternoProps) {
   const externo = toExterno(valor);
 
+  // Stable keys for subescalas list — initialized once from existing subescalas
+  const initialSubescalas = React.useMemo(() => toExterno(valor).subescalas ?? [], []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const keysRef = React.useRef<string[]>(
+    initialSubescalas.map(() => Math.random().toString(36).slice(2))
+  );
+
   function update(patch: Partial<RegistroExternoResultado>) {
     onChange(fromExterno({ ...externo, ...patch }));
   }
@@ -60,11 +77,14 @@ export function RegistroResultadoExterno({
   }
 
   function addSubescala() {
+    if ((externo.subescalas ?? []).length >= 20) return;
+    keysRef.current = [...keysRef.current, Math.random().toString(36).slice(2)];
     const next = [...(externo.subescalas ?? []), { label: "", valor: "" }];
     update({ subescalas: next });
   }
 
   function removeSubescala(index: number) {
+    keysRef.current = keysRef.current.filter((_, i) => i !== index);
     const next = (externo.subescalas ?? []).filter((_, i) => i !== index);
     update({ subescalas: next.length > 0 ? next : undefined });
   }
@@ -160,7 +180,7 @@ export function RegistroResultadoExterno({
 
         <div className="space-y-2">
           {subescalas.map((sub, i) => (
-            <div key={i} className="flex gap-2 items-start">
+            <div key={keysRef.current[i] ?? i} className="flex gap-2 items-start">
               <div className="flex-1">
                 <input
                   type="text"
@@ -168,7 +188,7 @@ export function RegistroResultadoExterno({
                   value={sub.label}
                   onChange={(e) => handleSubescalaChange(i, "label", e.target.value)}
                   placeholder="Nombre"
-                  className="w-full px-3 py-2 text-sm rounded-lg border outline-none focus:ring-2"
+                  className="w-full px-3 py-2 text-sm rounded-lg border outline-none focus:ring-0 focus:border-[var(--color-kp-accent)]"
                   style={{
                     borderColor: "var(--color-kp-border)",
                     color: "var(--color-ink-1)",
@@ -182,7 +202,7 @@ export function RegistroResultadoExterno({
                   value={sub.valor}
                   onChange={(e) => handleSubescalaChange(i, "valor", e.target.value)}
                   placeholder="Resultado"
-                  className="w-full px-3 py-2 text-sm rounded-lg border outline-none focus:ring-2"
+                  className="w-full px-3 py-2 text-sm rounded-lg border outline-none focus:ring-0 focus:border-[var(--color-kp-accent)]"
                   style={{
                     borderColor: "var(--color-kp-border)",
                     color: "var(--color-ink-1)",

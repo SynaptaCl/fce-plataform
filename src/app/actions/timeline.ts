@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
 import { getIdClinica } from "./patients";
 import type { ActionResult } from "./patients";
 import type { SoapNote, VitalSigns } from "@/types";
@@ -152,22 +153,39 @@ export async function getPatientTimeline(
 
   const idClinica = await getIdClinica(supabase, user.id);
 
+  // Verificar que el paciente pertenece a la clínica del usuario antes de usar serviceClient.
+  // Esta validación usa el cliente con RLS — si falla, el acceso está bloqueado.
+  if (idClinica) {
+    const { data: patientOwnership } = await supabase
+      .from("pacientes")
+      .select("id")
+      .eq("id", patientId)
+      .eq("id_clinica", idClinica)
+      .maybeSingle();
+    if (!patientOwnership) {
+      return { success: false, error: "Acceso no autorizado" };
+    }
+  }
+
+  // serviceClient bypasea RLS en fce_notas_soap y fce_evaluaciones (que no tienen id_clinica).
+  // El ownership del paciente ya fue verificado arriba; el filtrado por clínica
+  // se aplica a nivel de aplicación con lógica deny-by-default.
+  const serviceClient = createServiceClient();
+
   const [soapRes, evalRes, vitalsRes, consentRes, anamnesisRes, notasRes, instrumentosRes, prescripcionesRes, ordenesExamenRes, egresosRes] = await Promise.all([
-    supabase
+    serviceClient
       .from("fce_notas_soap")
       .select("*")
       .eq("id_paciente", patientId)
       .order("created_at", { ascending: false }),
-    supabase
+    serviceClient
       .from("fce_evaluaciones")
       .select("*")
       .eq("id_paciente", patientId)
       .order("created_at", { ascending: false }),
-    supabase
-      .from("fce_signos_vitales")
-      .select("*")
-      .eq("id_paciente", patientId)
-      .order("recorded_at", { ascending: false }),
+    idClinica
+      ? supabase.from("fce_signos_vitales").select("*").eq("id_paciente", patientId).eq("id_clinica", idClinica).order("recorded_at", { ascending: false })
+      : supabase.from("fce_signos_vitales").select("*").eq("id_paciente", patientId).order("recorded_at", { ascending: false }),
     supabase
       .from("fce_consentimientos")
       .select("id, id_paciente, tipo, version, firmado, created_at")
@@ -222,20 +240,27 @@ export async function getPatientTimeline(
       : Promise.resolve({ data: [], error: null }),
   ]);
 
-  // Batch-fetch encuentros for SOAP notes to get especialidad
+  // Batch-fetch encuentros for SOAP notes AND notas_clinicas to get especialidad
   const soapEncIds = ((soapRes.data ?? []) as SoapNote[])
     .map((s) => s.id_encuentro)
     .filter((id): id is string => Boolean(id));
 
-  const soapEncMap = new Map<string, string>(); // encuentro_id → especialidad
-  if (soapEncIds.length > 0) {
-    const soapEncsQuery = supabase
+  const notasEncIds = ((notasRes.data ?? []) as NotaClinicaRow[])
+    .map((n) => n.id_encuentro)
+    .filter((id): id is string => Boolean(id));
+
+  const allEncIds = [...new Set([...soapEncIds, ...notasEncIds])];
+  const encEspMap = new Map<string, string>(); // encuentro_id → especialidad
+  const validEncIds = new Set<string>(); // encuentros de la clínica actual (para filtrar SOAP)
+  if (allEncIds.length > 0) {
+    const encsQuery = supabase
       .from("fce_encuentros")
       .select("id, especialidad")
-      .in("id", soapEncIds);
-    const { data: soapEncs } = await (idClinica ? soapEncsQuery.eq("id_clinica", idClinica) : soapEncsQuery);
-    for (const enc of soapEncs ?? []) {
-      if (enc.especialidad) soapEncMap.set(enc.id, enc.especialidad as string);
+      .in("id", allEncIds);
+    const { data: encs } = await (idClinica ? encsQuery.eq("id_clinica", idClinica) : encsQuery);
+    for (const enc of encs ?? []) {
+      validEncIds.add(enc.id);
+      if (enc.especialidad) encEspMap.set(enc.id, enc.especialidad as string);
     }
   }
 
@@ -262,14 +287,15 @@ export async function getPatientTimeline(
     if (e.firmado_por) profIds.add(e.firmado_por);
   }
 
-  const profMap = new Map<string, string>();
+  type ProfMapEntry = { nombre: string; id_clinica: string };
+  const profMap = new Map<string, ProfMapEntry>();
   if (profIds.size > 0) {
-    const { data: profs } = await supabase
+    const { data: profs } = await serviceClient
       .from("profesionales")
-      .select("id, nombre")
+      .select("id, nombre, id_clinica")
       .in("id", Array.from(profIds));
     for (const p of profs ?? []) {
-      profMap.set(p.id, p.nombre ?? "Profesional");
+      profMap.set(p.id, { nombre: p.nombre ?? "Profesional", id_clinica: p.id_clinica });
     }
   }
 
@@ -277,13 +303,15 @@ export async function getPatientTimeline(
 
   // SOAP notes
   for (const soap of (soapRes.data ?? []) as SoapNote[]) {
+    // Deny-by-default: excluir SOAP sin encuentro o de encuentros de otras clínicas
+    if (!soap.id_encuentro || !validEncIds.has(soap.id_encuentro)) continue;
     const cifItems = [
       ...(soap.analisis_cif?.funciones ?? []),
       ...(soap.analisis_cif?.actividades ?? []),
       ...(soap.analisis_cif?.participacion ?? []),
       ...(soap.analisis_cif?.contexto ?? []),
     ];
-    const soapEsp = soap.id_encuentro ? soapEncMap.get(soap.id_encuentro) : undefined;
+    const soapEsp = soap.id_encuentro ? encEspMap.get(soap.id_encuentro) : undefined;
     entries.push({
       id: soap.id,
       type: "soap",
@@ -291,7 +319,7 @@ export async function getPatientTimeline(
       especialidad: soapEsp,
       encuentroId: soap.id_encuentro ?? undefined,
       autor_id: soap.firmado_por,
-      profesional_nombre: soap.firmado_por ? profMap.get(soap.firmado_por) : undefined,
+      profesional_nombre: soap.firmado_por ? profMap.get(soap.firmado_por)?.nombre : undefined,
       titulo: "Nota SOAP",
       resumen: soap.subjetivo?.slice(0, 150) || "Sin descripción subjetiva",
       firmado: soap.firmado,
@@ -312,6 +340,10 @@ export async function getPatientTimeline(
 
   // Evaluaciones — especialidad viene como código exacto del catálogo desde DB
   for (const ev of (evalRes.data ?? []) as Evaluation[]) {
+    // Deny-by-default: excluir evaluaciones sin autor, sin clínica, o de otra clínica
+    if (!idClinica || !ev.created_by) continue;
+    const profInfo = profMap.get(ev.created_by);
+    if (!profInfo || profInfo.id_clinica !== idClinica) continue;
     const subAreaLabel = String(ev.sub_area ?? "").replace(/_/g, " ");
     entries.push({
       id: ev.id,
@@ -319,7 +351,7 @@ export async function getPatientTimeline(
       date: ev.created_at,
       especialidad: ev.especialidad,
       autor_id: ev.created_by,
-      profesional_nombre: ev.created_by ? profMap.get(ev.created_by) : undefined,
+      profesional_nombre: ev.created_by ? profMap.get(ev.created_by)?.nombre : undefined,
       titulo: `Evaluación — ${ev.especialidad ?? "Sin especialidad"}`,
       resumen: subAreaLabel ? `Área: ${subAreaLabel}` : "Evaluación registrada",
       data: {
@@ -338,7 +370,7 @@ export async function getPatientTimeline(
       type: "signos_vitales",
       date: vs.recorded_at,
       autor_id: vs.recorded_by,
-      profesional_nombre: vs.recorded_by ? profMap.get(vs.recorded_by) : undefined,
+      profesional_nombre: vs.recorded_by ? profMap.get(vs.recorded_by)?.nombre : undefined,
       titulo: "Signos Vitales",
       resumen: `PA ${vs.presion_arterial ?? "—"} · FC ${vs.frecuencia_cardiaca ?? "—"} bpm · SpO₂ ${vs.spo2 ?? "—"}%`,
       data: {
@@ -371,12 +403,15 @@ export async function getPatientTimeline(
 
   // Notas clínicas (modelo clinico_general)
   for (const nota of (notasRes.data ?? []) as NotaClinicaRow[]) {
+    const notaEsp = nota.id_encuentro ? encEspMap.get(nota.id_encuentro) : undefined;
+    const notaAutorId = nota.firmado_por ?? nota.created_by ?? undefined;
     entries.push({
       id: nota.id,
       type: "nota_clinica",
       date: nota.created_at,
-      autor_id: nota.created_by ?? undefined,
-      profesional_nombre: nota.created_by ? profMap.get(nota.created_by) : undefined,
+      especialidad: notaEsp,
+      autor_id: notaAutorId,
+      profesional_nombre: notaAutorId ? profMap.get(notaAutorId)?.nombre : undefined,
       titulo: `Nota clínica${nota.motivo_consulta ? ` — ${nota.motivo_consulta}` : ""}`,
       resumen: nota.contenido ? nota.contenido.slice(0, 150) : "",
       firmado: nota.firmado ?? undefined,
@@ -390,20 +425,26 @@ export async function getPatientTimeline(
         proxima_sesion: nota.proxima_sesion,
         firmado: nota.firmado,
         firmado_at: nota.firmado_at,
-        firmado_por_nombre: nota.firmado_por ? profMap.get(nota.firmado_por) : undefined,
+        firmado_por_nombre: nota.firmado_por ? profMap.get(nota.firmado_por)?.nombre : undefined,
       },
     });
   }
 
   // Instrumentos aplicados
   for (const inst of (instrumentosRes.data ?? []) as unknown as InstrumentoAplicadoRow[]) {
+    const instNombre = inst.instrumento?.nombre ?? "Instrumento";
+    const instTitulo = inst.puntaje_total !== null
+      ? `${instNombre}: ${inst.puntaje_total} — ${inst.interpretacion ?? "sin interpretación"}`
+      : inst.interpretacion
+        ? `${instNombre} — ${inst.interpretacion}`
+        : instNombre;
     entries.push({
       id: inst.id,
       type: "instrumento",
       date: inst.aplicado_at,
       autor_id: inst.aplicado_por ?? undefined,
-      profesional_nombre: inst.aplicado_por ? profMap.get(inst.aplicado_por) : undefined,
-      titulo: `${inst.instrumento?.nombre ?? "Instrumento"}: ${inst.puntaje_total ?? "—"} — ${inst.interpretacion ?? "sin interpretación"}`,
+      profesional_nombre: inst.aplicado_por ? profMap.get(inst.aplicado_por)?.nombre : undefined,
+      titulo: instTitulo,
       resumen: inst.interpretacion ?? "",
       encuentroId: inst.id_encuentro ?? undefined,
       data: {
@@ -495,7 +536,7 @@ export async function getPatientTimeline(
       type: "egreso",
       date: egreso.firmado_at ?? egreso.created_at,
       autor_id: egreso.created_by ?? undefined,
-      profesional_nombre: egreso.created_by ? profMap.get(egreso.created_by) : undefined,
+      profesional_nombre: egreso.created_by ? profMap.get(egreso.created_by)?.nombre : undefined,
       titulo: `Egreso — ${TIPO_LABELS[egreso.tipo_egreso] ?? egreso.tipo_egreso}`,
       resumen: egreso.diagnostico_egreso?.slice(0, 150) ?? "",
       firmado: egreso.firmado,

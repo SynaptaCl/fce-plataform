@@ -108,16 +108,18 @@ export function InstrumentoExpandedCard({ entry, patientId }: Props) {
         <div>
           <FieldLabel>Respuestas</FieldLabel>
           <div className="mt-1 space-y-0.5">
-            {Object.entries(respuestas).map(([key, val]) => (
-              <div key={key} className="flex items-start justify-between gap-2 text-xs">
-                <span className="text-ink-2 flex-1">
-                  {schemaMap.get(key) ?? key.replace(/_/g, " ")}
-                </span>
-                <span className="font-medium text-ink-1 shrink-0">
-                  {val != null ? String(val) : "—"}
-                </span>
-              </div>
-            ))}
+            {Object.entries(respuestas)
+              .filter(([key]) => key !== "subescalas_json")
+              .map(([key, val]) => (
+                <div key={key} className="flex items-start justify-between gap-2 text-xs">
+                  <span className="text-ink-2 flex-1">
+                    {schemaMap.get(key) ?? key.replace(/_/g, " ")}
+                  </span>
+                  <span className="font-medium text-ink-1 shrink-0">
+                    {val != null ? String(val) : "—"}
+                  </span>
+                </div>
+              ))}
           </div>
         </div>
       )}
