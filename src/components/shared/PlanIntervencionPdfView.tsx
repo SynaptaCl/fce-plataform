@@ -18,6 +18,15 @@ interface PlanIntervencionPdfViewProps {
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 
+function escapeHtml(s: unknown): string {
+  return String(s ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 function nombreCompleto(paciente: Patient): string {
   return [paciente.nombre, paciente.apellido_paterno, paciente.apellido_materno]
     .filter(Boolean)
@@ -61,7 +70,7 @@ function buildPdfHtml(plan: PlanIntervencionDetalle, paciente: Patient): string 
     ? `<p style="margin:2px 0;"><strong>Firmado el:</strong> ${formatFechaLarga(plan.firmado_at)}</p>`
     : "";
   const diagnosticoHtml = plan.diagnostico
-    ? `<p style="margin:2px 0;"><strong>Diagnóstico:</strong> ${plan.diagnostico}</p>`
+    ? `<p style="margin:2px 0;"><strong>Diagnóstico:</strong> ${escapeHtml(plan.diagnostico)}</p>`
     : "";
   const fechaGeneracion = formatFechaLarga(new Date().toISOString());
 
@@ -74,13 +83,13 @@ function buildPdfHtml(plan: PlanIntervencionDetalle, paciente: Patient): string 
       const itemsHtml = objsDominio
         .map((obj) => {
           const gasHtml = obj.gas_0
-            ? `<p style="margin:2px 0;font-size:11px;color:#475569;">Objetivo esperado (0): ${obj.gas_0}</p>`
+            ? `<p style="margin:2px 0;font-size:11px;color:#475569;">Objetivo esperado (0): ${escapeHtml(obj.gas_0)}</p>`
             : "";
           return `
             <div style="margin-bottom:12px;padding:8px;background:#F1F5F9;border-radius:4px;">
-              <p style="font-weight:bold;margin:0 0 4px 0;font-size:13px;">${obj.dominio_label}</p>
-              <p style="margin:2px 0;font-size:13px;">${obj.descripcion}</p>
-              <p style="margin:2px 0;font-size:11px;color:#475569;">Nivel actual: ${obj.nivel_actual} | Prioridad: ${obj.prioridad}</p>
+              <p style="font-weight:bold;margin:0 0 4px 0;font-size:13px;">${escapeHtml(obj.dominio_label)}</p>
+              <p style="margin:2px 0;font-size:13px;">${escapeHtml(obj.descripcion)}</p>
+              <p style="margin:2px 0;font-size:11px;color:#475569;">Nivel actual: ${escapeHtml(obj.nivel_actual)} | Prioridad: ${escapeHtml(obj.prioridad)}</p>
               ${gasHtml}
             </div>`;
         })
@@ -99,11 +108,11 @@ function buildPdfHtml(plan: PlanIntervencionDetalle, paciente: Patient): string 
 
   <!-- Datos del paciente -->
   <div style="margin-bottom:16px;">
-    <p style="margin:2px 0;"><strong>Paciente:</strong> ${nombre}</p>
-    <p style="margin:2px 0;"><strong>RUT:</strong> ${rut}</p>
+    <p style="margin:2px 0;"><strong>Paciente:</strong> ${escapeHtml(nombre)}</p>
+    <p style="margin:2px 0;"><strong>RUT:</strong> ${escapeHtml(rut)}</p>
     <p style="margin:2px 0;"><strong>Fecha inicio:</strong> ${fechaInicio}</p>
     <p style="margin:2px 0;"><strong>Fecha revisión:</strong> ${fechaRevision}</p>
-    <p style="margin:2px 0;"><strong>Estado:</strong> ${estado}</p>
+    <p style="margin:2px 0;"><strong>Estado:</strong> ${escapeHtml(estado)}</p>
     ${firmadoHtml}
   </div>
 
