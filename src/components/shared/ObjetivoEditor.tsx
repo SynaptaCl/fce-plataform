@@ -79,6 +79,7 @@ export function ObjetivoEditor({
   const {
     register,
     handleSubmit,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<ObjetivoFormValues>({
     resolver: zodResolver(objetivoSchema),
@@ -186,13 +187,10 @@ export function ObjetivoEditor({
                     background: "var(--color-surface-1)",
                   }}
                   onChange={(e) => {
-                    // sync dominio_label from selected option label
                     const selected = dominiosDisponibles.find((d) => d.codigo === e.target.value);
                     if (selected) {
-                      const labelInput = document.querySelector<HTMLInputElement>(
-                        '[name="dominio_label"]'
-                      );
-                      if (labelInput) labelInput.value = selected.label;
+                      setValue("dominio_label", selected.label, { shouldValidate: true });
+                      setValue("dominio_codigo", e.target.value, { shouldValidate: true });
                     }
                   }}
                 >
