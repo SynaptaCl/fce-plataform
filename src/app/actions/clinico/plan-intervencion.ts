@@ -431,6 +431,7 @@ export async function eliminarObjetivo(objetivoId: string): Promise<ActionResult
     .from("fce_planes_intervencion")
     .select("estado")
     .eq("id", obj.id_plan)
+    .eq("id_clinica", idClinica)
     .single();
 
   if (planError || !plan) {
@@ -513,10 +514,14 @@ export async function registrarProgreso(params: {
   }
 
   // UPDATE nivel_actual en el objetivo
-  await supabase
+  const { error: updateObjError } = await supabase
     .from("fce_plan_objetivos")
     .update({ nivel_actual: params.nivelGas, updated_at: new Date().toISOString() })
-    .eq("id", params.objetivoId);
+    .eq("id", params.objetivoId)
+    .eq("id_clinica", idClinica);
+  if (updateObjError) {
+    return { success: false, error: "Progreso insertado pero no se pudo actualizar nivel_actual: " + updateObjError.message };
+  }
 
   await logAudit(
     supabase,
