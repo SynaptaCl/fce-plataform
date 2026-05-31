@@ -1,6 +1,6 @@
 # CLAUDE.md — FCE Platform (fce-plataform)
 
-> Última actualización: 2026-05-26 (Copiloto de Escritura — IA inline en NotaClinicaForm)
+> Última actualización: 2026-05-31 (N1 — Módulo M10 Plan de Intervención Neurodesarrollo)
 > Este documento es la fuente de verdad para Claude Code. Leerlo antes de cualquier cambio.
 
 ---
@@ -103,6 +103,7 @@ El workspace dental vive en `/encuentro/[encuentroId]/dental/page.tsx` y usa `De
 | M7_prescripciones | `fce_prescripciones`, `medicamentos_catalogo` | no |
 | M8_examenes | `fce_ordenes_examen`, `examenes_catalogo` | no |
 | M9_egresos | `fce_egresos` | no |
+| M10_plan_intervencion | `fce_planes_intervencion`, `fce_plan_objetivos`, `fce_plan_progreso`, `plantillas_dominios` | no |
 
 ---
 
@@ -110,11 +111,11 @@ El workspace dental vive en `/encuentro/[encuentroId]/dental/page.tsx` y usa `De
 
 Para columnas exactas consultar `docs/schema-real.md` o MCP Supabase.
 
-**Con `id_clinica`**: pacientes, fce_anamnesis, fce_encuentros, fce_consentimientos, clinicas_fce_config, instrumentos_aplicados, fce_notas_clinicas, fce_prescripciones, fce_ordenes_examen, fce_egresos
+**Con `id_clinica`**: pacientes, fce_anamnesis, fce_encuentros, fce_consentimientos, clinicas_fce_config, instrumentos_aplicados, fce_notas_clinicas, fce_prescripciones, fce_ordenes_examen, fce_egresos, fce_planes_intervencion, fce_plan_objetivos, fce_plan_progreso
 
 **Sin `id_clinica`** (filtrar via JOIN): fce_evaluaciones, fce_notas_soap
 
-**Catálogos globales**: especialidades_catalogo, instrumentos_valoracion, medicamentos_catalogo, examenes_catalogo
+**Catálogos globales**: especialidades_catalogo, instrumentos_valoracion, medicamentos_catalogo, examenes_catalogo, plantillas_dominios
 
 **De otros repos (SOLO READ)**: citas, disponibilidad, pagos, conversaciones — nunca INSERT/UPDATE desde este repo.
 
@@ -349,6 +350,7 @@ Para trabajar "para" una clínica, leer `clinics/<slug>/CLAUDE.md` y respetar su
 | R-ICD-1 | DiagnosticoSearch ICD-11 MMS integrado en NotaClinicaForm + PeriogramaForm + Timeline chips FHIR |
 | R-ICD-2 | CifSearch autocomplete ICF API — reemplaza input libre en CifMapper (actions/rehab/cif.ts + CifSearch.tsx) |
 | Copiloto Escritura | IA inline en NotaClinicaForm: bullets → nota clínica en prosa. Modelo `claude-sonnet-4-6`, server action `copiloto-nota.ts`, audit `nota_estructurada_ia` |
+| N1 | Módulo M10 Plan de Intervención: plantillas por dominio, GAS, progreso, PDF, timeline, registro_externo para instrumentos externos |
 
 ### Pendientes
 
@@ -369,6 +371,9 @@ Para trabajar "para" una clínica, leer `clinics/<slug>/CLAUDE.md` y respetar su
 | `fce_egresos` + `pacientes.estado_clinico` + M9 activo en Renata | 2026-04-27 |
 | `fce_resumenes_ia` (migración ya aplicada) | 2026-04-30 |
 | Columnas ICD-11 en `fce_notas_clinicas` + `fce_periogramas` — **generadas en R-ICD-1, PENDIENTES de aplicar** | 2026-05-07 |
+| `fce_planes_intervencion`, `fce_plan_objetivos`, `fce_plan_progreso`, `plantillas_dominios` | 2026-05-31 |
+| Columna `secciones_estructuradas jsonb` en `fce_notas_clinicas` | 2026-05-31 |
+| Tipo `registro_externo` en `instrumentos_valoracion` | 2026-05-31 |
 
 ### Deuda técnica
 
