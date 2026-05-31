@@ -104,6 +104,39 @@ export async function aplicarInstrumento(params: {
 
   const schema = instrumento as InstrumentoSchema;
 
+  // Para instrumentos de tipo registro_externo: NO calcular puntaje numérico
+  if (schema.tipo_renderer === "registro_externo") {
+    // La clasificación viene en respuestas.clasificacion
+    const clasificacion = typeof respuestas.clasificacion === "string"
+      ? respuestas.clasificacion
+      : null;
+
+    const { data: inserted, error: insertError } = await supabase
+      .from("instrumentos_aplicados")
+      .insert({
+        id_clinica: idClinica,
+        id_paciente: patientId,
+        id_encuentro: encuentroId,
+        id_instrumento: instrumentoId,
+        respuestas,
+        puntaje_total: null,
+        interpretacion: clasificacion,
+        notas: notas ?? null,
+        mostrar_en_timeline: mostrarEnTimeline ?? true,
+        aplicado_por: user.id,
+        aplicado_at: new Date().toISOString(),
+      })
+      .select("id")
+      .single();
+
+    if (insertError || !inserted) {
+      return { success: false, error: insertError?.message ?? "Error al guardar el instrumento." };
+    }
+
+    await logAudit(supabase, user.id, "aplicar_instrumento", "instrumentos_aplicados", inserted.id, idClinica, patientId);
+    return { success: true, data: { id: inserted.id } };
+  }
+
   // Calcular puntaje server-side
   const puntaje = schema.schema_items
     ? calcularPuntaje(schema.schema_items, respuestas)

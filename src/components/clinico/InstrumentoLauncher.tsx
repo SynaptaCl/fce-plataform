@@ -2,6 +2,7 @@
 
 import { useState, useEffect, type ComponentType } from "react";
 import { EscalaSimpleRenderer } from "@/components/clinico/EscalaSimpleRenderer";
+import { RegistroResultadoExterno } from "@/components/clinico/RegistroResultadoExterno";
 import { getCustomComponentLoader } from "@/lib/instrumentos/registry-custom";
 import { getCatalogoInstrumentos, aplicarInstrumento } from "@/app/actions/clinico/instrumentos";
 import type { InstrumentoSchema, InstrumentoCustomProps } from "@/types/instrumento";
@@ -227,9 +228,11 @@ export function InstrumentoLauncher({
                       onChange={setRespuestas}
                     />
                   ) : instrumentoSeleccionado.tipo_renderer === "registro_externo" ? (
-                    <div style={{ padding: '1rem', color: 'var(--color-ink-2)', textAlign: 'center' }}>
-                      Registro de evaluación externa — disponible próximamente
-                    </div>
+                    <RegistroResultadoExterno
+                      schema={instrumentoSeleccionado}
+                      valor={respuestas}
+                      onChange={setRespuestas}
+                    />
                   ) : CustomComp ? (
                     <CustomComp
                       schema={instrumentoSeleccionado}
