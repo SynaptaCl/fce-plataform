@@ -17,6 +17,16 @@ import { DiagnosticoSearch } from '@/components/clinico/DiagnosticoSearch';
 import type { ICDCodeSnap } from '@/lib/icd/types';
 import { CopilotoNotaButton, CopilotoNotaPanel } from '@/components/modules/CopilotoNota'
 import type { BorradorNota } from '@/lib/ia/copiloto-nota/types'
+import type { PlanIntervencion } from '@/types/plan-intervencion'
+
+// ── Tipos internos ───────────────────────────────────────────────────────────
+
+interface SeccionesEstructuradas {
+  conductas_observadas?: string;
+  participacion_cuidador?: string;
+  estrategias?: string;
+  asistencia?: string;
+}
 
 // ── Props ────────────────────────────────────────────────────────────────────
 
@@ -26,6 +36,8 @@ interface NotaClinicaFormProps {
   notaExistente?: NotaClinica | null;
   readOnly?: boolean;
   idClinica: string;
+  m10Activo?: boolean;
+  planActivo?: PlanIntervencion | null;
 }
 
 // ── Componente principal ─────────────────────────────────────────────────────
@@ -36,6 +48,8 @@ export function NotaClinicaForm({
   notaExistente,
   readOnly: readOnlyProp = false,
   idClinica,
+  m10Activo = false,
+  planActivo: _planActivo,
 }: NotaClinicaFormProps) {
   const [notaId, setNotaId] = useState<string | undefined>(notaExistente?.id);
   const [serverError, setServerError] = useState<string | null>(null);
@@ -58,6 +72,10 @@ export function NotaClinicaForm({
   );
 
   const [borradorActivo, setBorradorActivo] = useState<BorradorNota | null>(null)
+
+  const [seccionesEstructuradas, setSeccionesEstructuradas] = useState<SeccionesEstructuradas>(
+    (notaExistente?.secciones_estructuradas as SeccionesEstructuradas) ?? {}
+  )
 
   const {
     register,
@@ -91,6 +109,7 @@ export function NotaClinicaForm({
       cie10_codigos: cie10,
       icd_codigos: icdCodigos,
       icd_version: 'ICD-11 2025-01',
+      ...(m10Activo ? { secciones_estructuradas: seccionesEstructuradas } : {}),
     });
 
     if (!result.success) { setServerError(result.error); return; }
@@ -214,6 +233,124 @@ export function NotaClinicaForm({
             onInsertar={handleInsertar}
             onDescartar={() => setBorradorActivo(null)}
           />
+        )}
+
+        {/* Registro de sesión M10 — solo si m10Activo y hay contenido o no es readOnly */}
+        {m10Activo && (!readOnly || Object.values(seccionesEstructuradas).some(Boolean)) && (
+          <div className="rounded-lg border border-kp-border bg-surface-0 p-4 space-y-4">
+            <p className="text-sm font-semibold text-ink-1">
+              Registro de sesión{" "}
+              <span className="font-normal text-ink-3">(Neurodesarrollo)</span>
+            </p>
+
+            {/* Conductas observadas */}
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-ink-2">
+                Conductas observadas{" "}
+                <span className="text-ink-3 font-normal">(opcional)</span>
+              </label>
+              {readOnly ? (
+                seccionesEstructuradas.conductas_observadas ? (
+                  <p className="text-sm text-ink-1 whitespace-pre-wrap">
+                    {seccionesEstructuradas.conductas_observadas}
+                  </p>
+                ) : null
+              ) : (
+                <Textarea
+                  value={seccionesEstructuradas.conductas_observadas ?? ""}
+                  onChange={(e) =>
+                    setSeccionesEstructuradas((prev) => ({
+                      ...prev,
+                      conductas_observadas: e.target.value,
+                    }))
+                  }
+                  rows={3}
+                  placeholder="Conductas observadas durante la sesión…"
+                />
+              )}
+            </div>
+
+            {/* Participación del cuidador */}
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-ink-2">
+                Participación del cuidador{" "}
+                <span className="text-ink-3 font-normal">(opcional)</span>
+              </label>
+              {readOnly ? (
+                seccionesEstructuradas.participacion_cuidador ? (
+                  <p className="text-sm text-ink-1 whitespace-pre-wrap">
+                    {seccionesEstructuradas.participacion_cuidador}
+                  </p>
+                ) : null
+              ) : (
+                <Textarea
+                  value={seccionesEstructuradas.participacion_cuidador ?? ""}
+                  onChange={(e) =>
+                    setSeccionesEstructuradas((prev) => ({
+                      ...prev,
+                      participacion_cuidador: e.target.value,
+                    }))
+                  }
+                  rows={3}
+                  placeholder="Rol y participación del cuidador en la sesión…"
+                />
+              )}
+            </div>
+
+            {/* Estrategias utilizadas */}
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-ink-2">
+                Estrategias utilizadas{" "}
+                <span className="text-ink-3 font-normal">(opcional)</span>
+              </label>
+              {readOnly ? (
+                seccionesEstructuradas.estrategias ? (
+                  <p className="text-sm text-ink-1 whitespace-pre-wrap">
+                    {seccionesEstructuradas.estrategias}
+                  </p>
+                ) : null
+              ) : (
+                <Textarea
+                  value={seccionesEstructuradas.estrategias ?? ""}
+                  onChange={(e) =>
+                    setSeccionesEstructuradas((prev) => ({
+                      ...prev,
+                      estrategias: e.target.value,
+                    }))
+                  }
+                  rows={3}
+                  placeholder="Estrategias y técnicas utilizadas durante la sesión…"
+                />
+              )}
+            </div>
+
+            {/* Asistencia */}
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-ink-2">
+                Asistencia{" "}
+                <span className="text-ink-3 font-normal">(opcional)</span>
+              </label>
+              {readOnly ? (
+                seccionesEstructuradas.asistencia ? (
+                  <p className="text-sm text-ink-1 whitespace-pre-wrap">
+                    {seccionesEstructuradas.asistencia}
+                  </p>
+                ) : null
+              ) : (
+                <Textarea
+                  value={seccionesEstructuradas.asistencia ?? ""}
+                  onChange={(e) =>
+                    setSeccionesEstructuradas((prev) => ({
+                      ...prev,
+                      asistencia: e.target.value,
+                    }))
+                  }
+                  rows={2}
+                  placeholder="Nivel de asistencia requerida…"
+                />
+              )}
+            </div>
+          </div>
         )}
 
         {/* Diagnóstico ICD-11 */}

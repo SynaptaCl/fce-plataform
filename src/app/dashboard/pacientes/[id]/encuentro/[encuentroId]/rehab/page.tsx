@@ -13,6 +13,9 @@ import { getPatientById } from "@/app/actions/patients";
 import { getProfesionalActivo } from "@/lib/fce/profesional";
 import { PrescripcionLauncher } from "@/components/shared/PrescripcionLauncher";
 import { FirmarHeaderButton } from "@/components/shared/FirmarHeaderButton";
+import { getClinicaConfig } from "@/lib/modules/config";
+import { getPlanesIntervencion } from "@/app/actions/clinico/plan-intervencion";
+import { PlanIntervencionLauncher } from "@/components/shared/PlanIntervencionLauncher";
 import type { SoapNote } from "@/types";
 import type { Evaluation } from "@/types";
 
@@ -39,6 +42,9 @@ export default async function RehabPage({
 
   const idClinica = adminRes.data?.id_clinica ?? null;
   const rol = adminRes.data?.rol ?? "";
+
+  const config = idClinica ? await getClinicaConfig(idClinica, supabase) : null;
+  const m10Activo = config?.modulosActivos.includes("M10_plan_intervencion") ?? false;
 
   const [patientResult, encuentroRes, soapRes, evaluacionesRes] =
     await Promise.all([
@@ -69,6 +75,11 @@ export default async function RehabPage({
   const encuentro = encuentroRes.data;
   const soapNote = (soapRes.data as SoapNote | null) ?? null;
   const evaluaciones = (evaluacionesRes.data ?? []) as Evaluation[];
+
+  const planesResult = m10Activo ? await getPlanesIntervencion(id) : null;
+  const planActivo = planesResult?.success
+    ? planesResult.data.find((p) => p.estado === "activo" || p.estado === "borrador") ?? null
+    : null;
 
   // Permisos
   const isAdmin = ["admin", "director", "superadmin"].includes(rol);
@@ -170,6 +181,13 @@ export default async function RehabPage({
             </h1>
           </div>
           <div className="flex items-center gap-3">
+            {m10Activo && (
+              <PlanIntervencionLauncher
+                patientId={patient.id}
+                encuentroId={encuentroId}
+                planActivo={planActivo}
+              />
+            )}
             <PrescripcionLauncher patientId={patient.id} encuentroId={encuentroId} paciente={patient} />
           </div>
         </div>

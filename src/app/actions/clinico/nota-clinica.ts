@@ -76,6 +76,7 @@ export async function upsertNotaClinica(
 
   // Normalize optional fields: empty strings → null, cie10_codigos vacío → null
   const { motivo_consulta, contenido, diagnostico, cie10_codigos, plan, proxima_sesion } = parsed.data;
+  const seccionesEstructuradas = (formData.secciones_estructuradas as Record<string, unknown> | null | undefined) ?? null;
   const cleanedData = {
     motivo_consulta: motivo_consulta || null,
     contenido,
@@ -83,6 +84,7 @@ export async function upsertNotaClinica(
     cie10_codigos: cie10_codigos && cie10_codigos.length > 0 ? cie10_codigos : null,
     plan: plan || null,
     proxima_sesion: proxima_sesion || null,
+    secciones_estructuradas: seccionesEstructuradas,
   };
 
   // Check if nota already exists for this encuentro

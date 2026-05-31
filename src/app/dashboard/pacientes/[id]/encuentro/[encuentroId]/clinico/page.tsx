@@ -10,6 +10,9 @@ import { getProfesionalActivo } from "@/lib/fce/profesional";
 import { PrescripcionLauncher } from "@/components/shared/PrescripcionLauncher";
 import { OrdenExamenLauncher } from "@/components/shared/OrdenExamenLauncher";
 import { FirmarHeaderButton } from "@/components/shared/FirmarHeaderButton";
+import { getClinicaConfig } from "@/lib/modules/config";
+import { getPlanesIntervencion } from "@/app/actions/clinico/plan-intervencion";
+import { PlanIntervencionLauncher } from "@/components/shared/PlanIntervencionLauncher";
 
 export default async function ClinicoPage({
   params,
@@ -32,6 +35,9 @@ export default async function ClinicoPage({
   const idClinica = adminRes.data?.id_clinica ?? '';
   const rol = adminRes.data?.rol ?? "";
 
+  const config = idClinica ? await getClinicaConfig(idClinica, supabase) : null;
+  const m10Activo = config?.modulosActivos.includes("M10_plan_intervencion") ?? false;
+
   const [patientResult, encuentroRes, notaResult] = await Promise.all([
     getPatientById(id),
     supabase
@@ -43,6 +49,11 @@ export default async function ClinicoPage({
     getNotaClinica(encuentroId),
     getProfesionalActivo(supabase, user.id, idClinica ?? undefined),
   ]);
+
+  const planesResult = m10Activo ? await getPlanesIntervencion(id) : null;
+  const planActivo = planesResult?.success
+    ? planesResult.data.find((p) => p.estado === "activo" || p.estado === "borrador") ?? null
+    : null;
 
   if (!patientResult.success || encuentroRes.error || !encuentroRes.data) notFound();
 
@@ -114,6 +125,13 @@ export default async function ClinicoPage({
             </h1>
           </div>
           <div className="flex items-center gap-3">
+            {m10Activo && (
+              <PlanIntervencionLauncher
+                patientId={patient.id}
+                encuentroId={encuentroId}
+                planActivo={planActivo}
+              />
+            )}
             <PrescripcionLauncher patientId={patient.id} encuentroId={encuentroId} paciente={patient} />
             <OrdenExamenLauncher patientId={patient.id} encuentroId={encuentroId} paciente={patient} />
           </div>
@@ -128,6 +146,8 @@ export default async function ClinicoPage({
               notaExistente={nota}
               readOnly={readOnly}
               idClinica={idClinica}
+              m10Activo={m10Activo}
+              planActivo={planActivo}
             />
           </div>
           <div className="w-full lg:w-80 xl:w-96 p-6 bg-surface-0">
