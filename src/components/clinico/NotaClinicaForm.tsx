@@ -49,6 +49,8 @@ export function NotaClinicaForm({
   readOnly: readOnlyProp = false,
   idClinica,
   m10Activo = false,
+  // planActivo disponible para futura integración de progreso desde nota
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   planActivo: _planActivo,
 }: NotaClinicaFormProps) {
   const [notaId, setNotaId] = useState<string | undefined>(notaExistente?.id);

@@ -1,6 +1,6 @@
 'use client';
 
-import React from "react";
+import React, { useState } from "react";
 import { Input } from "@/components/ui/Input";
 import { Textarea } from "@/components/ui/Textarea";
 import type { InstrumentoSchema, RegistroExternoResultado } from "@/types/instrumento";
@@ -59,11 +59,9 @@ export function RegistroResultadoExterno({
 }: RegistroResultadoExternoProps) {
   const externo = toExterno(valor);
 
-  // Stable keys for subescalas list — initialized once from existing subescalas
-  const initialSubescalas = React.useMemo(() => toExterno(valor).subescalas ?? [], []);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const keysRef = React.useRef<string[]>(
-    initialSubescalas.map(() => Math.random().toString(36).slice(2))
+  // Stable keys for subescalas list — using useState so keys are stable across renders
+  const [subescalaKeys, setSubescalaKeys] = useState<string[]>(() =>
+    (toExterno(valor).subescalas ?? []).map((_, i) => `sk-${i}`)
   );
 
   function update(patch: Partial<RegistroExternoResultado>) {
@@ -77,14 +75,14 @@ export function RegistroResultadoExterno({
   }
 
   function addSubescala() {
-    if ((externo.subescalas ?? []).length >= 20) return;
-    keysRef.current = [...keysRef.current, Math.random().toString(36).slice(2)];
-    const next = [...(externo.subescalas ?? []), { label: "", valor: "" }];
-    update({ subescalas: next });
+    const current = externo.subescalas ?? [];
+    if (current.length >= 20) return;
+    setSubescalaKeys((prev) => [...prev, `sk-${prev.length}`]);
+    update({ subescalas: [...current, { label: "", valor: "" }] });
   }
 
   function removeSubescala(index: number) {
-    keysRef.current = keysRef.current.filter((_, i) => i !== index);
+    setSubescalaKeys((prev) => prev.filter((_, i) => i !== index));
     const next = (externo.subescalas ?? []).filter((_, i) => i !== index);
     update({ subescalas: next.length > 0 ? next : undefined });
   }
@@ -180,7 +178,7 @@ export function RegistroResultadoExterno({
 
         <div className="space-y-2">
           {subescalas.map((sub, i) => (
-            <div key={keysRef.current[i] ?? i} className="flex gap-2 items-start">
+            <div key={subescalaKeys[i] ?? i} className="flex gap-2 items-start">
               <div className="flex-1">
                 <input
                   type="text"

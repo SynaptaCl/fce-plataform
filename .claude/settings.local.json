@@ -158,7 +158,8 @@
       "mcp__363fad75-1b71-485c-8c4d-203106b352d3__execute_sql",
       "mcp__363fad75-1b71-485c-8c4d-203106b352d3__apply_migration",
       "Bash(npm test *)",
-      "Bash(powershell -Command \"Get-ChildItem -Path 'C:\\\\Users\\\\alexi\\\\synapta' -Recurse -Include 'globals.css', 'Button.tsx', 'Navbar.tsx', 'tailwind.config.js', 'tailwind.config.ts', 'ContactForm.tsx', 'InteractiveWaveBackground*' -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName\")"
+      "Bash(powershell -Command \"Get-ChildItem -Path 'C:\\\\Users\\\\alexi\\\\synapta' -Recurse -Include 'globals.css', 'Button.tsx', 'Navbar.tsx', 'tailwind.config.js', 'tailwind.config.ts', 'ContactForm.tsx', 'InteractiveWaveBackground*' -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName\")",
+      "mcp__plugin_claude-mem_mcp-search__smart_outline"
     ]
   },
   "mcpServers": {

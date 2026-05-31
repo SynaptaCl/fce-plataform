@@ -334,7 +334,7 @@ export async function getPatientTimeline(
 
   // Fetch objetivos count por plan (batch query)
   const planIds = planes.map((p) => p.id);
-  let objetivosMap = new Map<string, number>();
+  const objetivosMap = new Map<string, number>();
   if (planIds.length > 0 && idClinica) {
     const { data: objetivos } = await supabase
       .from("fce_plan_objetivos")
