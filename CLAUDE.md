@@ -7,7 +7,7 @@
 
 ## 1. QUÉ ES ESTE PROYECTO
 
-**fce-plataform** — Ficha Clínica Electrónica multi-tenant para clínicas chilenas. Next.js App Router + Supabase. Cubre módulos FCE (M1–M8). Agenda, pagos, chatbot viven en repo `synapta`.
+**fce-plataform** — Ficha Clínica Electrónica multi-tenant para clínicas chilenas. Next.js App Router + Supabase. Cubre módulos FCE (M1–M10). Agenda, pagos, chatbot viven en repo `synapta`.
 
 **3 repos comparten DB** Supabase `vigyhfpwyxihrjiygfsa`:
 
@@ -32,7 +32,7 @@
 
 ## 3. STACK TÉCNICO
 
-Next.js 16.2.3 (Turbopack) · TypeScript strict · Tailwind v4 · Supabase (`@supabase/ssr ^0.10.2`) · Vercel · react-hook-form + zod · lucide-react · html2pdf.js · date-fns · motion/react
+Next.js 16.2.3 (Turbopack) · TypeScript strict · Tailwind v4 · Supabase (`@supabase/ssr ^0.10.2`) · Vercel · react-hook-form + zod · lucide-react · html2pdf.js · date-fns · motion/react · recharts
 
 ---
 
@@ -72,7 +72,7 @@ Tokens dinámicos inyectados por clínica (ejemplos): `--color-kp-primary`, `--c
 ## 6. ARQUITECTURA MULTI-TENANT
 
 ```
-1. CATÁLOGO (código)     → src/lib/modules/registry.ts — 8 módulos, 10 especialidades, modelos
+1. CATÁLOGO (código)     → src/lib/modules/registry.ts — 10 módulos, 10 especialidades, modelos
 2. CONFIGURACIÓN (DB)    → clinicas_fce_config — módulos/especialidades activas por clínica
 3. GUARDS (runtime)      → src/lib/modules/guards.ts — requireModule, assertPuedeFirmar, etc.
 4. UI CONDICIONAL        → Sidebar + rutas filtradas por config
@@ -220,8 +220,8 @@ El cliente `src/lib/icd/client.ts` cachea el OAuth2 token en memoria de proceso 
 ```
 src/app/dashboard/pacientes/[id]/encuentro/[encuentroId]/
   ├── page.tsx          → Router: redirect a /rehab | /clinico | /dental según modelo
-  ├── rehab/page.tsx    → SoapForm + EvalComponent
-  ├── clinico/page.tsx  → NotaClinicaForm + InstrumentosPanel + PrescripcionLauncher + OrdenExamenLauncher
+  ├── rehab/page.tsx    → SoapForm + EvalComponent + PlanIntervencionLauncher (si M10 activo)
+  ├── clinico/page.tsx  → NotaClinicaForm + InstrumentosPanel + PrescripcionLauncher + OrdenExamenLauncher + PlanIntervencionLauncher (si M10 activo)
   └── dental/page.tsx   → DentalWorkspace (odontograma + periograma + plan + ICD-11)
 
 src/app/actions/
@@ -230,7 +230,8 @@ src/app/actions/
   ├── prescripciones.ts, ordenes-examen.ts
   ├── copiloto-nota.ts
   ├── rehab/    → soap.ts, evaluacion.ts, cif.ts
-  ├── clinico/  → nota-clinica.ts, nota-rapida.ts, instrumentos.ts, catalogo-instrumentos.ts, diagnostico.ts
+  ├── clinico/  → nota-clinica.ts, nota-rapida.ts, instrumentos.ts, catalogo-instrumentos.ts, diagnostico.ts,
+  │               plan-intervencion.ts, plantillas-dominios.ts
   └── dental/   → odontograma.ts, periograma.ts, plan-tratamiento.ts, procedimientos.ts
 
 src/components/
@@ -240,14 +241,15 @@ src/components/
   ├── modules/  → ClinicalTimeline, EvaluacionTimeline, PatientActionNav, PatientNav
   │   ├── timeline/ → SoapExpandedCard, EvaluacionExpandedCard, NotaClinicaExpandedCard,
   │   │               PrescripcionExpandedCard, OrdenExamenExpandedCard, InstrumentoExpandedCard,
-  │   │               ConsentimientoExpandedCard, SignosVitalesExpandedCard, _shared.tsx
+  │   │               ConsentimientoExpandedCard, SignosVitalesExpandedCard,
+  │   │               PlanIntervencionExpandedCard, _shared.tsx
   │   ├── ResumenIA/ → ResumenIAButton, ResumenIAModal, ResumenIAReport (index.ts)
   │   └── CopilotoNota/ → CopilotoNotaButton, CopilotoNotaPanel (index.ts)
   ├── rehab/    → SoapForm, CifMapper, CifSearch, KinesiologiaEval, FonoaudiologiaEval,
   │               MasoterapiaEval, GenericEval (index.ts)
   ├── clinico/  → NotaClinicaForm, InstrumentosPanel, InstrumentoLauncher,
   │               InstrumentoResultadoCard, EscalaSimpleRenderer, QuickNoteModal,
-  │               DiagnosticoSearch, DiagnosticoChip
+  │               DiagnosticoSearch, DiagnosticoChip, RegistroResultadoExterno
   │               instrumentos-custom/ → ApgarScore, GlasgowComaScale
   ├── dental/   → DentalWorkspace, OdontogramaInteractivo, OdontogramaPieza, OdontogramaLeyenda,
   │               PiezaDetailPanel, PeriogramaForm, PeriogramaChart,
@@ -262,7 +264,9 @@ src/components/
                      FirmaPanel, MedicamentoSelector, MedicamentoCard, MedicamentoEditor,
                      IndicacionGeneralEditor, RecetaPdfView),
                    OrdenExamen* (Launcher, Form, List, DetalleModal,
-                     FirmaPanel, ExamenSelector, ExamenCard, OrdenExamenPdfView)
+                     FirmaPanel, ExamenSelector, ExamenCard, OrdenExamenPdfView),
+                   PlanIntervencion* (PlanIntervencionLauncher, PlanIntervencionPanel,
+                     ObjetivoEditor, ProgresoRegistro, ProgresoChart, PlanIntervencionPdfView)
 
 src/lib/
   ├── modules/        → registry.ts, config.ts, guards.ts (ActionResult aquí), modelos.ts, provider.tsx
@@ -286,7 +290,11 @@ src/types/
     evaluation.ts, instrumento.ts, cif.ts, prescripcion.ts, medicamento.ts,
     orden-examen.ts, egreso.ts, timeline.ts, resumen-ia.ts, audit.ts,
     diagnostico.ts (re-exporta ICDSearchResult/ICDCodeSnap/DiagnosticoGuardado + DiagnosticoSearchProps),
-    odontograma.ts, periograma.ts, plan-tratamiento.ts, practitioner.ts
+    odontograma.ts, periograma.ts, plan-tratamiento.ts, practitioner.ts,
+    plan-intervencion.ts, plantilla-dominio.ts
+
+scripts/
+  → test-sprint-n1.ts  (smoke test manual M10)
 
 clinics/{korporis,nuvident,renata}/CLAUDE.md
 ```
@@ -300,6 +308,7 @@ npm run dev              # Desarrollo (Turbopack)
 npm run build            # Build (0 errores obligatorio)
 npm run lint             # Linting
 npm run test:sprint-r7   # Tests regresión (33 checks)
+npx tsx scripts/test-sprint-n1.ts  # Smoke test M10 (requiere IDs de prueba configurados)
 ```
 
 ---
@@ -310,7 +319,7 @@ npm run test:sprint-r7   # Tests regresión (33 checks)
 feat(sprint-rN)(scope): descripción
 fix(sprint-rN)(scope): descripción
 ```
-Scopes: `(clinico)`, `(rehab)`, `(dental)`, `(shared)`, `(registry)`, `(guards)`, `(branding)`, `(m9)`, `(icd)`.
+Scopes: `(clinico)`, `(rehab)`, `(dental)`, `(shared)`, `(registry)`, `(guards)`, `(branding)`, `(m9)`, `(icd)`, `(m10)`, `(timeline)`, `(docs)`.
 
 ---
 
@@ -323,7 +332,7 @@ Scopes: `(clinico)`, `(rehab)`, `(dental)`, `(shared)`, `(registry)`, `(guards)`
 NO tocar `korporis-fce`. Migración en R7-R8 con backup + staging + smoke test + switch DNS.
 
 ### Clínicas activas
-Para trabajar "para" una clínica, leer `clinics/<slug>/CLAUDE.md` y respetar sus módulos activos.
+Actualmente **ninguna clínica tiene fce-plataform en producción** — el repo está en construcción. Los módulos aún no se han activado para ningún tenant real. Para trabajar "para" una clínica, leer `clinics/<slug>/CLAUDE.md` y respetar sus módulos activos cuando se onboardee.
 
 ---
 
@@ -632,3 +641,101 @@ Misma key que Resumen IA: `ANTHROPIC_API_KEY` (ya en `.env.local` y Vercel). Sin
 - No tiene caché
 - No toca el flujo de firma
 - No está disponible para rol recepcionista (`requireAccesoFCE` lo bloquea)
+
+---
+
+## 20. MÓDULO M10 — PLAN DE INTERVENCIÓN (Neurodesarrollo)
+
+### Propósito
+
+Módulo **compartido** (no un modelo clínico nuevo) para centros de rehabilitación neurodivergente (TEA, TDAH, TEL, trastornos del aprendizaje). Gestiona planes de intervención longitudinales con objetivos por dominio usando **GAS (Goal Attainment Scaling)** y seguimiento de progreso.
+
+### Principios clave
+
+- **Documento vivo** — el plan NO es inmutable post-firma. La firma aprueba el plan en un momento (para informes), pero sigue siendo editable. **NO hay trigger de inmutabilidad** para las tablas del plan.
+- **Activación por clínica** — vía `array_append(modulos_activos, 'M10_plan_intervencion')` en `clinicas_fce_config`. Ver `docs/plan-redisenio/sprints/N1-neurodesarrollo-activacion.md`.
+- **Sin flag adicional en profesionales** — cualquier profesional con `requireAccesoFCE` puede crear/editar planes.
+
+### GAS (Goal Attainment Scaling)
+
+Escala de medición de progreso: niveles **-2** a **+2**, donde **0 = resultado esperado**.
+
+```
+-2  Mucho peor que lo esperado
+-1  Algo peor que lo esperado
+ 0  Resultado esperado (objetivo cumplido)
++1  Algo mejor que lo esperado
++2  Mucho mejor que lo esperado
+```
+
+`nivel_actual` en `fce_plan_objetivos` se denormaliza desde el último `fce_plan_progreso` para lectura rápida.
+
+### Arquitectura
+
+```
+PlanIntervencionLauncher (clinico/page.tsx + rehab/page.tsx — si M10 activo)
+  → muestra plan activo/borrador o permite crear uno
+  → abre PlanIntervencionPanel (modal)
+
+PlanIntervencionPanel
+  ├── cabecera editable inline (titulo, fecha_revision, estado, firma)
+  ├── objetivos agrupados por dominio_label
+  │   ├── ObjetivoEditor (modal z-60) — formulario RHF+Zod con 5 niveles GAS
+  │   └── ProgresoRegistro (modal z-60) — selector GAS + observacion + estrategias
+  ├── ProgresoChart — recharts LineChart (hex colors, NO CSS vars)
+  └── PlanIntervencionPdfView — html2pdf.js con escapeHtml() obligatorio
+
+NotaClinicaForm (si m10Activo=true)
+  └── secciones_estructuradas: conductas_observadas, participacion_cuidador, estrategias, asistencia
+      → se guardan en fce_notas_clinicas.secciones_estructuradas (jsonb)
+```
+
+### Server actions (src/app/actions/clinico/)
+
+```
+plan-intervencion.ts:
+  getPlanesIntervencion(patientId)
+  getPlanIntervencionDetalle(planId)        → plan + objetivos + último progreso por objetivo
+  crearPlanIntervencion(params)             → estado='borrador', fecha_inicio Santiago
+  actualizarPlanIntervencion(planId,campos) → no permite editar si cerrado
+  upsertObjetivo(planId, objetivo)          → INSERT con orden auto / UPDATE
+  eliminarObjetivo(objetivoId)              → solo si plan no cerrado
+  registrarProgreso(params)                 → INSERT progreso + UPDATE nivel_actual
+  firmarPlanIntervencion(planId)            → firmado=true, snapshot, NO cambia estado
+
+plantillas-dominios.ts:
+  getPlantillasDominios()                   → catálogo global activo
+  getPlantillaDominio(condicionCodigo)      → una plantilla por código
+```
+
+Todas las escrituras: `assertModuleEnabled(config, 'M10_plan_intervencion')` + `logAudit`.
+
+### Instrumentos registro_externo
+
+`tipo_renderer = 'registro_externo'` es un nuevo valor (además de `escala_simple` y `componente_custom`). Para estos instrumentos (ADOS-2, CARS-2, Vineland, WISC-V, etc.):
+- Renderer: `RegistroResultadoExterno` (formulario libre con subescalas dinámicas)
+- En la action `aplicarInstrumento`: NO llama `calcularPuntaje`; `puntaje_total = null`; `interpretacion = respuestas.clasificacion`
+- Los datos se guardan en `respuestas` (jsonb) como `Record<string, string>`, con subescalas serializadas como `subescalas_json`
+
+### Patrones críticos M10
+
+```typescript
+// recharts NO resuelve CSS vars — usar hex hardcoded en ProgresoChart
+const LINE_COLORS = ["#00B0A8", "#006B6B", "#F5A623", "#E53935", "#43A047"];
+
+// PdfViews con innerHTML = buildPdfHtml(...) — SIEMPRE usar escapeHtml()
+function escapeHtml(s: unknown): string {
+  return String(s ?? "").replace(/&/g,"&amp;").replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");
+}
+
+// NivelGAS es un tipo literal, no number genérico
+type NivelGAS = -2 | -1 | 0 | 1 | 2;
+
+// EstadoPlanIntervencion (NO confundir con EstadoPlan de plan-tratamiento dental)
+type EstadoPlanIntervencion = "borrador" | "activo" | "en_revision" | "cerrado";
+```
+
+### Activación
+
+Ver `docs/plan-redisenio/sprints/N1-neurodesarrollo-activacion.md` para el SQL de activación. Claude Code NO ejecuta el UPDATE — lo hace un operador Synapta.
