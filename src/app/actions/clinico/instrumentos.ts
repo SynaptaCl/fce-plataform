@@ -80,7 +80,7 @@ export async function aplicarInstrumento(params: {
   encuentroId: string;
   patientId: string;
   instrumentoId: string;
-  respuestas: Record<string, number>;
+  respuestas: Record<string, number | string>;
   notas?: string;
   mostrarEnTimeline?: boolean;
 }): Promise<ActionResult<{ id: string }>> {

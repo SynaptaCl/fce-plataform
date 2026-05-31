@@ -67,3 +67,14 @@ export type {
   DiagnosticoGuardado,
   DiagnosticoSearchProps,
 } from "./diagnostico";
+export type {
+  EstadoPlan as EstadoPlanIntervencion,
+  PrioridadObjetivo,
+  EstadoObjetivo,
+  NivelGAS,
+  PlanIntervencion,
+  PlanObjetivo,
+  PlanProgreso,
+  PlanIntervencionDetalle,
+} from "./plan-intervencion";
+export type { Dominio, PlantillaDominio } from "./plantilla-dominio";

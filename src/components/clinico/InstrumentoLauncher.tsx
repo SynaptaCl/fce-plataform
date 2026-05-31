@@ -26,7 +26,7 @@ export function InstrumentoLauncher({
   const [loading, setLoading] = useState(false);
   const [query, setQuery] = useState("");
   const [instrumentoSeleccionado, setInstrumentoSeleccionado] = useState<InstrumentoSchema | null>(null);
-  const [respuestas, setRespuestas] = useState<Record<string, number>>({});
+  const [respuestas, setRespuestas] = useState<Record<string, number | string>>({});
   const [notas, setNotas] = useState("");
   const [mostrarEnTimeline, setMostrarEnTimeline] = useState(true);
   const [guardando, setGuardando] = useState(false);

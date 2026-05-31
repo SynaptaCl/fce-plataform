@@ -4,7 +4,7 @@
  * FUENTE ÚNICA DE VERDAD para el scope de fce-plataform.
  *
  * Importante:
- * - Este registry solo cubre módulos FCE (M1-M6). Agenda, pagos, chatbot,
+ * - Este registry cubre módulos FCE (M1-M10). Agenda, pagos, chatbot,
  *   recordatorios y tickets viven en OTROS repos del ecosistema Synapta.
  * - Las especialidades (codigo) deben coincidir con la tabla
  *   especialidades_catalogo en Supabase. Al agregar una especialidad nueva,
@@ -25,7 +25,8 @@ export type ModuleId =
   | "M6_auditoria"
   | "M7_prescripciones"
   | "M8_examenes"
-  | "M9_egresos";
+  | "M9_egresos"
+  | "M10_plan_intervencion";
 
 // ============================================================================
 // IDs de especialidades (coinciden con especialidades_catalogo.codigo)
@@ -242,6 +243,19 @@ export const MODULE_REGISTRY: Record<ModuleId, ModuleDefinition> = {
     tablasSupabase: ["fce_egresos"],
     rutasApp: ["/dashboard/pacientes/[id]/egreso"],
     componentes: ["EgresoForm", "EgresoLauncher"],
+    requiereEspecialidad: false,
+    estado: "beta",
+  },
+
+  M10_plan_intervencion: {
+    id: "M10_plan_intervencion",
+    label: "Plan de Intervención",
+    descripcion: "Planes de intervención longitudinales para centros de neurodesarrollo. Objetivos por dominio con GAS (Goal Attainment Scaling), seguimiento de progreso e informes para familia/derivador.",
+    obligatorio: false,
+    dependeDe: ["M2_anamnesis", "M3_evaluacion"],
+    tablasSupabase: ["fce_planes_intervencion", "fce_plan_objetivos", "fce_plan_progreso", "plantillas_dominios"],
+    rutasApp: [],
+    componentes: ["PlanIntervencionLauncher", "PlanIntervencionPanel", "ObjetivoEditor", "ProgresoRegistro"],
     requiereEspecialidad: false,
     estado: "beta",
   },

@@ -5,7 +5,7 @@ export interface InstrumentoSchema {
   descripcion?: string;
   version: string;
   especialidades: string[];
-  tipo_renderer: "escala_simple" | "componente_custom";
+  tipo_renderer: "escala_simple" | "componente_custom" | "registro_externo";
   schema_items?: SchemaItems;
   componente_id?: string;
   interpretacion?: InterpretacionRango[];
@@ -34,7 +34,7 @@ export interface InstrumentoAplicado {
   id: string;
   id_instrumento: string;
   instrumento?: InstrumentoSchema;
-  respuestas: Record<string, number>;
+  respuestas: Record<string, number | string>;
   puntaje_total: number | null;
   interpretacion: string | null;
   notas?: string;
@@ -45,7 +45,16 @@ export interface InstrumentoAplicado {
 
 export interface InstrumentoCustomProps {
   schema: InstrumentoSchema;
-  valor: Record<string, number>;
-  onChange: (valor: Record<string, number>) => void;
+  valor: Record<string, number | string>;
+  onChange: (valor: Record<string, number | string>) => void;
   readOnly?: boolean;
+}
+
+export interface RegistroExternoResultado {
+  modulo_version?: string;
+  puntaje_general?: string;
+  subescalas?: { label: string; valor: string }[];
+  clasificacion?: string;
+  observaciones?: string;
+  adjunto_url?: string;
 }

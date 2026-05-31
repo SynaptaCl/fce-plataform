@@ -49,8 +49,8 @@ function getInterpretacion(puntaje: number): { label: string; colorClass: string
 export default function GlasgowComaScale({ valor, onChange, readOnly }: InstrumentoCustomProps) {
   const puntaje = useMemo(() => {
     const vals = [valor["ocular"], valor["verbal"], valor["motor"]];
-    if (vals.some((v) => v === undefined)) return null;
-    return vals.reduce((a, b) => a + b, 0);
+    if (vals.some((v) => v === undefined || typeof v !== "number")) return null;
+    return (vals as number[]).reduce((a, b) => a + b, 0);
   }, [valor]);
 
   return (

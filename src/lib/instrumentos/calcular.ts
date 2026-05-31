@@ -2,15 +2,16 @@ import type { SchemaItems } from "@/types/instrumento";
 
 export function calcularPuntaje(
   schema_items: SchemaItems,
-  respuestas: Record<string, number>
+  respuestas: Record<string, number | string>
 ): number | null {
   const { items, calculo } = schema_items;
 
-  // Retorna null si hay respuestas incompletas
+  // Retorna null si hay respuestas incompletas o no numéricas
   const valores: number[] = [];
   for (const item of items) {
     const val = respuestas[item.codigo];
     if (val === undefined || val === null) return null;
+    if (typeof val !== "number") return null;
     valores.push(val);
   }
 

@@ -60,10 +60,10 @@ function getInterpretacion(puntaje: number): { label: string; colorClass: string
   return { label: "Gravemente deprimido", colorClass: "bg-red-100 text-red-800" };
 }
 
-function calcularPuntaje(valor: Record<string, number>, timing: Timing): number | null {
+function calcularPuntaje(valor: Record<string, number | string>, timing: Timing): number | null {
   const vals = CRITERIOS.map((c) => valor[`${c.claveBase}_${timing}`]);
-  if (vals.some((v) => v === undefined)) return null;
-  return vals.reduce((a, b) => a + b, 0);
+  if (vals.some((v) => v === undefined || typeof v !== "number")) return null;
+  return (vals as number[]).reduce((a, b) => a + b, 0);
 }
 
 export default function ApgarScore({ valor, onChange, readOnly }: InstrumentoCustomProps) {
