@@ -254,7 +254,7 @@ export const MODULE_REGISTRY: Record<ModuleId, ModuleDefinition> = {
     obligatorio: false,
     dependeDe: ["M2_anamnesis", "M3_evaluacion"],
     tablasSupabase: ["fce_planes_intervencion", "fce_plan_objetivos", "fce_plan_progreso", "plantillas_dominios"],
-    rutasApp: [],
+    rutasApp: [], // Se poblará en fases posteriores del sprint N1
     componentes: ["PlanIntervencionLauncher", "PlanIntervencionPanel", "ObjetivoEditor", "ProgresoRegistro"],
     requiereEspecialidad: false,
     estado: "beta",

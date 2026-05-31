@@ -226,6 +226,10 @@ export function InstrumentoLauncher({
                       valor={respuestas}
                       onChange={setRespuestas}
                     />
+                  ) : instrumentoSeleccionado.tipo_renderer === "registro_externo" ? (
+                    <div style={{ padding: '1rem', color: 'var(--color-ink-2)', textAlign: 'center' }}>
+                      Registro de evaluación externa — disponible próximamente
+                    </div>
                   ) : CustomComp ? (
                     <CustomComp
                       schema={instrumentoSeleccionado}

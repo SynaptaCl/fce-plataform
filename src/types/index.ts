@@ -68,7 +68,7 @@ export type {
   DiagnosticoSearchProps,
 } from "./diagnostico";
 export type {
-  EstadoPlan as EstadoPlanIntervencion,
+  EstadoPlanIntervencion,
   PrioridadObjetivo,
   EstadoObjetivo,
   NivelGAS,

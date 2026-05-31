@@ -1,4 +1,6 @@
-export type EstadoPlan = "borrador" | "activo" | "en_revision" | "cerrado";
+import type { ICDCodeSnap } from "./diagnostico";
+
+export type EstadoPlanIntervencion = "borrador" | "activo" | "en_revision" | "cerrado";
 export type PrioridadObjetivo = "alta" | "media" | "baja";
 export type EstadoObjetivo = "activo" | "logrado" | "reformulado" | "suspendido";
 export type NivelGAS = -2 | -1 | 0 | 1 | 2;
@@ -11,10 +13,10 @@ export interface PlanIntervencion {
   titulo: string;
   condicion_codigo: string | null;
   diagnostico: string | null;
-  icd_codigos: import("./diagnostico").ICDCodeSnap[];
+  icd_codigos: ICDCodeSnap[];
   fecha_inicio: string;
   fecha_revision: string | null;
-  estado: EstadoPlan;
+  estado: EstadoPlanIntervencion;
   firmado: boolean;
   firmado_at: string | null;
   firmado_por: string | null;
