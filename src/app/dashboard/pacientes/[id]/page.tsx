@@ -105,6 +105,7 @@ export default async function PatientDetailPage({
     vitales: null,
     indicaciones_farmacologicas: [],
     antecedentes: null,
+    plan_activo: null,
   };
   const summary = timelineResult.success
     ? timelineResult.data.summary
@@ -165,7 +166,7 @@ export default async function PatientDetailPage({
           <div id="clinical-timeline" className="min-w-0">
             <ClinicalTimeline
               entries={entries}
-              currentUserId={user.id}
+              currentUserId={profesional?.id ?? ""}
               patientId={id}
               especialidadesActivas={especialidadesActivas}
             />

@@ -20,7 +20,8 @@ export type TimelineEntryType =
   | "instrumento"
   | "prescripcion"
   | "orden_examen"
-  | "egreso";
+  | "egreso"
+  | "plan_intervencion";
 
 export interface TimelineEntry {
   id: string;
@@ -57,6 +58,11 @@ export interface PatientSummary {
     morbidos: string | null;
     alergias: string | null;
     medicamentos_habituales: string | null;
+  } | null;
+  plan_activo: {
+    titulo: string;
+    fecha_revision: string | null;
+    objetivos_activos: number;
   } | null;
 }
 
@@ -118,6 +124,20 @@ type OrdenExamenTimelineRow = {
   id_paciente: string;
 };
 
+type PlanIntervencionRow = {
+  id: string;
+  titulo: string;
+  condicion_codigo: string | null;
+  estado: string;
+  fecha_inicio: string;
+  fecha_revision: string | null;
+  firmado: boolean;
+  firmado_at: string | null;
+  created_by: string | null;
+  created_at: string;
+  objetivos_count?: number;
+};
+
 type EgresoTimelineRow = {
   id: string;
   tipo_egreso: string;
@@ -172,7 +192,7 @@ export async function getPatientTimeline(
   // se aplica a nivel de aplicación con lógica deny-by-default.
   const serviceClient = createServiceClient();
 
-  const [soapRes, evalRes, vitalsRes, consentRes, anamnesisRes, notasRes, instrumentosRes, prescripcionesRes, ordenesExamenRes, egresosRes] = await Promise.all([
+  const [soapRes, evalRes, vitalsRes, consentRes, anamnesisRes, notasRes, instrumentosRes, prescripcionesRes, ordenesExamenRes, egresosRes, planesRes] = await Promise.all([
     serviceClient
       .from("fce_notas_soap")
       .select("*")
@@ -238,6 +258,14 @@ export async function getPatientTimeline(
           .eq("id_clinica", idClinica)
           .order("created_at", { ascending: false })
       : Promise.resolve({ data: [], error: null }),
+    idClinica
+      ? supabase
+          .from("fce_planes_intervencion")
+          .select("id, titulo, condicion_codigo, estado, fecha_inicio, fecha_revision, firmado, firmado_at, created_by, created_at")
+          .eq("id_paciente", patientId)
+          .eq("id_clinica", idClinica)
+          .order("created_at", { ascending: false })
+      : Promise.resolve({ data: [], error: null }),
   ]);
 
   // Batch-fetch encuentros for SOAP notes AND notas_clinicas to get especialidad
@@ -286,6 +314,9 @@ export async function getPatientTimeline(
     if (e.created_by) profIds.add(e.created_by);
     if (e.firmado_por) profIds.add(e.firmado_por);
   }
+  for (const p of (planesRes.data ?? []) as PlanIntervencionRow[]) {
+    if (p.created_by) profIds.add(p.created_by);
+  }
 
   type ProfMapEntry = { nombre: string; id_clinica: string };
   const profMap = new Map<string, ProfMapEntry>();
@@ -296,6 +327,26 @@ export async function getPatientTimeline(
       .in("id", Array.from(profIds));
     for (const p of profs ?? []) {
       profMap.set(p.id, { nombre: p.nombre ?? "Profesional", id_clinica: p.id_clinica });
+    }
+  }
+
+  const planes = (planesRes.data ?? []) as PlanIntervencionRow[];
+
+  // Fetch objetivos count por plan (batch query)
+  const planIds = planes.map((p) => p.id);
+  let objetivosMap = new Map<string, number>();
+  if (planIds.length > 0 && idClinica) {
+    const { data: objetivos } = await supabase
+      .from("fce_plan_objetivos")
+      .select("id_plan, estado")
+      .in("id_plan", planIds)
+      .eq("estado", "activo")
+      .eq("id_clinica", idClinica);
+    if (objetivos) {
+      for (const obj of objetivos) {
+        const count = objetivosMap.get(obj.id_plan) ?? 0;
+        objetivosMap.set(obj.id_plan, count + 1);
+      }
     }
   }
 
@@ -550,6 +601,32 @@ export async function getPatientTimeline(
     });
   }
 
+  // Planes de intervención
+  for (const plan of planes) {
+    const objetivosActivos = objetivosMap.get(plan.id) ?? 0;
+    const autor = plan.created_by ? profMap.get(plan.created_by)?.nombre : undefined;
+    entries.push({
+      id: plan.id,
+      type: "plan_intervencion",
+      date: plan.created_at,
+      autor_id: plan.created_by ?? undefined,
+      profesional_nombre: autor,
+      titulo: plan.titulo,
+      resumen: `Estado: ${plan.estado} · ${objetivosActivos} objetivo(s) activo(s)`,
+      firmado: plan.firmado,
+      data: {
+        titulo: plan.titulo,
+        estado: plan.estado,
+        condicion_codigo: plan.condicion_codigo,
+        fecha_inicio: plan.fecha_inicio,
+        fecha_revision: plan.fecha_revision,
+        firmado: plan.firmado,
+        firmado_at: plan.firmado_at,
+        objetivos_activos: objetivosActivos,
+      },
+    });
+  }
+
   entries.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   // ── Summary ──────────────────────────────────────────────────────────────
@@ -639,6 +716,12 @@ export async function getPatientTimeline(
       }
     : null;
 
+  // Buscar el plan más relevante (activo o borrador más reciente)
+  const planMasReciente =
+    planes.find((p) => p.estado === "activo") ??
+    planes.find((p) => p.estado === "borrador") ??
+    null;
+
   const summary: PatientSummary = {
     motivo_consulta: anamnesis?.motivo_consulta ?? null,
     red_flags_activos: redFlagsActivos,
@@ -649,6 +732,13 @@ export async function getPatientTimeline(
     vitales: latestVitals,
     indicaciones_farmacologicas: indicacionesFarmacologicas,
     antecedentes,
+    plan_activo: planMasReciente
+      ? {
+          titulo: planMasReciente.titulo,
+          fecha_revision: planMasReciente.fecha_revision ?? null,
+          objetivos_activos: objetivosMap.get(planMasReciente.id) ?? 0,
+        }
+      : null,
   };
 
   return { success: true, data: { entries, summary } };

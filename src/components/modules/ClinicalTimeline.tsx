@@ -33,6 +33,7 @@ import { PrescripcionDetalleModal } from "@/components/shared/PrescripcionDetall
 import { OrdenExamenExpandedCard } from "./timeline/OrdenExamenExpandedCard";
 import { OrdenExamenDetalleModal } from "@/components/shared/OrdenExamenDetalleModal";
 import { EgresoCard } from "@/components/shared/EgresoCard";
+import { PlanIntervencionExpandedCard } from "./timeline/PlanIntervencionExpandedCard";
 import type { Patient } from "@/types/patient";
 import type { ClinicaConfig } from "@/lib/modules/config";
 
@@ -153,6 +154,14 @@ const TYPE_CONFIG: Record<
     iconBg: "var(--color-kp-danger-lt, #FEE2E2)",
     iconColor: "var(--color-kp-danger, #DC2626)",
   },
+  plan_intervencion: {
+    label: "Plan de Intervención",
+    icon: ClipboardList,
+    badgeVariant: "info" as BadgeVariant,
+    borderColor: "var(--color-kp-accent, #00B0A8)",
+    iconBg: "var(--color-kp-accent-lt, #D5F5F4)",
+    iconColor: "var(--color-kp-primary, #006B6B)",
+  },
 };
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -246,6 +255,8 @@ function EntryContent({
       );
     case "egreso":
       return <EgresoCard entry={entry} patientId={patientId} />;
+    case "plan_intervencion":
+      return <PlanIntervencionExpandedCard entry={entry} patientId={patientId} />;
   }
 }
 
