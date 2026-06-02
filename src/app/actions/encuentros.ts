@@ -139,3 +139,51 @@ export async function createEncuentro(
 
   return { success: true, data: { encuentroId, modelo } };
 }
+
+// ── getEncuentroContext ────────────────────────────────────────────────────────
+
+export interface EncuentroContext {
+  especialidad: string;
+  nombreServicio: string | null;
+}
+
+/**
+ * Resuelve la especialidad y el nombre del servicio de una cita asociada al encuentro.
+ * Si el encuentro no tiene cita (walk-in), nombreServicio = null.
+ */
+export async function getEncuentroContext(encuentroId: string): Promise<ActionResult<EncuentroContext>> {
+  const { supabase } = await requireAuth();
+
+  const { data: encuentro, error: encError } = await supabase
+    .from("fce_encuentros")
+    .select("especialidad, id_cita")
+    .eq("id", encuentroId)
+    .single();
+
+  if (encError || !encuentro) {
+    return { success: false, error: "Encuentro no encontrado" };
+  }
+
+  const especialidad = encuentro.especialidad as string;
+  let nombreServicio: string | null = null;
+
+  if (encuentro.id_cita) {
+    const { data: cita } = await supabase
+      .from("citas")
+      .select("id_profesional_servicio")
+      .eq("id", encuentro.id_cita)
+      .maybeSingle();
+
+    if (cita?.id_profesional_servicio) {
+      const { data: servicio } = await supabase
+        .from("servicios")
+        .select("nombre")
+        .eq("id", cita.id_profesional_servicio)
+        .maybeSingle();
+
+      nombreServicio = (servicio?.nombre as string) ?? null;
+    }
+  }
+
+  return { success: true, data: { especialidad, nombreServicio } };
+}
