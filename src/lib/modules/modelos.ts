@@ -1,11 +1,12 @@
-import { ESPECIALIDADES_REGISTRY, type ModeloClinico } from "./registry";
+import { getEspecialidadConfig } from "./especialidad-config";
+import type { ModeloClinico } from "./registry";
 
 /**
  * Devuelve el modelo clínico que aplica a una especialidad.
- * Retorna 'ninguno' si la especialidad no existe en el registry.
+ * Fuente de verdad: ESPECIALIDAD_CONFIG en especialidad-config.ts
  */
 export function getModeloDeEspecialidad(especialidad: string): ModeloClinico {
-  return ESPECIALIDADES_REGISTRY[especialidad]?.modelo ?? "ninguno";
+  return getEspecialidadConfig(especialidad).modelo;
 }
 
 /**

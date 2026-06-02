@@ -3,7 +3,9 @@
 import { usePathname } from "next/navigation";
 import { Sidebar } from "./Sidebar";
 import { TopBar } from "./TopBar";
+import { ProfesionalSelector } from "./ProfesionalSelector";
 import type { BrandingConfig } from "@/lib/modules/registry";
+import type { ProfesionalPerfil } from "@/lib/fce/profesional";
 
 interface DashboardShellProps {
   children: React.ReactNode;
@@ -15,6 +17,10 @@ interface DashboardShellProps {
   clinicFullName: string;
   /** Optional patient name forwarded from patient-detail routes */
   patientName?: string;
+  /** All professional profiles for the logged-in user */
+  perfilesProfesional?: ProfesionalPerfil[];
+  /** ID of the currently active professional profile */
+  perfilActivoId?: string;
 }
 
 /**
@@ -50,6 +56,8 @@ export function DashboardShell({
   branding,
   clinicFullName,
   patientName,
+  perfilesProfesional,
+  perfilActivoId,
 }: DashboardShellProps) {
   const pathname = usePathname();
   const breadcrumb = getBreadcrumb(pathname, patientName);
@@ -82,7 +90,16 @@ export function DashboardShell({
           overflow: "hidden",
         }}
       >
-        <TopBar breadcrumb={breadcrumb} />
+        <TopBar breadcrumb={breadcrumb}>
+          {perfilesProfesional &&
+            perfilesProfesional.length > 0 &&
+            perfilActivoId && (
+              <ProfesionalSelector
+                perfiles={perfilesProfesional}
+                perfilActivoId={perfilActivoId}
+              />
+            )}
+        </TopBar>
         <main
           style={{
             flex: 1,

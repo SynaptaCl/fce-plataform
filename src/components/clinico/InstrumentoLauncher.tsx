@@ -13,6 +13,7 @@ interface InstrumentoLauncherProps {
   especialidad: string;
   onGuardado?: () => void;
   trigger?: React.ReactNode;
+  instrumentosSugeridos?: string[];
 }
 
 export function InstrumentoLauncher({
@@ -21,6 +22,7 @@ export function InstrumentoLauncher({
   especialidad,
   onGuardado,
   trigger,
+  instrumentosSugeridos = [],
 }: InstrumentoLauncherProps) {
   const [open, setOpen] = useState(false);
   const [catalogo, setCatalogo] = useState<InstrumentoSchema[]>([]);
@@ -185,12 +187,22 @@ export function InstrumentoLauncher({
                             onClick={() => seleccionar(instrumento)}
                             className="w-full text-left px-2 py-3 hover:bg-gray-50 rounded"
                           >
-                            <p
-                              className="text-sm font-medium"
-                              style={{ color: "var(--color-ink-1)" }}
-                            >
-                              {instrumento.nombre}
-                            </p>
+                            <div className="flex items-center gap-2">
+                              <p
+                                className="text-sm font-medium"
+                                style={{ color: "var(--color-ink-1)" }}
+                              >
+                                {instrumento.nombre}
+                              </p>
+                              {instrumentosSugeridos.includes(instrumento.codigo) && (
+                                <span
+                                  className="text-xs px-1.5 py-0.5 rounded font-medium"
+                                  style={{ background: "var(--color-kp-accent-xs)", color: "var(--color-kp-primary)" }}
+                                >
+                                  Sugerido
+                                </span>
+                              )}
+                            </div>
                             {instrumento.descripcion && (
                               <p
                                 className="text-xs mt-0.5"

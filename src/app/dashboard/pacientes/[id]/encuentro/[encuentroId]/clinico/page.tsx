@@ -13,6 +13,9 @@ import { FirmarHeaderButton } from "@/components/shared/FirmarHeaderButton";
 import { getClinicaConfig } from "@/lib/modules/config";
 import { getPlanesIntervencion } from "@/app/actions/clinico/plan-intervencion";
 import { PlanIntervencionLauncher } from "@/components/shared/PlanIntervencionLauncher";
+import { getEspecialidadConfig } from "@/lib/modules/especialidad-config";
+import { getServicioContexto } from "@/lib/modules/servicio-config";
+import { getEncuentroContext } from "@/app/actions/encuentros";
 
 export default async function ClinicoPage({
   params,
@@ -38,7 +41,7 @@ export default async function ClinicoPage({
   const config = idClinica ? await getClinicaConfig(idClinica, supabase) : null;
   const m10Activo = config?.modulosActivos.includes("M10_plan_intervencion") ?? false;
 
-  const [patientResult, encuentroRes, notaResult] = await Promise.all([
+  const [patientResult, encuentroRes, notaResult, profesional, ctxResult] = await Promise.all([
     getPatientById(id),
     supabase
       .from("fce_encuentros")
@@ -48,6 +51,7 @@ export default async function ClinicoPage({
       .single(),
     getNotaClinica(encuentroId),
     getProfesionalActivo(supabase, user.id, idClinica ?? undefined),
+    getEncuentroContext(encuentroId),
   ]);
 
   const planesResult = m10Activo ? await getPlanesIntervencion(id) : null;
@@ -60,6 +64,12 @@ export default async function ClinicoPage({
   const patient = patientResult.data;
   const encuentro = encuentroRes.data;
   const nota = notaResult.success ? notaResult.data : null;
+
+  // Config especialidad + servicio → instrumentos sugeridos y copiloto IA
+  const espConfig = getEspecialidadConfig(encuentro.especialidad);
+  const nombreServicio = ctxResult.success ? ctxResult.data.nombreServicio : null;
+  const servicioCtx = getServicioContexto(nombreServicio);
+  const instrumentosSugeridos = servicioCtx?.instrumentosSugeridos ?? espConfig.instrumentosSugeridos;
 
   // Permisos: admin/director/superadmin pueden ver siempre; profesional solo si es su encuentro
   const isAdmin = ["admin", "director", "superadmin"].includes(rol);
@@ -132,8 +142,12 @@ export default async function ClinicoPage({
                 planActivo={planActivo}
               />
             )}
-            <PrescripcionLauncher patientId={patient.id} encuentroId={encuentroId} paciente={patient} />
-            <OrdenExamenLauncher patientId={patient.id} encuentroId={encuentroId} paciente={patient} />
+            {profesional?.puede_prescribir && (
+              <PrescripcionLauncher patientId={patient.id} encuentroId={encuentroId} paciente={patient} />
+            )}
+            {profesional?.puede_indicar_examenes && (
+              <OrdenExamenLauncher patientId={patient.id} encuentroId={encuentroId} paciente={patient} />
+            )}
           </div>
         </div>
 
@@ -148,6 +162,7 @@ export default async function ClinicoPage({
               idClinica={idClinica}
               m10Activo={m10Activo}
               planActivo={planActivo}
+              tieneCopilotoIA={espConfig.tieneCopilotoIA}
             />
           </div>
           <div className="w-full lg:w-80 xl:w-96 p-6 bg-surface-0">
@@ -156,6 +171,7 @@ export default async function ClinicoPage({
               patientId={id}
               especialidad={encuentro.especialidad}
               encuentroFinalizado={encuentroFinalizado}
+              instrumentosSugeridos={instrumentosSugeridos}
             />
           </div>
         </div>

@@ -11,6 +11,7 @@ interface InstrumentosPanelProps {
   patientId: string;
   especialidad: string;
   encuentroFinalizado: boolean;
+  instrumentosSugeridos?: string[];
 }
 
 export function InstrumentosPanel({
@@ -18,6 +19,7 @@ export function InstrumentosPanel({
   patientId,
   especialidad,
   encuentroFinalizado,
+  instrumentosSugeridos = [],
 }: InstrumentosPanelProps) {
   const [instrumentos, setInstrumentos] = useState<InstrumentoAplicado[]>([]);
   const [loading, setLoading] = useState(true);
@@ -44,9 +46,29 @@ export function InstrumentosPanel({
             patientId={patientId}
             especialidad={especialidad}
             onGuardado={cargar}
+            instrumentosSugeridos={instrumentosSugeridos}
           />
         )}
       </div>
+
+      {instrumentosSugeridos.length > 0 && (
+        <div className="rounded-md p-2.5 space-y-1" style={{ background: "var(--color-kp-accent-xs)" }}>
+          <p className="text-xs font-semibold" style={{ color: "var(--color-kp-primary)" }}>
+            Sugeridos para este servicio
+          </p>
+          <div className="flex flex-wrap gap-1">
+            {instrumentosSugeridos.map((codigo) => (
+              <span
+                key={codigo}
+                className="text-xs px-2 py-0.5 rounded-full font-medium uppercase"
+                style={{ background: "var(--color-kp-primary)", color: "#fff" }}
+              >
+                {codigo}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
 
       {loading ? (
         <p className="text-xs text-center py-4" style={{ color: "var(--color-ink-3)" }}>Cargando...</p>
