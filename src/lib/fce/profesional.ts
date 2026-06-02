@@ -42,13 +42,13 @@ export async function getProfesionalesDelUsuario(
   return data ?? [];
 }
 
+const COOKIE_NAME_PERFIL = "id_profesional_activo";
+
 /**
  * Obtiene el perfil profesional ACTIVO del usuario.
- * Por ahora retorna el primero encontrado (ordenado por created_at).
- *
- * TODO(fase-2): Cuando se implemente selector de perfil en UI, leer la selección
- * desde cookie/localStorage y retornar ese perfil específico. Si no hay selección
- * guardada, caer al primero como ahora.
+ * Lee la cookie `id_profesional_activo` si está disponible para respetar la
+ * selección del profesional cuando tiene múltiples perfiles. Si la cookie no
+ * existe o el ID no es válido para este usuario/clínica, cae al primero.
  */
 export async function getProfesionalActivo(
   supabase: SupabaseClient,
@@ -56,5 +56,19 @@ export async function getProfesionalActivo(
   idClinica?: string
 ): Promise<ProfesionalPerfil | null> {
   const perfiles = await getProfesionalesDelUsuario(supabase, authId, idClinica);
-  return perfiles[0] ?? null;
+  if (perfiles.length === 0) return null;
+
+  try {
+    const { cookies } = await import("next/headers");
+    const cookieStore = await cookies();
+    const preferredId = cookieStore.get(COOKIE_NAME_PERFIL)?.value;
+    if (preferredId) {
+      const found = perfiles.find((p) => p.id === preferredId);
+      if (found) return found;
+    }
+  } catch {
+    // Si next/headers no está disponible (edge, test), caer al primero
+  }
+
+  return perfiles[0];
 }

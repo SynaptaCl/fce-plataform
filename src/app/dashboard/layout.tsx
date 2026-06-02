@@ -6,7 +6,7 @@ import { requireAccesoFCE } from "@/lib/modules/guards";
 import { mapBrandingToTokens, type Rol, type BrandingConfig } from "@/lib/modules/registry";
 import { getClinicaConfig, type ClinicaConfig } from "@/lib/modules/config";
 import { ClinicaSessionProvider } from "@/lib/modules/provider";
-import { getProfesionalActivo } from "@/lib/fce/profesional";
+import { getProfesionalActivo, getProfesionalesDelUsuario } from "@/lib/fce/profesional";
 
 export default async function DashboardLayout({
   children,
@@ -44,12 +44,13 @@ export default async function DashboardLayout({
   requireAccesoFCE(rol);
 
   // Fetch paralelo: branding (para Sidebar) + FCE config (para ClinicaSessionProvider) + perfil profesional
-  const [brandingResult, fceConfig, profesionalActivo] = await Promise.all([
+  const [brandingResult, fceConfig, profesionalActivo, perfilesProfesional] = await Promise.all([
     idClinica
       ? supabase.from("clinicas").select("nombre, config").eq("id", idClinica).single()
       : Promise.resolve({ data: null }),
     idClinica ? getClinicaConfig(idClinica, supabase) : Promise.resolve(null),
     getProfesionalActivo(supabase, user.id, idClinica ?? undefined),
+    getProfesionalesDelUsuario(supabase, user.id, idClinica ?? undefined),
   ]);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -87,6 +88,8 @@ export default async function DashboardLayout({
         rol={rol}
         branding={branding}
         clinicFullName={clinicFullName}
+        perfilesProfesional={perfilesProfesional}
+        perfilActivoId={profesionalActivo?.id ?? ""}
       >
         {children}
       </DashboardShell>
