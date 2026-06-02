@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -18,6 +18,8 @@ import type { ICDCodeSnap } from '@/lib/icd/types';
 import { CopilotoNotaButton, CopilotoNotaPanel } from '@/components/modules/CopilotoNota'
 import type { BorradorNota } from '@/lib/ia/copiloto-nota/types'
 import type { PlanIntervencion } from '@/types/plan-intervencion'
+import { getEspecialidadConfig } from '@/lib/modules/especialidad-config'
+import { SeccionEstructuradaRenderer } from '@/components/clinico/SeccionEstructuradaRenderer'
 
 // ── Tipos internos ───────────────────────────────────────────────────────────
 
@@ -26,6 +28,26 @@ interface SeccionesEstructuradas {
   participacion_cuidador?: string;
   estrategias?: string;
   asistencia?: string;
+}
+
+// contenido_estructurado: { [seccionId]: { [campoId]: string | string[] } }
+type ContenidoEstructurado = Record<string, Record<string, string | string[]>>;
+
+// ── IMC helpers ───────────────────────────────────────────────────────────────
+
+function calcularIMC(pesoKg: string, tallaCm: string): { imc: string; clasificacion: string } | null {
+  const peso = parseFloat(pesoKg);
+  const talla = parseFloat(tallaCm);
+  if (!peso || !talla || talla <= 0) return null;
+  const imc = peso / Math.pow(talla / 100, 2);
+  let clasificacion = "";
+  if (imc < 18.5) clasificacion = "Bajo peso";
+  else if (imc < 25) clasificacion = "Normal";
+  else if (imc < 30) clasificacion = "Sobrepeso";
+  else if (imc < 35) clasificacion = "Obesidad I";
+  else if (imc < 40) clasificacion = "Obesidad II";
+  else clasificacion = "Obesidad III";
+  return { imc: imc.toFixed(1), clasificacion };
 }
 
 // ── Props ────────────────────────────────────────────────────────────────────
@@ -39,6 +61,7 @@ interface NotaClinicaFormProps {
   m10Activo?: boolean;
   planActivo?: PlanIntervencion | null;
   tieneCopilotoIA?: boolean;
+  especialidad?: string;
 }
 
 // ── Componente principal ─────────────────────────────────────────────────────
@@ -54,6 +77,7 @@ export function NotaClinicaForm({
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   planActivo: _planActivo,
   tieneCopilotoIA = true,
+  especialidad,
 }: NotaClinicaFormProps) {
   const [notaId, setNotaId] = useState<string | undefined>(notaExistente?.id);
   const [serverError, setServerError] = useState<string | null>(null);
@@ -80,6 +104,77 @@ export function NotaClinicaForm({
   const [seccionesEstructuradas, setSeccionesEstructuradas] = useState<SeccionesEstructuradas>(
     (notaExistente?.secciones_estructuradas as SeccionesEstructuradas) ?? {}
   )
+
+  // Secciones estructuradas por especialidad (P2-F2)
+  const espConfig = especialidad ? getEspecialidadConfig(especialidad) : null;
+  const seccionesEsp = espConfig
+    ? espConfig.secciones.filter((s) => s.campos.length > 0)
+    : [];
+
+  const [contenidoEstructurado, setContenidoEstructurado] = useState<ContenidoEstructurado>(
+    () => {
+      const base: ContenidoEstructurado = {};
+      const existing = notaExistente?.contenido_estructurado as ContenidoEstructurado | null | undefined;
+      if (existing) return existing;
+      return base;
+    }
+  );
+
+  const handleCampoChange = useCallback(
+    (seccionId: string, campoId: string, valor: string | string[]) => {
+      setContenidoEstructurado((prev) => {
+        const secActual = prev[seccionId] ?? {};
+        const next: ContenidoEstructurado = {
+          ...prev,
+          [seccionId]: { ...secActual, [campoId]: valor },
+        };
+
+        // Calcular IMC automáticamente para Nutrición
+        if (especialidad === "Nutrición" && seccionId === "contenido") {
+          const peso = campoId === "peso_kg" ? String(valor) : String(secActual["peso_kg"] ?? "");
+          const talla = campoId === "talla_cm" ? String(valor) : String(secActual["talla_cm"] ?? "");
+          const resultado = calcularIMC(peso, talla);
+          if (resultado) {
+            next[seccionId] = {
+              ...next[seccionId],
+              imc_calculado: resultado.imc,
+              imc_clasificacion: resultado.clasificacion,
+            };
+          } else {
+            next[seccionId] = {
+              ...next[seccionId],
+              imc_calculado: "",
+              imc_clasificacion: "",
+            };
+          }
+        }
+
+        return next;
+      });
+    },
+    [especialidad]
+  );
+
+  // Recalcular IMC si los valores iniciales ya tienen peso y talla
+  useEffect(() => {
+    if (especialidad !== "Nutrición") return;
+    const secContenido = contenidoEstructurado["contenido"] ?? {};
+    const peso = String(secContenido["peso_kg"] ?? "");
+    const talla = String(secContenido["talla_cm"] ?? "");
+    if (!peso || !talla) return;
+    const resultado = calcularIMC(peso, talla);
+    if (!resultado) return;
+    setContenidoEstructurado((prev) => ({
+      ...prev,
+      contenido: {
+        ...(prev["contenido"] ?? {}),
+        imc_calculado: resultado.imc,
+        imc_clasificacion: resultado.clasificacion,
+      },
+    }));
+    // Solo al montar
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const {
     register,
@@ -114,6 +209,7 @@ export function NotaClinicaForm({
       icd_codigos: icdCodigos,
       icd_version: 'ICD-11 2025-01',
       ...(m10Activo ? { secciones_estructuradas: seccionesEstructuradas } : {}),
+      ...(seccionesEsp.length > 0 ? { contenido_estructurado: contenidoEstructurado } : {}),
     });
 
     if (!result.success) { setServerError(result.error); return; }
@@ -354,6 +450,21 @@ export function NotaClinicaForm({
                 />
               )}
             </div>
+          </div>
+        )}
+
+        {/* Secciones estructuradas por especialidad (P2-F2) */}
+        {seccionesEsp.length > 0 && (
+          <div className="space-y-3">
+            {seccionesEsp.map((seccion) => (
+              <SeccionEstructuradaRenderer
+                key={seccion.id}
+                seccion={seccion}
+                valores={contenidoEstructurado[seccion.id] ?? {}}
+                onChange={(campoId, valor) => handleCampoChange(seccion.id, campoId, valor)}
+                readOnly={readOnly}
+              />
+            ))}
           </div>
         )}
 
