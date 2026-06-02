@@ -65,16 +65,17 @@ function run() {
 
   section("servicio-config.ts — instrumentosSugeridos por servicio");
 
-  const serviciosVistos = new Set<string>();
-
   for (const nombreServicio of SERVICIO_KEYWORDS_TEST) {
     const contexto = getServicioContexto(nombreServicio);
-    if (!contexto) continue;
+    if (!contexto) {
+      ok(`[servicio "${nombreServicio}"] sin match — OK (retorna null correctamente)`);
+      continue;
+    }
 
-    // Deduplicar por lista de códigos para no repetir la misma entrada
-    const clave = contexto.instrumentosSugeridos.join(",");
-    if (serviciosVistos.has(clave)) continue;
-    serviciosVistos.add(clave);
+    if (contexto.instrumentosSugeridos.length === 0) {
+      ok(`[servicio "${nombreServicio}"] matcheó con 0 instrumentos sugeridos — OK`);
+      continue;
+    }
 
     for (const codigo of contexto.instrumentosSugeridos) {
       if (CODIGOS_VALIDOS.has(codigo)) {
