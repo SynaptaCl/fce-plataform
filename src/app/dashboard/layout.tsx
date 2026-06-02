@@ -55,7 +55,7 @@ export default async function DashboardLayout({
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const branding: BrandingConfig | null = (brandingResult.data?.config as any)?.branding ?? null;
-  const clinicFullName: string = (brandingResult.data as any)?.nombre ?? "Clínica";
+  const clinicFullName: string = (brandingResult.data as { nombre?: string } | null)?.nombre ?? "Clínica";
 
   // Fallback session config si la clínica no tiene clinicas_fce_config aún
   const sessionConfig: ClinicaConfig = fceConfig ?? {
