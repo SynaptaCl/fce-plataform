@@ -149,7 +149,7 @@ function SaveRow({
   return (
     <div className="flex items-center justify-end gap-3 pt-4 border-t border-kp-border">
       {saved && (
-        <span className="text-sm font-medium" style={{ color: "var(--color-kp-success)" }}>
+        <span className="text-sm font-medium text-kp-success">
           ✓ Guardado
         </span>
       )}
@@ -162,7 +162,7 @@ function SaveRow({
 }
 
 const SELECT_CLASS =
-  "w-full px-3 py-2 text-sm text-ink-1 bg-surface-1 border border-kp-border rounded-lg focus:outline-none focus:ring-2 disabled:bg-surface-0";
+  "w-full px-3 py-2 text-sm text-ink-1 bg-surface-1 border border-kp-border rounded-lg focus:outline-none focus:ring-2 focus:ring-kp-accent/30 disabled:bg-surface-0";
 
 // ── AVD y Participación Ocupacional ────────────────────────────────────────
 
