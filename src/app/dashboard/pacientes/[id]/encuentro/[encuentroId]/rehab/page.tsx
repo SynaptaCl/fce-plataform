@@ -46,7 +46,7 @@ export default async function RehabPage({
   const config = idClinica ? await getClinicaConfig(idClinica, supabase) : null;
   const m10Activo = config?.modulosActivos.includes("M10_plan_intervencion") ?? false;
 
-  const [patientResult, encuentroRes, soapRes, evaluacionesRes] =
+  const [patientResult, encuentroRes, soapRes, evaluacionesRes, profesional] =
     await Promise.all([
       getPatientById(id),
       supabase
@@ -188,7 +188,9 @@ export default async function RehabPage({
                 planActivo={planActivo}
               />
             )}
-            <PrescripcionLauncher patientId={patient.id} encuentroId={encuentroId} paciente={patient} />
+            {profesional?.puede_prescribir && (
+              <PrescripcionLauncher patientId={patient.id} encuentroId={encuentroId} paciente={patient} />
+            )}
           </div>
         </div>
 

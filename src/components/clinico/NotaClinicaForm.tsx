@@ -38,6 +38,7 @@ interface NotaClinicaFormProps {
   idClinica: string;
   m10Activo?: boolean;
   planActivo?: PlanIntervencion | null;
+  tieneCopilotoIA?: boolean;
 }
 
 // ── Componente principal ─────────────────────────────────────────────────────
@@ -52,6 +53,7 @@ export function NotaClinicaForm({
   // planActivo disponible para futura integración de progreso desde nota
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   planActivo: _planActivo,
+  tieneCopilotoIA = true,
 }: NotaClinicaFormProps) {
   const [notaId, setNotaId] = useState<string | undefined>(notaExistente?.id);
   const [serverError, setServerError] = useState<string | null>(null);
@@ -203,7 +205,7 @@ export function NotaClinicaForm({
             <label className="text-sm font-medium text-ink-1">
               Nota clínica <span className="text-red-500">*</span>
             </label>
-            {!readOnly && (
+            {!readOnly && tieneCopilotoIA && (
               <CopilotoNotaButton
                 encuentroId={encuentroId}
                 idClinica={idClinica}
