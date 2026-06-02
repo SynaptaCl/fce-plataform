@@ -7,6 +7,7 @@ import {
   KinesiologiaEval,
   FonoaudiologiaEval,
   MasoterapiaEval,
+  TerapiaOcupacionalEval,
   GenericEval,
 } from "@/components/rehab";
 import { getPatientById } from "@/app/actions/patients";
@@ -139,6 +140,15 @@ export default async function RehabPage({
     if (especialidad === "Masoterapia") {
       return (
         <MasoterapiaEval
+          patientId={id}
+          evaluaciones={evaluaciones}
+          readOnly={readOnly}
+        />
+      );
+    }
+    if (especialidad === "Terapia Ocupacional") {
+      return (
+        <TerapiaOcupacionalEval
           patientId={id}
           evaluaciones={evaluaciones}
           readOnly={readOnly}

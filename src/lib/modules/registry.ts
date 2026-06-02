@@ -159,6 +159,7 @@ export const MODULE_REGISTRY: Record<ModuleId, ModuleDefinition> = {
       "KinesiologiaEval",
       "FonoaudiologiaEval",
       "MasoterapiaEval",
+      "TerapiaOcupacionalEval",
       "OdontologiaEval",
     ],
     requiereEspecialidad: true,
@@ -270,7 +271,7 @@ export const ESPECIALIDADES_REGISTRY: Record<string, EspecialidadRegistro> = {
   "Kinesiología":        { codigo: "Kinesiología",        label: "Kinesiología",        modelo: "rehabilitacion",  tieneContraindicaciones: false, tieneEscalaFuncional: true,  estado: "estable" },
   "Fonoaudiología":      { codigo: "Fonoaudiología",      label: "Fonoaudiología",      modelo: "rehabilitacion",  tieneContraindicaciones: false, tieneEscalaFuncional: true,  estado: "estable" },
   "Masoterapia":         { codigo: "Masoterapia",         label: "Masoterapia",         modelo: "rehabilitacion",  tieneContraindicaciones: true,  tieneEscalaFuncional: false, estado: "estable" },
-  "Terapia Ocupacional": { codigo: "Terapia Ocupacional", label: "Terapia Ocupacional", modelo: "rehabilitacion",  tieneContraindicaciones: false, tieneEscalaFuncional: true,  estado: "roadmap" },
+  "Terapia Ocupacional": { codigo: "Terapia Ocupacional", label: "Terapia Ocupacional", modelo: "rehabilitacion",  tieneContraindicaciones: false, tieneEscalaFuncional: true,  estado: "beta" },
   "Podología":           { codigo: "Podología",           label: "Podología",           modelo: "rehabilitacion",  tieneContraindicaciones: true,  tieneEscalaFuncional: false, estado: "roadmap" },
 
   // Modelo clínico general
