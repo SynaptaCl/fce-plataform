@@ -30,7 +30,7 @@ interface SeccionesEstructuradas {
   asistencia?: string;
 }
 
-// contenido_estructurado: { [seccionId]: { [campoId]: string | string[] } }
+// secciones_estructuradas: { [seccionId]: { [campoId]: string | string[] } }
 type ContenidoEstructurado = Record<string, Record<string, string | string[]>>;
 
 // ── IMC helpers ───────────────────────────────────────────────────────────────
@@ -114,7 +114,7 @@ export function NotaClinicaForm({
   const [contenidoEstructurado, setContenidoEstructurado] = useState<ContenidoEstructurado>(
     () => {
       const base: ContenidoEstructurado = {};
-      const existing = notaExistente?.contenido_estructurado as ContenidoEstructurado | null | undefined;
+      const existing = notaExistente?.secciones_estructuradas as ContenidoEstructurado | null | undefined;
       if (existing) return existing;
       return base;
     }
@@ -208,8 +208,10 @@ export function NotaClinicaForm({
       cie10_codigos: cie10,
       icd_codigos: icdCodigos,
       icd_version: 'ICD-11 2025-01',
-      ...(m10Activo ? { secciones_estructuradas: seccionesEstructuradas } : {}),
-      ...(seccionesEsp.length > 0 ? { contenido_estructurado: contenidoEstructurado } : {}),
+      secciones_estructuradas: {
+        ...(m10Activo ? seccionesEstructuradas : {}),
+        ...(seccionesEsp.length > 0 ? contenidoEstructurado : {}),
+      },
     });
 
     if (!result.success) { setServerError(result.error); return; }

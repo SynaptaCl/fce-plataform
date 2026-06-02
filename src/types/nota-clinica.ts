@@ -16,8 +16,7 @@ export interface NotaClinica {
   plan: string | null;
   proxima_sesion: string | null;
 
-  secciones_estructuradas?: Record<string, unknown> | null;
-  contenido_estructurado?: Record<string, Record<string, unknown>> | null;
+  secciones_estructuradas?: Record<string, Record<string, unknown>> | null;
 
   firmado: boolean;
   firmado_at: string | null;

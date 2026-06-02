@@ -213,16 +213,131 @@ for (const [esp, config] of Object.entries(ESPECIALIDAD_CONFIG)) {
   );
 }
 
-// ── Resumen ───────────────────────────────────────────────────────────────────
+// ── Test 8: Inmutabilidad de secciones_estructuradas (requiere Supabase) ────────
+//
+// Solo se ejecuta si están disponibles las variables de entorno de Supabase.
+// Valida que el trigger trg_block_update_signed_nota bloquea el UPDATE de
+// secciones_estructuradas en notas firmadas.
 
-console.log("\n" + "─".repeat(60));
-console.log(`Resultado: ${passCount} checks pasaron, ${errors.length} fallaron`);
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-if (errors.length > 0) {
-  console.error("\nErrores:");
-  errors.forEach((e) => console.error(`  - ${e}`));
-  process.exit(1);
-} else {
-  console.log("✓ Todos los checks pasaron. Sprint P2-F2 validado.");
-  process.exit(0);
+async function runInmutabilidadTests() {
+  if (!SUPABASE_URL || !SUPABASE_KEY) {
+    console.log("\n[Test 8] Inmutabilidad secciones_estructuradas — OMITIDO (variables de entorno no disponibles)");
+    console.log("  ℹ Para ejecutar los tests de inmutabilidad:");
+    console.log("    NEXT_PUBLIC_SUPABASE_URL=... SUPABASE_SERVICE_ROLE_KEY=... npx tsx scripts/test-sprint-p2-f2.ts");
+    return;
+  }
+
+  console.log("\n[Test 8] Inmutabilidad secciones_estructuradas (con Supabase)");
+
+  const { createClient } = await import("@supabase/supabase-js");
+  const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  const SECCIONES_V1 = { motivo: { motivo_principal: "Primera versión" } };
+  const SECCIONES_V2 = { motivo: { motivo_principal: "Segunda versión" } };
+
+  // Obtener IDs reales para respetar FK constraints
+  const { data: refData } = await supabase
+    .from("fce_encuentros")
+    .select("id, id_clinica, id_paciente, created_by")
+    .limit(1)
+    .single();
+
+  if (!refData) {
+    console.log("  ℹ Test 8 omitido: no hay encuentros en DB para referenciar en tests de FK");
+    return;
+  }
+
+  const TEST_ID_CLINICA = refData.id_clinica;
+  const TEST_ID_PACIENTE = refData.id_paciente;
+  const TEST_ID_ENCUENTRO = refData.id;  // reutilizar encuentro real (ON CONFLICT ignorado si ya existe nota)
+  const TEST_CREATED_BY = refData.created_by;
+
+  // Verificar que no hay nota existente para este encuentro (o limpiar previamente)
+  await supabase.from("fce_notas_clinicas").delete()
+    .eq("id_encuentro", TEST_ID_ENCUENTRO)
+    .eq("firmado", false);
+
+  // ── 8a: INSERT con secciones_estructuradas ──────────────────────────────────
+  const { data: insertada, error: errInsert } = await supabase
+    .from("fce_notas_clinicas")
+    .insert({
+      id_clinica: TEST_ID_CLINICA,
+      id_paciente: TEST_ID_PACIENTE,
+      id_encuentro: TEST_ID_ENCUENTRO,
+      contenido: "Test sprint P2-F2 — inmutabilidad (borrar si aparece)",
+      secciones_estructuradas: SECCIONES_V1,
+      firmado: false,
+      created_by: TEST_CREATED_BY,
+    })
+    .select("id")
+    .single();
+
+  if (errInsert || !insertada) {
+    fail(`8a INSERT nota con secciones_estructuradas: ${errInsert?.message ?? "sin respuesta"}`);
+    return;
+  }
+  pass(`8a INSERT nota con secciones_estructuradas OK (id: ${insertada.id})`);
+
+  const notaId = insertada.id;
+
+  // ── 8b: UPDATE con firmado=false (debe funcionar) ───────────────────────────
+  const { error: errUpdate } = await supabase
+    .from("fce_notas_clinicas")
+    .update({ secciones_estructuradas: SECCIONES_V2 })
+    .eq("id", notaId);
+
+  if (errUpdate) {
+    fail(`8b UPDATE secciones_estructuradas con firmado=false: lanzó error inesperado — ${errUpdate.message}`);
+  } else {
+    pass("8b UPDATE secciones_estructuradas con firmado=false: OK");
+  }
+
+  // ── Firmar la nota ───────────────────────────────────────────────────────────
+  const { error: errFirmar } = await supabase
+    .from("fce_notas_clinicas")
+    .update({ firmado: true, firmado_at: new Date().toISOString(), firmado_por: "test" })
+    .eq("id", notaId);
+
+  if (errFirmar) {
+    fail(`8c (previo) Firmar nota de test: ${errFirmar.message}`);
+  } else {
+    // ── 8c: UPDATE con firmado=true (debe lanzar excepción del trigger) ──────────
+    const { error: errPostFirma } = await supabase
+      .from("fce_notas_clinicas")
+      .update({ secciones_estructuradas: { motivo: { motivo_principal: "Intento post-firma" } } })
+      .eq("id", notaId);
+
+    if (errPostFirma && errPostFirma.message.includes("firmada")) {
+      pass("8c UPDATE secciones_estructuradas con firmado=true: trigger bloqueó correctamente");
+    } else if (errPostFirma) {
+      fail(`8c UPDATE post-firma lanzó error inesperado: ${errPostFirma.message}`);
+    } else {
+      fail("8c UPDATE post-firma NO lanzó excepción — el trigger NO está funcionando");
+    }
+  }
+
+  // ── Limpieza ─────────────────────────────────────────────────────────────────
+  await supabase.from("fce_notas_clinicas").delete().eq("id", notaId);
 }
+
+runInmutabilidadTests()
+  .catch((e) => {
+    fail(`Test 8 lanzó excepción inesperada: ${e instanceof Error ? e.message : String(e)}`);
+  })
+  .finally(() => {
+    // ── Resumen ────────────────────────────────────────────────────────────────
+    console.log("\n" + "─".repeat(60));
+    console.log(`Resultado: ${passCount} checks pasaron, ${errors.length} fallaron`);
+
+    if (errors.length > 0) {
+      console.error("\nErrores:");
+      errors.forEach((e) => console.error(`  - ${e}`));
+      process.exit(1);
+    } else {
+      console.log("✓ Todos los checks pasaron. Sprint P2-F2 validado.");
+      process.exit(0);
+    }
+  });
