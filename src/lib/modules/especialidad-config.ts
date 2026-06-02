@@ -46,6 +46,7 @@ export interface EspecialidadConfig {
   tieneEscalaFuncional: boolean;
   tieneCopilotoIA: boolean;
   tieneResumenIA: boolean;
+  tieneCalculoIMC?: boolean;  // Si true, el form calcula IMC desde peso_kg/talla_cm en sección "contenido"
   secciones: SeccionNota[];
   accionesRapidas: AccionRapida[];
 }
@@ -244,6 +245,7 @@ export const ESPECIALIDAD_CONFIG: Record<string, EspecialidadConfig> = {
     tieneEscalaFuncional: false,
     tieneCopilotoIA: true,
     tieneResumenIA: false,
+    tieneCalculoIMC: true,
     secciones: [
       {
         id: "motivo", label: "Motivo de consulta",

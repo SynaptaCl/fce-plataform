@@ -1,20 +1,26 @@
 -- Migration: 20260602_02_extend_trigger_inmutabilidad
 -- Sprint: P2 / Fase 2
--- Descripción: Extiende el trigger de inmutabilidad para incluir contenido_estructurado
--- Pre-requisito: Migration 20260602_01 aplicada. El trigger trg_block_update_signed_nota debe existir.
--- NOTA PARA EL OPERADOR: Verificar el nombre exacto de la función trigger en DB antes de aplicar.
+-- Descripción: Extiende el trigger de inmutabilidad para proteger contenido_estructurado
+-- Pre-requisito: Migration 20260602_01 aplicada (columna contenido_estructurado existe).
+-- El trigger trg_block_update_signed_nota ya debe existir en la DB enlazado a block_update_signed_nota_clinica().
+-- Esta migration reemplaza la función para incluir las nuevas columnas en el bloqueo.
 
-CREATE OR REPLACE FUNCTION block_update_signed_nota()
-RETURNS trigger LANGUAGE plpgsql AS $$
+CREATE OR REPLACE FUNCTION block_update_signed_nota_clinica()
+RETURNS TRIGGER AS $$
 BEGIN
-  IF OLD.firmado = TRUE THEN
+  IF OLD.firmado = true AND (
+    NEW.contenido IS DISTINCT FROM OLD.contenido OR
+    NEW.motivo_consulta IS DISTINCT FROM OLD.motivo_consulta OR
+    NEW.diagnostico IS DISTINCT FROM OLD.diagnostico OR
+    NEW.plan IS DISTINCT FROM OLD.plan OR
+    NEW.contenido_estructurado IS DISTINCT FROM OLD.contenido_estructurado OR
+    NEW.secciones_estructuradas IS DISTINCT FROM OLD.secciones_estructuradas
+  ) THEN
     RAISE EXCEPTION 'No se puede modificar una nota clínica firmada (id: %)', OLD.id;
   END IF;
   RETURN NEW;
 END;
-$$;
--- El trigger trg_block_update_signed_nota ya debe existir enlazado a esta función.
--- Si no existe, crear:
--- CREATE TRIGGER trg_block_update_signed_nota
---   BEFORE UPDATE ON fce_notas_clinicas
---   FOR EACH ROW EXECUTE FUNCTION block_update_signed_nota();
+$$ LANGUAGE plpgsql;
+
+-- Nota: El trigger trg_block_update_signed_nota ya está enlazado a esta función.
+-- No recrear el trigger para evitar duplicados.

@@ -38,7 +38,7 @@ type ContenidoEstructurado = Record<string, Record<string, string | string[]>>;
 function calcularIMC(pesoKg: string, tallaCm: string): { imc: string; clasificacion: string } | null {
   const peso = parseFloat(pesoKg);
   const talla = parseFloat(tallaCm);
-  if (!peso || !talla || talla <= 0) return null;
+  if (!peso || !talla || peso <= 0 || talla < 50 || talla > 250 || peso > 500) return null;
   const imc = peso / Math.pow(talla / 100, 2);
   let clasificacion = "";
   if (imc < 18.5) clasificacion = "Bajo peso";
@@ -129,8 +129,8 @@ export function NotaClinicaForm({
           [seccionId]: { ...secActual, [campoId]: valor },
         };
 
-        // Calcular IMC automáticamente para Nutrición
-        if (especialidad === "Nutrición" && seccionId === "contenido") {
+        // Calcular IMC automáticamente si la especialidad tiene cálculo de IMC habilitado
+        if (espConfig?.tieneCalculoIMC && seccionId === "contenido") {
           const peso = campoId === "peso_kg" ? String(valor) : String(secActual["peso_kg"] ?? "");
           const talla = campoId === "talla_cm" ? String(valor) : String(secActual["talla_cm"] ?? "");
           const resultado = calcularIMC(peso, talla);
@@ -152,12 +152,12 @@ export function NotaClinicaForm({
         return next;
       });
     },
-    [especialidad]
+    [espConfig]
   );
 
   // Recalcular IMC si los valores iniciales ya tienen peso y talla
   useEffect(() => {
-    if (especialidad !== "Nutrición") return;
+    if (!espConfig?.tieneCalculoIMC) return;
     const secContenido = contenidoEstructurado["contenido"] ?? {};
     const peso = String(secContenido["peso_kg"] ?? "");
     const talla = String(secContenido["talla_cm"] ?? "");

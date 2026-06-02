@@ -107,8 +107,7 @@ function CampoRenderer({ campo, valor, onChange, readOnly }: CampoRendererProps)
             borderColor: "var(--color-kp-border)",
             backgroundColor: "var(--color-surface-1)",
             color: "var(--color-ink-1)",
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            ...(isReadOnly ? { opacity: 0.7, cursor: "not-allowed" } as any : {}),
+            ...(isReadOnly ? { opacity: 0.7, cursor: "not-allowed" } : {}),
           }}
         >
           <option value="">Seleccionar…</option>
@@ -223,7 +222,12 @@ export function SeccionEstructuradaRenderer({
   onChange,
   readOnly,
 }: SeccionEstructuradaRendererProps) {
-  const [abierta, setAbierta] = useState(seccion.defaultAbierta);
+  // Si es readOnly y la sección tiene valores, forzar abierta para no ocultar info clínica
+  const tieneValores = readOnly && seccion.campos.some(c => {
+    const v = valores[c.id];
+    return Array.isArray(v) ? v.length > 0 : Boolean(v);
+  });
+  const [abierta, setAbierta] = useState(seccion.defaultAbierta || tieneValores);
 
   // Solo procesar campos con id definido
   const camposConCampos = seccion.campos.filter((c) => c.id);
