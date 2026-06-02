@@ -70,11 +70,11 @@ Deploy: Vercel. Supabase project: `vigyhfpwyxihrjiygfsa` (sa-east-1).
 12. **NUNCA modificar `registry.ts` para una clínica** — usar `clinicas_fce_config`
 13. **Especialidades en DB = strings EXACTOS** del catálogo (con tilde). Nunca normalizar antes de escribir
 14. **`profesionales.auth_id` NO tiene UNIQUE** — un auth_id → N profesionales. Usar `getProfesionalActivo()` de `src/lib/fce/profesional.ts`. Lee cookie `id_profesional_activo` si existe (sprint P1).
-18. **Personalización por especialidad = `getEspecialidadConfig(esp)`** — NUNCA `if (especialidad === '...')` en componentes. La fuente única de verdad es `src/lib/modules/especialidad-config.ts`.
-19. **Validar especialidad antes de INSERT/UPDATE en `profesionales`** — usar `crearProfesional`/`actualizarProfesional` de `src/app/actions/profesionales.ts` que validan contra `especialidades_catalogo` DB.
 15. **Claude Code NO aplica migrations/DDL**. Genera SQL, presenta, espera aprobación humana
 16. **Prescripciones inmutables post-firma** — snapshots del profesional se capturan al firmar
 17. **M10 NO es inmutable** — el plan de intervención es documento vivo; no hay trigger de bloqueo post-firma
+18. **Personalización por especialidad = `getEspecialidadConfig(esp)`** — NUNCA `if (especialidad === '...')` en componentes. La fuente única de verdad es `src/lib/modules/especialidad-config.ts`.
+19. **Validar especialidad antes de INSERT/UPDATE en `profesionales`** — usar `crearProfesional`/`actualizarProfesional` de `src/app/actions/profesionales.ts` que validan contra `especialidades_catalogo` DB.
 
 ---
 
@@ -96,15 +96,15 @@ Tokens dinámicos inyectados por clínica (ejemplos): `--color-kp-primary`, `--c
 
 ```
 1. CATÁLOGO (código)          → src/lib/modules/registry.ts — 10 módulos, 11 especialidades, modelos
-2. CONFIG POR ESPECIALIDAD    → src/lib/modules/especialidad-config.ts — fuente única de verdad de
-                                  qué ve cada especialidad (instrumentos, launchers, secciones, IA)
+2. CONFIG POR ESPECIALIDAD    → src/lib/modules/especialidad-config.ts — FUENTE ÚNICA DE VERDAD
+                                  qué ve cada especialidad: instrumentos, launchers, secciones, IA
 3. CONFIG POR SERVICIO        → src/lib/modules/servicio-config.ts — instrumentos sugeridos por tipo de cita
 4. CONFIGURACIÓN (DB)         → clinicas_fce_config — módulos/especialidades activas por clínica
 5. GUARDS (runtime)           → src/lib/modules/guards.ts — requireModule, assertPuedeFirmar, etc.
 6. UI CONDICIONAL             → Sidebar + rutas filtradas por config
 ```
 
-**REGLA CRÍTICA**: Ningún componente deduce qué mostrar con `if (especialidad === '...')`. Toda personalización por especialidad va en `especialidad-config.ts` y se consume via `getEspecialidadConfig(especialidad)`.
+**REGLA CRÍTICA (sprint P1)**: Ningún componente deduce qué mostrar con `if (especialidad === '...')`. Toda personalización por especialidad va en `especialidad-config.ts` y se consume via `getEspecialidadConfig(especialidad)`.
 
 **Cuatro modelos clínicos coexisten** (tipo `ModeloClinico` en registry.ts):
 
@@ -115,11 +115,11 @@ type ModeloClinico = "rehabilitacion" | "clinico_general" | "odontologico" | "ni
 | Modelo | Especialidades | Workspace |
 |---|---|---|
 | `rehabilitacion` | Kine, Fono, Maso, TO, Podología | SoapForm + EvalComponent + PlanIntervencionLauncher (si M10) |
-| `clinico_general` | Medicina, Enfermería, Psico, Nutri | NotaClinicaForm + InstrumentosPanel + Launchers (si módulos activos) |
+| `clinico_general` | Medicina, Enfermería, Psico, Nutri | NotaClinicaForm + InstrumentosPanel + Launchers condicionados por config |
 | `odontologico` | Odontología | DentalWorkspace (odontograma + periograma + plan tratamiento + procedimientos + ICD-11) |
 | `ninguno` | Administración Clínica | Sin espacio clínico |
 
-La bifurcación ocurre en `encuentro/[encuentroId]/page.tsx` via `getModeloDeEspecialidad()` de `src/lib/modules/modelos.ts`. Es la **única fuente de verdad** del mapeo especialidad → modelo.
+La bifurcación ocurre en `encuentro/[encuentroId]/page.tsx` via `getModeloDeEspecialidad()` de `src/lib/modules/modelos.ts`, que a su vez deriva de `getEspecialidadConfig()`.
 
 El workspace dental vive en `/encuentro/[encuentroId]/dental/page.tsx` y usa `DentalWorkspace` de `src/components/dental/`.
 
@@ -185,6 +185,27 @@ const rol = admin.rol; // ✅ fuente autoritativa
 const rawEsp = prof.especialidad; // "Kinesiología" (con tilde)
 // Para DB: usar rawEsp tal cual
 // Para routing/TS: normalizar solo en variable separada, NUNCA escribir normalizado a DB
+```
+
+### Especialidad config — getEspecialidadConfig (sprint P1)
+```typescript
+import { getEspecialidadConfig } from "@/lib/modules/especialidad-config";
+import { getServicioContexto } from "@/lib/modules/servicio-config";
+
+// En workspace pages (Server Components):
+const espConfig = getEspecialidadConfig(encuentro.especialidad);
+const servicioCtx = getServicioContexto(nombreServicio); // de getEncuentroContext()
+const instrumentosSugeridos = servicioCtx?.instrumentosSugeridos ?? espConfig.instrumentosSugeridos;
+
+// Launchers condicionados:
+{profesional?.puede_prescribir && <PrescripcionLauncher ... />}
+{profesional?.puede_indicar_examenes && <OrdenExamenLauncher ... />}
+
+// NotaClinicaForm recibe prop de IA:
+<NotaClinicaForm tieneCopilotoIA={espConfig.tieneCopilotoIA} ... />
+
+// InstrumentosPanel recibe sugeridos:
+<InstrumentosPanel instrumentosSugeridos={instrumentosSugeridos} ... />
 ```
 
 ### ActionResult — tipo de respuesta estándar
@@ -264,15 +285,20 @@ function escapeHtml(s: unknown): string {
 src/app/dashboard/pacientes/[id]/encuentro/[encuentroId]/
   ├── page.tsx          → Router: redirect a /rehab | /clinico | /dental según modelo
   ├── rehab/page.tsx    → SoapForm + EvalComponent + PlanIntervencionLauncher (si M10 activo)
-  ├── clinico/page.tsx  → NotaClinicaForm + InstrumentosPanel + PrescripcionLauncher +
-  │                       OrdenExamenLauncher + PlanIntervencionLauncher (si M10 activo)
+  │                       PrescripcionLauncher condicionado a puede_prescribir (P1)
+  ├── clinico/page.tsx  → NotaClinicaForm (tieneCopilotoIA) + InstrumentosPanel (instrumentosSugeridos)
+  │                       PrescripcionLauncher (si puede_prescribir) + OrdenExamenLauncher (si puede_indicar_examenes)
+  │                       PlanIntervencionLauncher (si M10 activo) — todos condicionados (P1)
   └── dental/page.tsx   → DentalWorkspace
 
 src/app/actions/
   ├── patients.ts, anamnesis.ts, consentimiento.ts, auditoria.ts
-  ├── encuentros.ts, egresos.ts, timeline.ts, exportar-pdf.ts, resumen-ia.ts
+  ├── encuentros.ts       → createEncuentro + getEncuentroContext (P1: resuelve nombre servicio)
+  ├── egresos.ts, timeline.ts, exportar-pdf.ts, resumen-ia.ts
   ├── prescripciones.ts, ordenes-examen.ts
   ├── copiloto-nota.ts
+  ├── profesionales.ts    → crearProfesional + actualizarProfesional (P1: valida especialidad vs DB)
+  ├── perfil-selector.ts  → setPerfilActivo (P1: setea cookie id_profesional_activo)
   ├── rehab/    → soap.ts, evaluacion.ts, cif.ts
   ├── clinico/  → nota-clinica.ts, nota-rapida.ts, instrumentos.ts,
   │               catalogo-instrumentos.ts, diagnostico.ts,
@@ -283,7 +309,7 @@ src/components/
   ├── ui/       → Button, Input, Card, Badge, AlertBanner, Select, Textarea,
   │               SignatureBlock, LoadingSpinner, LoadingPage
   ├── layout/   → Sidebar (colapsable), TopBar, DashboardShell, PatientHeader,
-  │               BrandingInjector
+  │               BrandingInjector, ProfesionalSelector (P1: badge + dropdown N>1 perfiles)
   ├── modules/
   │   ├── ClinicalTimeline.tsx
   │   ├── EvaluacionTimeline.tsx
@@ -297,7 +323,9 @@ src/components/
   │   └── CopilotoNota/ → CopilotoNotaButton, CopilotoNotaPanel (index.ts)
   ├── rehab/    → SoapForm, CifMapper, CifSearch, KinesiologiaEval, FonoaudiologiaEval,
   │               MasoterapiaEval, GenericEval (index.ts)
-  ├── clinico/  → NotaClinicaForm, InstrumentosPanel, InstrumentoLauncher,
+  ├── clinico/  → NotaClinicaForm (prop tieneCopilotoIA, P1),
+  │               InstrumentosPanel (prop instrumentosSugeridos, P1),
+  │               InstrumentoLauncher (prop instrumentosSugeridos + badge "Sugerido", P1),
   │               InstrumentoResultadoCard, EscalaSimpleRenderer, QuickNoteModal,
   │               DiagnosticoSearch, DiagnosticoChip, RegistroResultadoExterno
   │               instrumentos-custom/ → ApgarScore, GlasgowComaScale
@@ -321,7 +349,9 @@ src/components/
 
 src/lib/
   ├── modules/        → registry.ts, config.ts, guards.ts (ActionResult aquí), modelos.ts, provider.tsx
-  ├── fce/            → profesional.ts (getProfesionalActivo, getProfesionalesDelUsuario)
+  │                     especialidad-config.ts (P1: ESPECIALIDAD_CONFIG + getEspecialidadConfig)
+  │                     servicio-config.ts (P1: SERVICIO_KEYWORDS + getServicioContexto)
+  ├── fce/            → profesional.ts (getProfesionalActivo lee cookie P1, getProfesionalesDelUsuario)
   ├── icd/            → client.ts (OAuth2 WHO), types.ts, search.ts (buscarDiagnostico/buscarCIF), entity.ts
   ├── dental/         → fdi.ts (numeración FDI), periograma.ts, plan.ts
   ├── instrumentos/   → calcular.ts, interpretar.ts, registry-custom.ts
@@ -344,6 +374,10 @@ src/types/
     diagnostico.ts (re-exporta ICDSearchResult/ICDCodeSnap/DiagnosticoGuardado + DiagnosticoSearchProps),
     odontograma.ts, periograma.ts, plan-tratamiento.ts, practitioner.ts,
     plan-intervencion.ts, plantilla-dominio.ts, index.ts
+
+supabase/migrations/
+  → 20260601_01_hotfix_rls_tenant_isolation.sql   (P1: pendiente aplicar — cierra fuga cross-tenant)
+  → 20260601_02_onboarding_cenupsi_fce_config.sql (P1: pendiente aplicar — activa módulos cenupsi)
 
 scripts/
   → test-sprint-n1.ts   (smoke test manual M10)
@@ -373,8 +407,9 @@ Otros scripts en package.json: `test:sprint-1`, `test:sprint-3`, `test:profesion
 ```
 feat(sprint-rN)(scope): descripción
 fix(sprint-rN)(scope): descripción
+feat(sprint-p1)(scope): descripción   ← sprint P1
 ```
-Scopes: `(clinico)`, `(rehab)`, `(dental)`, `(shared)`, `(registry)`, `(guards)`, `(branding)`, `(m9)`, `(icd)`, `(m10)`, `(timeline)`, `(docs)`, `(layout)`.
+Scopes: `(clinico)`, `(rehab)`, `(dental)`, `(shared)`, `(registry)`, `(guards)`, `(branding)`, `(m9)`, `(icd)`, `(m10)`, `(timeline)`, `(docs)`, `(layout)`, `(p1)`.
 
 ---
 
@@ -417,13 +452,13 @@ Actualmente **ninguna clínica tiene fce-plataform en producción** — el repo 
 | D2-D6 | Módulo odontológico completo: registry + router dental + DentalWorkspace + odontograma + periograma + plan tratamiento + procedimientos + integración ICD-11 |
 | Copiloto Escritura | IA inline en NotaClinicaForm: bullets → nota clínica en prosa. Modelo `claude-sonnet-4-6` |
 | N1 | Módulo M10 Plan de Intervención: plantillas por dominio, GAS, progreso, PDF, timeline, registro_externo para instrumentos externos |
-| P1 | Perfiles profesionales: especialidad-config.ts (fuente única de verdad), servicio-config.ts, workspace adaptado (instrumentos sugeridos, launchers condicionados), validación especialidad en DB, selector perfil activo con cookie, SQL RLS hotfix + onboarding cenupsi |
+| P1 | Perfiles profesionales: `especialidad-config.ts` (fuente única de verdad), `servicio-config.ts`, workspace adaptado (instrumentos sugeridos, launchers condicionados por puede_prescribir/puede_indicar_examenes/tieneCopilotoIA), validación especialidad en DB, selector perfil activo con cookie `id_profesional_activo`, SQL RLS hotfix + onboarding cenupsi |
 
 ### Pendientes
 
 | Sprint | Foco |
 |---|---|
-| R1 | Limpieza Korporis-isms (permissions.ts legacy, bug normalización) |
+| R1 | Limpieza Korporis-isms (permissions.ts legacy, datos con especialidad sin tilde) |
 | R8 | Switch DNS Korporis legacy → fce-plataform |
 | D7 | PDF export ficha dental + smoke tests + config Nuvident en producción |
 
@@ -442,16 +477,18 @@ Actualmente **ninguna clínica tiene fce-plataform en producción** — el repo 
 | `fce_planes_intervencion`, `fce_plan_objetivos`, `fce_plan_progreso`, `plantillas_dominios` | 2026-05-31 |
 | Columna `secciones_estructuradas jsonb` en `fce_notas_clinicas` | 2026-05-31 |
 | Tipo `registro_externo` en `instrumentos_valoracion` | 2026-05-31 |
+| **SQL P1 pendiente**: RLS hotfix (`fce_notas_soap`, `fce_evaluaciones`, `profesionales`) | 2026-06-01 |
+| **SQL P1 pendiente**: onboarding cenupsi (`modulos_activos` + `especialidades_activas`) | 2026-06-01 |
 
 ### Deuda técnica
 
 | Item | Prioridad |
 |---|---|
-| Bug normalización especialidad | Alta — R1 |
+| Datos históricos con especialidad sin tilde en `profesionales` (ej: 'Kinesiologia') | Alta — R1 |
 | `permissions.ts` legacy con roles viejos | Alta — R1 |
 | Migrations ICD-11 pendientes (`fce_notas_clinicas` + `fce_periogramas`) — SQL en `scripts/test-sprint-icd1.ts` | Alta |
 | Gestión `puede_prescribir` / `puede_indicar_examenes` en panel clínica | Media |
-| TODO selector perfil activo (cuando haya 2+ perfiles) | Media |
+| Modal de selección de perfil al primer ingreso (cuando N>1 perfiles, sin cookie) | Media |
 | Instrumentos con `validado: false` en seed (8 de 10) | Media |
 | Seed medicamentos incompleto (faltan odonto, psiquiatría, suplementos) | Media |
 | Seed examenes_catalogo vacío — poblar antes de activar en producción | Media |
@@ -505,6 +542,21 @@ Usa `useClinicaConfig()` para mostrar/ocultar chips según módulos activos.
 En `/clinico/page.tsx` y `/rehab/page.tsx`:
 - `PatientHeader` envuelto en `<div className="sticky top-0 z-20">`
 - `FirmarHeaderButton` hace scroll a `id="signature-section"`
+
+### ProfesionalSelector — badge de especialidad en TopBar (sprint P1)
+
+`ProfesionalSelector` (en `components/layout/ProfesionalSelector.tsx`) muestra badge pill con la especialidad activa. Si N>1 perfiles, muestra dropdown con `useTransition` + `router.refresh()` al cambiar.
+
+```tsx
+// Renderizado en DashboardShell como children de TopBar
+<TopBar breadcrumb={breadcrumb}>
+  {perfilesProfesional?.length > 0 && perfilActivoId && (
+    <ProfesionalSelector perfiles={perfilesProfesional} perfilActivoId={perfilActivoId} />
+  )}
+</TopBar>
+```
+
+Cookie `id_profesional_activo` (httpOnly, SameSite=lax, 30 días). `getProfesionalActivo()` la lee con import dinámico de `next/headers` en try/catch para compatibilidad edge.
 
 ---
 
@@ -616,6 +668,7 @@ CopilotoNotaButton (click — lee textarea con getBullets())
 - Modelo: `claude-sonnet-4-6` (NO Haiku) — la nota se firma como documento clínico
 - Audit obligatorio con `createServiceClient()` incluso si el profesional descarta el borrador
 - Sin caché — el input varía en cada uso
+- **Sprint P1**: `NotaClinicaForm` recibe prop `tieneCopilotoIA?: boolean` (default `true`). El botón se oculta cuando `false` — controlado por `getEspecialidadConfig(esp).tieneCopilotoIA`.
 
 ### Disclaimer (texto literal — no modificar)
 > "Borrador generado por IA a partir de los apuntes ingresados. Debe ser revisado y editado por el profesional responsable antes de firmar."
