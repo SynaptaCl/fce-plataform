@@ -15,23 +15,24 @@
 
 -- Asegurar que tipo_renderer acepta 'registro_externo' (Sprint N1 — puede estar
 -- pendiente de aplicar en algunos entornos).
+-- Solo agrega el constraint si NO existe aún — nunca borra el existente.
+-- Si el constraint ya existe con los valores correctos, este bloque no hace nada.
+-- Si existe con valores distintos, el operador debe resolverlo manualmente.
 --
 -- ⚠️  PRE-FLIGHT OBLIGATORIO antes de aplicar:
---   SELECT DISTINCT tipo_renderer FROM instrumentos_valoracion;
--- Confirmar que los únicos valores son 'escala_simple', 'componente_custom', 'registro_externo'.
--- Si existe algún otro valor, NO aplicar este bloque hasta coordinarlo.
+--   SELECT conname, pg_get_constraintdef(oid) FROM pg_constraint
+--   WHERE conname = 'instrumentos_valoracion_tipo_renderer_check';
+-- Verificar que el constraint incluye 'registro_externo'. Si no existe, este bloque lo crea.
 DO $$
 BEGIN
-  ALTER TABLE instrumentos_valoracion
-    DROP CONSTRAINT IF EXISTS instrumentos_valoracion_tipo_renderer_check;
-
-  ALTER TABLE instrumentos_valoracion
-    ADD CONSTRAINT instrumentos_valoracion_tipo_renderer_check
-    CHECK (tipo_renderer IN ('escala_simple', 'componente_custom', 'registro_externo'));
-EXCEPTION
-  WHEN others THEN
-    -- Constraint ya existía con todos los valores; ignorar.
-    NULL;
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'instrumentos_valoracion_tipo_renderer_check'
+  ) THEN
+    ALTER TABLE instrumentos_valoracion
+      ADD CONSTRAINT instrumentos_valoracion_tipo_renderer_check
+      CHECK (tipo_renderer IN ('escala_simple', 'componente_custom', 'registro_externo'));
+  END IF;
 END $$;
 
 -- ============================================================================
