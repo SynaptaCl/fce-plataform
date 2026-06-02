@@ -1,10 +1,33 @@
 import type { ModeloClinico } from "./registry";
 
+export type CampoTipo =
+  | "texto_largo"      // textarea
+  | "texto_corto"      // input
+  | "select"           // dropdown con opciones
+  | "multi_select"     // checkboxes
+  | "escala"           // slider numérico
+  | "fecha"
+  | "booleano";
+
+export interface CampoNota {
+  id: string;
+  label: string;
+  tipo: CampoTipo;
+  obligatorio: boolean;
+  opciones?: string[];        // para select/multi_select
+  placeholder?: string;
+  ayuda?: string;             // hint clínico
+  min?: number;               // para escala
+  max?: number;
+}
+
 export interface SeccionNota {
   id: string;
   label: string;
-  tipo: "texto_libre" | "estructurada";
-  obligatoria: boolean;
+  descripcion?: string;
+  campos: CampoNota[];        // reemplaza el campo "tipo" anterior
+  colapsable: boolean;
+  defaultAbierta: boolean;
 }
 
 export interface AccionRapida {
@@ -67,7 +90,7 @@ export const ESPECIALIDAD_CONFIG: Record<string, EspecialidadConfig> = {
   },
   "Terapia Ocupacional": {
     modelo: "rehabilitacion",
-    instrumentosSugeridos: ["eva", "brief2", "vineland3", "sensory_profile2"],
+    instrumentosSugeridos: ["eva", "brief2", "vineland3", "sensory_profile"],
     modulosHabilitados: ["M10"],
     tieneContraindicaciones: false,
     tieneEscalaFuncional: true,
@@ -98,10 +121,10 @@ export const ESPECIALIDAD_CONFIG: Record<string, EspecialidadConfig> = {
     tieneCopilotoIA: true,
     tieneResumenIA: true,
     secciones: [
-      { id: "motivo", label: "Motivo de consulta", tipo: "texto_libre", obligatoria: true },
-      { id: "contenido", label: "Evolución", tipo: "texto_libre", obligatoria: true },
-      { id: "diagnostico", label: "Diagnóstico (ICD-11)", tipo: "estructurada", obligatoria: false },
-      { id: "plan", label: "Plan", tipo: "texto_libre", obligatoria: false },
+      { id: "motivo", label: "Motivo de consulta", campos: [], colapsable: false, defaultAbierta: true },
+      { id: "contenido", label: "Evolución", campos: [], colapsable: false, defaultAbierta: true },
+      { id: "diagnostico", label: "Diagnóstico (ICD-11)", campos: [], colapsable: true, defaultAbierta: false },
+      { id: "plan", label: "Plan", campos: [], colapsable: true, defaultAbierta: false },
     ],
     accionesRapidas: [
       { id: "prescribir", label: "Prescripción", modulo: "M7", icon: "Pill", requierePermiso: "puede_prescribir" },
@@ -118,8 +141,8 @@ export const ESPECIALIDAD_CONFIG: Record<string, EspecialidadConfig> = {
     tieneCopilotoIA: true,
     tieneResumenIA: false,
     secciones: [
-      { id: "motivo", label: "Motivo", tipo: "texto_libre", obligatoria: true },
-      { id: "contenido", label: "Evolución", tipo: "texto_libre", obligatoria: true },
+      { id: "motivo", label: "Motivo", campos: [], colapsable: false, defaultAbierta: true },
+      { id: "contenido", label: "Evolución", campos: [], colapsable: false, defaultAbierta: true },
     ],
     accionesRapidas: [
       { id: "instrumento", label: "Aplicar instrumento", modulo: "instrumento", icon: "ListChecks" },
@@ -127,16 +150,16 @@ export const ESPECIALIDAD_CONFIG: Record<string, EspecialidadConfig> = {
   },
   "Psicología": {
     modelo: "clinico_general",
-    instrumentosSugeridos: ["eva", "gad7", "mmse", "phq9", "adir", "cars2", "wiscv", "wppsi", "ados2", "conners3", "brief2", "vineland3"],
+    instrumentosSugeridos: ["eva", "gad7", "mmse", "phq9", "adir", "cars2", "wisc5", "wppsi", "ados2", "conners3", "brief2", "vineland3"],
     modulosHabilitados: ["M10"],
     tieneContraindicaciones: false,
     tieneEscalaFuncional: false,
     tieneCopilotoIA: true,
     tieneResumenIA: true,
     secciones: [
-      { id: "motivo", label: "Motivo de consulta", tipo: "texto_libre", obligatoria: true },
-      { id: "contenido", label: "Evolución de sesión", tipo: "texto_libre", obligatoria: true },
-      { id: "plan", label: "Plan terapéutico", tipo: "texto_libre", obligatoria: false },
+      { id: "motivo", label: "Motivo de consulta", campos: [], colapsable: false, defaultAbierta: true },
+      { id: "contenido", label: "Evolución de sesión", campos: [], colapsable: false, defaultAbierta: true },
+      { id: "plan", label: "Plan terapéutico", campos: [], colapsable: true, defaultAbierta: false },
     ],
     accionesRapidas: [
       { id: "instrumento", label: "Aplicar instrumento", modulo: "instrumento", icon: "ListChecks" },
@@ -152,9 +175,9 @@ export const ESPECIALIDAD_CONFIG: Record<string, EspecialidadConfig> = {
     tieneCopilotoIA: true,
     tieneResumenIA: false,
     secciones: [
-      { id: "motivo", label: "Motivo de consulta", tipo: "texto_libre", obligatoria: true },
-      { id: "contenido", label: "Evaluación nutricional", tipo: "texto_libre", obligatoria: true },
-      { id: "plan", label: "Plan alimentario", tipo: "texto_libre", obligatoria: false },
+      { id: "motivo", label: "Motivo de consulta", campos: [], colapsable: false, defaultAbierta: true },
+      { id: "contenido", label: "Evaluación nutricional", campos: [], colapsable: false, defaultAbierta: true },
+      { id: "plan", label: "Plan alimentario", campos: [], colapsable: true, defaultAbierta: false },
     ],
     accionesRapidas: [
       { id: "instrumento", label: "Aplicar instrumento", modulo: "instrumento", icon: "ListChecks" },
@@ -162,15 +185,15 @@ export const ESPECIALIDAD_CONFIG: Record<string, EspecialidadConfig> = {
   },
   "Odontología": {
     modelo: "odontologico",
-    instrumentosSugeridos: ["eva", "mdas", "cpod", "oleary", "indice_gingival", "ipc"],
+    instrumentosSugeridos: ["eva", "corah_ansiedad", "cpod", "oleary", "indice_gingival", "ipc"],
     modulosHabilitados: ["M7"],
     tieneContraindicaciones: true,
     tieneEscalaFuncional: false,
     tieneCopilotoIA: false,
     tieneResumenIA: false,
     secciones: [
-      { id: "motivo", label: "Motivo de consulta", tipo: "texto_libre", obligatoria: true },
-      { id: "contenido", label: "Evolución dental", tipo: "texto_libre", obligatoria: true },
+      { id: "motivo", label: "Motivo de consulta", campos: [], colapsable: false, defaultAbierta: true },
+      { id: "contenido", label: "Evolución dental", campos: [], colapsable: false, defaultAbierta: true },
     ],
     accionesRapidas: [
       { id: "prescribir", label: "Prescripción", modulo: "M7", icon: "Pill", requierePermiso: "puede_prescribir" },

@@ -24,7 +24,7 @@ const SERVICIO_KEYWORDS: Array<{ keywords: string[]; contexto: ServicioContexto 
   },
   {
     keywords: ["wisc"],
-    contexto: { instrumentosSugeridos: ["wiscv"], nota: "Psicometría WISC-V (niños)." },
+    contexto: { instrumentosSugeridos: ["wisc5"], nota: "Psicometría WISC-V (niños)." },
   },
   {
     keywords: ["wais"],
