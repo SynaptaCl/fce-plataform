@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -107,21 +107,16 @@ export function Sidebar({
 }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const [expanded, setExpanded] = useState(() => {
-    if (typeof window === "undefined") return false;
-    return localStorage.getItem(STORAGE_KEY) === "true";
+  const [{ expanded, mounted }, setSidebarState] = useState(() => {
+    if (typeof window === "undefined") return { expanded: false, mounted: false };
+    return { expanded: localStorage.getItem(STORAGE_KEY) === "true", mounted: true };
   });
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   function toggle() {
-    setExpanded((prev) => {
-      const next = !prev;
+    setSidebarState((prev) => {
+      const next = !prev.expanded;
       localStorage.setItem(STORAGE_KEY, String(next));
-      return next;
+      return { expanded: next, mounted: prev.mounted };
     });
   }
 

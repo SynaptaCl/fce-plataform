@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, useEffect, useCallback } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -113,68 +113,52 @@ export function NotaClinicaForm({
 
   const [contenidoEstructurado, setContenidoEstructurado] = useState<ContenidoEstructurado>(
     () => {
-      const base: ContenidoEstructurado = {};
       const existing = notaExistente?.secciones_estructuradas as ContenidoEstructurado | null | undefined;
-      if (existing) return existing;
+      const base: ContenidoEstructurado = existing ?? {};
+      // Calcular IMC inicial si la especialidad lo requiere y ya hay peso/talla guardados
+      if (espConfig?.tieneCalculoIMC) {
+        const secContenido = base["contenido"] ?? {};
+        const resultado = calcularIMC(
+          String(secContenido["peso_kg"] ?? ""),
+          String(secContenido["talla_cm"] ?? ""),
+        );
+        if (resultado) {
+          return {
+            ...base,
+            contenido: {
+              ...secContenido,
+              imc_calculado: resultado.imc,
+              imc_clasificacion: resultado.clasificacion,
+            },
+          };
+        }
+      }
       return base;
     }
   );
 
-  const handleCampoChange = useCallback(
-    (seccionId: string, campoId: string, valor: string | string[]) => {
-      setContenidoEstructurado((prev) => {
-        const secActual = prev[seccionId] ?? {};
-        const next: ContenidoEstructurado = {
-          ...prev,
-          [seccionId]: { ...secActual, [campoId]: valor },
+  function handleCampoChange(seccionId: string, campoId: string, valor: string | string[]) {
+    setContenidoEstructurado((prev) => {
+      const secActual = prev[seccionId] ?? {};
+      const next: ContenidoEstructurado = {
+        ...prev,
+        [seccionId]: { ...secActual, [campoId]: valor },
+      };
+
+      if (espConfig?.tieneCalculoIMC && seccionId === "contenido") {
+        const peso = campoId === "peso_kg" ? String(valor) : String(secActual["peso_kg"] ?? "");
+        const talla = campoId === "talla_cm" ? String(valor) : String(secActual["talla_cm"] ?? "");
+        const resultado = calcularIMC(peso, talla);
+        next[seccionId] = {
+          ...next[seccionId],
+          imc_calculado: resultado ? resultado.imc : "",
+          imc_clasificacion: resultado ? resultado.clasificacion : "",
         };
+      }
 
-        // Calcular IMC automáticamente si la especialidad tiene cálculo de IMC habilitado
-        if (espConfig?.tieneCalculoIMC && seccionId === "contenido") {
-          const peso = campoId === "peso_kg" ? String(valor) : String(secActual["peso_kg"] ?? "");
-          const talla = campoId === "talla_cm" ? String(valor) : String(secActual["talla_cm"] ?? "");
-          const resultado = calcularIMC(peso, talla);
-          if (resultado) {
-            next[seccionId] = {
-              ...next[seccionId],
-              imc_calculado: resultado.imc,
-              imc_clasificacion: resultado.clasificacion,
-            };
-          } else {
-            next[seccionId] = {
-              ...next[seccionId],
-              imc_calculado: "",
-              imc_clasificacion: "",
-            };
-          }
-        }
-
-        return next;
-      });
-    },
-    [espConfig]
-  );
-
-  // Recalcular IMC si los valores iniciales ya tienen peso y talla
-  useEffect(() => {
-    if (!espConfig?.tieneCalculoIMC) return;
-    const secContenido = contenidoEstructurado["contenido"] ?? {};
-    const peso = String(secContenido["peso_kg"] ?? "");
-    const talla = String(secContenido["talla_cm"] ?? "");
-    if (!peso || !talla) return;
-    const resultado = calcularIMC(peso, talla);
-    if (!resultado) return;
-    setContenidoEstructurado((prev) => ({
-      ...prev,
-      contenido: {
-        ...(prev["contenido"] ?? {}),
-        imc_calculado: resultado.imc,
-        imc_clasificacion: resultado.clasificacion,
-      },
-    }));
-    // Solo al montar
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+      return next;
+    });
+  }
 
   const {
     register,

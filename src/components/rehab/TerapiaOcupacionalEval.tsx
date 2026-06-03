@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { Save } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Textarea } from "@/components/ui/Textarea";
@@ -206,7 +206,7 @@ function AvdForm({ patientId, initialData, readOnly }: SubFormProps) {
   const [serverError, setServerError] = useState<string | null>(null);
   const d = initialData as Partial<AvdFormData>;
 
-  const { register, handleSubmit, watch, setValue, formState: { isSubmitting } } =
+  const { register, handleSubmit, control, setValue, formState: { isSubmitting } } =
     useForm<AvdFormData>({
       defaultValues: {
         avd_basicas: (d.avd_basicas as string[]) ?? [],
@@ -216,8 +216,8 @@ function AvdForm({ patientId, initialData, readOnly }: SubFormProps) {
       },
     });
 
-  const avdBasicasVal = watch("avd_basicas");
-  const avdInstrumentalesVal = watch("avd_instrumentales");
+  const avdBasicasVal = useWatch({ control, name: "avd_basicas" });
+  const avdInstrumentalesVal = useWatch({ control, name: "avd_instrumentales" });
 
   function toggleItem(field: "avd_basicas" | "avd_instrumentales", item: string, current: string[]) {
     const next = current.includes(item)
