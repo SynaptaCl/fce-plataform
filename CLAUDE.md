@@ -338,7 +338,6 @@ src/components/
   │   ├── ClinicalTimeline.tsx
   │   ├── EvaluacionTimeline.tsx
   │   ├── PatientNav.tsx
-  │   ├── PatientActionNav.tsx   ← LEGACY, no usar en páginas nuevas
   │   ├── timeline/ → SoapExpandedCard, EvaluacionExpandedCard, NotaClinicaExpandedCard,
   │   │               PrescripcionExpandedCard, OrdenExamenExpandedCard,
   │   │               InstrumentoExpandedCard, ConsentimientoExpandedCard,
@@ -359,7 +358,7 @@ src/components/
   │               OdontogramaLeyenda, PiezaDetailPanel, PeriogramaForm, PeriogramaChart,
   │               PlanTratamientoPanel, PlanTratamientoItemForm,
   │               ProcedimientoPicker, DiagnosticoSearch (wrapper dental ICD-11)
-  └── shared/   → ActionBar (chips navegación paciente — reemplaza PatientActionNav en UI),
+  └── shared/   → ActionBar (chips navegación paciente),
                    EncuentroLauncher, BodyMap, ScaleSlider, SummaryPanel,
                    FirmarHeaderButton, VitalSignsPanel, AnamnesisForm,
                    PatientForm, PatientList, ConsentManager, AuditTimeline,
