@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import type { BrandingConfig } from "@/lib/modules/registry";
 import { createClient } from "@/lib/supabase/client";
+import { getBloqueoCount } from "@/app/actions/configuracion";
 
 const ROLES_CON_CONFIG = ["admin", "director", "superadmin"];
 const STORAGE_KEY = "fce-sidebar-expanded";
@@ -47,9 +48,10 @@ interface NavItemProps {
   label: string;
   active: boolean;
   expanded: boolean;
+  badge?: number;
 }
 
-function NavItem({ href, icon, label, active, expanded }: NavItemProps) {
+function NavItem({ href, icon, label, active, expanded, badge }: NavItemProps) {
   return (
     <Link
       href={href}
@@ -74,14 +76,82 @@ function NavItem({ href, icon, label, active, expanded }: NavItemProps) {
         overflow: "hidden",
         whiteSpace: "nowrap",
         borderRadius: active && expanded ? "0 8px 8px 0" : "8px",
+        position: "relative",
       }}
     >
       <span style={{ flexShrink: 0, display: "flex" }}>{icon}</span>
       {expanded && (
-        <span style={{ fontSize: 13, fontWeight: 500, letterSpacing: "0.01em" }}>
+        <span style={{ fontSize: 13, fontWeight: 500, letterSpacing: "0.01em", flex: 1 }}>
           {label}
         </span>
       )}
+      {expanded && badge !== undefined && badge > 0 && (
+        <span
+          style={{
+            background: "var(--color-kp-danger, #ef4444)",
+            color: "#fff",
+            borderRadius: 100,
+            fontSize: 10,
+            fontWeight: 700,
+            padding: "1px 6px",
+            minWidth: 18,
+            textAlign: "center",
+            flexShrink: 0,
+            lineHeight: 1.6,
+          }}
+        >
+          {badge}
+        </span>
+      )}
+      {!expanded && badge !== undefined && badge > 0 && (
+        <span
+          style={{
+            position: "absolute",
+            top: 6,
+            right: 6,
+            width: 7,
+            height: 7,
+            borderRadius: "50%",
+            background: "var(--color-kp-danger, #ef4444)",
+          }}
+        />
+      )}
+    </Link>
+  );
+}
+
+// ── SubNavItem ─────────────────────────────────────────────────────────────────
+
+interface SubNavItemProps {
+  href: string;
+  label: string;
+  active: boolean;
+}
+
+function SubNavItem({ href, label, active }: SubNavItemProps) {
+  return (
+    <Link
+      href={href}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        height: 30,
+        paddingLeft: 36,
+        paddingRight: 10,
+        color: active ? "var(--color-kp-accent, #00B0A8)" : "rgba(255,255,255,0.38)",
+        background: active ? "rgba(0,176,168,0.1)" : "transparent",
+        textDecoration: "none",
+        fontSize: 12,
+        fontWeight: active ? 500 : 400,
+        borderRadius: "0 6px 6px 0",
+        transition: "background 0.14s ease, color 0.14s ease",
+        whiteSpace: "nowrap",
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+      }}
+      className="fce-sb-nav"
+    >
+      {label}
     </Link>
   );
 }
@@ -111,6 +181,15 @@ export function Sidebar({
     if (typeof window === "undefined") return { expanded: false, mounted: false };
     return { expanded: localStorage.getItem(STORAGE_KEY) === "true", mounted: true };
   });
+
+  const [bloqueoCount, setBloqueoCount] = useState(0);
+
+  useEffect(() => {
+    if (!ROLES_CON_CONFIG.includes(rol)) return;
+    getBloqueoCount()
+      .then(setBloqueoCount)
+      .catch(() => {});
+  }, [rol]);
 
   function toggle() {
     setSidebarState((prev) => {
@@ -366,13 +445,23 @@ export function Sidebar({
           expanded={expanded}
         />
         {showConfig && (
-          <NavItem
-            href="/dashboard/configuracion"
-            icon={<Settings size={18} />}
-            label="Configuración"
-            active={activeSection === "config"}
-            expanded={expanded}
-          />
+          <>
+            <NavItem
+              href="/dashboard/configuracion"
+              icon={<Settings size={18} />}
+              label="Configuración"
+              active={activeSection === "config"}
+              expanded={expanded}
+              badge={bloqueoCount}
+            />
+            {expanded && (
+              <SubNavItem
+                href="/dashboard/configuracion/estado"
+                label="Estado de la clínica"
+                active={pathname === "/dashboard/configuracion/estado"}
+              />
+            )}
+          </>
         )}
       </nav>
 
