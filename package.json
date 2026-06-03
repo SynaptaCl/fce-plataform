@@ -7,14 +7,11 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test:sprint-1": "tsx scripts/test-sprint-1.ts",
-    "test:sprint-3": "tsx scripts/test-sprint-3.ts",
-    "test:profesional": "tsx scripts/test-profesional.ts",
-    "test:sprint-r7": "tsx scripts/test-sprint-r7.ts",
-    "test:sprint-r9": "tsx scripts/test-sprint-r9.ts",
-    "test:sprint-r10": "tsx scripts/test-sprint-r10.ts",
-    "test:sprint-r11": "tsx scripts/test-sprint-r11.ts",
-    "test:sprint-icd1": "tsx scripts/test-sprint-icd1.ts"
+    "test:sprint-n1": "tsx scripts/test-sprint-n1.ts",
+    "test:sprint-p2-f1": "tsx scripts/test-sprint-p2-f1.ts",
+    "test:sprint-p2-f2": "tsx scripts/test-sprint-p2-f2.ts",
+    "test:sprint-p2-f3": "tsx scripts/test-sprint-p2-f3.ts",
+    "test:sprint-p2-f4": "tsx scripts/test-sprint-p2-f4.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.92.0",
