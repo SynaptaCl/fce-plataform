@@ -1,6 +1,6 @@
 # CLAUDE.md — FCE Platform (fce-plataform)
 
-> Última actualización: 2026-06-01 (post-P1 perfiles profesionales)
+> Última actualización: 2026-06-02 (post-P2 workspaces especializados)
 > Este documento es la fuente de verdad para Claude Code. Leerlo antes de cualquier cambio.
 
 ---
@@ -187,7 +187,7 @@ const rawEsp = prof.especialidad; // "Kinesiología" (con tilde)
 // Para routing/TS: normalizar solo en variable separada, NUNCA escribir normalizado a DB
 ```
 
-### Especialidad config — getEspecialidadConfig (sprint P1)
+### Especialidad config — getEspecialidadConfig (sprint P1/P2)
 ```typescript
 import { getEspecialidadConfig } from "@/lib/modules/especialidad-config";
 import { getServicioContexto } from "@/lib/modules/servicio-config";
@@ -201,12 +201,36 @@ const instrumentosSugeridos = servicioCtx?.instrumentosSugeridos ?? espConfig.in
 {profesional?.puede_prescribir && <PrescripcionLauncher ... />}
 {profesional?.puede_indicar_examenes && <OrdenExamenLauncher ... />}
 
-// NotaClinicaForm recibe prop de IA:
-<NotaClinicaForm tieneCopilotoIA={espConfig.tieneCopilotoIA} ... />
+// NotaClinicaForm — recibe especialidad para secciones estructuradas (P2):
+<NotaClinicaForm
+  especialidad={encuentro.especialidad}   // activa secciones dinámicas por especialidad
+  tieneCopilotoIA={espConfig.tieneCopilotoIA}
+  ...
+/>
 
 // InstrumentosPanel recibe sugeridos:
 <InstrumentosPanel instrumentosSugeridos={instrumentosSugeridos} ... />
 ```
+
+**Campos clave de `EspecialidadConfig` (P2):**
+```typescript
+interface EspecialidadConfig {
+  // ... campos anteriores ...
+  tieneCalculoIMC?: boolean;  // Si true: NotaClinicaForm calcula IMC automático desde peso_kg/talla_cm
+  secciones: SeccionNota[];   // Secciones estructuradas por especialidad (P2: campos tipados)
+}
+
+// SeccionNota — tipo extendido en P2
+interface SeccionNota {
+  id: string; label: string; descripcion?: string;
+  campos: CampoNota[];        // tipados: texto_largo | texto_corto | select | multi_select | escala | fecha | booleano
+  colapsable: boolean;
+  defaultAbierta: boolean;
+}
+```
+
+**Códigos de instrumento correctos** (corregidos en P2):
+- `wisc5` (NO `wiscv`), `corah_ansiedad` (NO `mdas`), `sensory_profile` (NO `sensory_profile2`)
 
 ### ActionResult — tipo de respuesta estándar
 ```typescript
@@ -322,8 +346,10 @@ src/components/
   │   ├── ResumenIA/ → ResumenIAButton, ResumenIAModal, ResumenIAReport (index.ts)
   │   └── CopilotoNota/ → CopilotoNotaButton, CopilotoNotaPanel (index.ts)
   ├── rehab/    → SoapForm, CifMapper, CifSearch, KinesiologiaEval, FonoaudiologiaEval,
-  │               MasoterapiaEval, GenericEval (index.ts)
-  ├── clinico/  → NotaClinicaForm (prop tieneCopilotoIA, P1),
+  │               MasoterapiaEval, TerapiaOcupacionalEval (P2: 6 sub-áreas TO),
+  │               GenericEval (index.ts)
+  ├── clinico/  → NotaClinicaForm (props: tieneCopilotoIA P1, especialidad P2),
+  │               SeccionEstructuradaRenderer (P2: renderer dinámico 7 tipos de campo),
   │               InstrumentosPanel (prop instrumentosSugeridos, P1),
   │               InstrumentoLauncher (prop instrumentosSugeridos + badge "Sugerido", P1),
   │               InstrumentoResultadoCard, EscalaSimpleRenderer, QuickNoteModal,
@@ -349,8 +375,11 @@ src/components/
 
 src/lib/
   ├── modules/        → registry.ts, config.ts, guards.ts (ActionResult aquí), modelos.ts, provider.tsx
-  │                     especialidad-config.ts (P1: ESPECIALIDAD_CONFIG + getEspecialidadConfig)
+  │                     especialidad-config.ts (P1/P2: ESPECIALIDAD_CONFIG + getEspecialidadConfig,
+  │                       tipos CampoTipo/CampoNota/SeccionNota, tieneCalculoIMC)
   │                     servicio-config.ts (P1: SERVICIO_KEYWORDS + getServicioContexto)
+  ├── nutricion/      → antropometria.ts (P2: calcularIMC, clasificarCircunferenciaCintura,
+  │                       calcularAntropometria — funciones puras server-safe)
   ├── fce/            → profesional.ts (getProfesionalActivo lee cookie P1, getProfesionalesDelUsuario)
   ├── icd/            → client.ts (OAuth2 WHO), types.ts, search.ts (buscarDiagnostico/buscarCIF), entity.ts
   ├── dental/         → fdi.ts (numeración FDI), periograma.ts, plan.ts
@@ -378,9 +407,14 @@ src/types/
 supabase/migrations/
   → 20260601_01_hotfix_rls_tenant_isolation.sql   (P1: pendiente aplicar — cierra fuga cross-tenant)
   → 20260601_02_onboarding_cenupsi_fce_config.sql (P1: pendiente aplicar — activa módulos cenupsi)
+  → 20260602_03_seed_instrumentos_nutricion.sql   (P2: pendiente validación clínica — MNA/MUST/SGA)
 
 scripts/
-  → test-sprint-n1.ts   (smoke test manual M10)
+  → test-sprint-n1.ts        (smoke test manual M10)
+  → test-sprint-p2-f1.ts     (P2: valida códigos de instrumentos en config — 45 checks)
+  → test-sprint-p2-f2.ts     (P2: valida secciones estructuradas + IMC + inmutabilidad DB — 65 checks)
+  → test-sprint-p2-f3.ts     (P2: valida TerapiaOcupacionalEval + estado registry — 10 checks)
+  → test-sprint-p2-f4.ts     (P2: valida seed nutricional + cálculos antropométricos — 43 checks)
 
 clinics/{korporis,nuvident,renata}/CLAUDE.md
 ```
@@ -395,7 +429,11 @@ npm run build            # Build (0 errores obligatorio)
 npm run lint             # Linting
 npm run test:sprint-r7   # Tests regresión (33 checks)
 npm run test:sprint-icd1 # Tests ICD-11 (7 checks)
-npx tsx scripts/test-sprint-n1.ts  # Smoke test M10 (requiere IDs de prueba configurados)
+npx tsx scripts/test-sprint-n1.ts      # Smoke test M10 (requiere IDs de prueba)
+npx tsx scripts/test-sprint-p2-f1.ts  # P2-F1: códigos instrumentos en config (45 checks)
+npx tsx scripts/test-sprint-p2-f2.ts  # P2-F2: secciones estructuradas + IMC (65 checks)
+npx tsx scripts/test-sprint-p2-f3.ts  # P2-F3: TerapiaOcupacionalEval + registry (10 checks)
+npx tsx scripts/test-sprint-p2-f4.ts  # P2-F4: seed nutricional + antropometría (43 checks)
 ```
 
 Otros scripts en package.json: `test:sprint-1`, `test:sprint-3`, `test:profesional`, `test:sprint-r9`, `test:sprint-r10`, `test:sprint-r11`.
@@ -408,8 +446,9 @@ Otros scripts en package.json: `test:sprint-1`, `test:sprint-3`, `test:profesion
 feat(sprint-rN)(scope): descripción
 fix(sprint-rN)(scope): descripción
 feat(sprint-p1)(scope): descripción   ← sprint P1
+feat(sprint-p2)(scope): descripción   ← sprint P2
 ```
-Scopes: `(clinico)`, `(rehab)`, `(dental)`, `(shared)`, `(registry)`, `(guards)`, `(branding)`, `(m9)`, `(icd)`, `(m10)`, `(timeline)`, `(docs)`, `(layout)`, `(p1)`.
+Scopes: `(clinico)`, `(rehab)`, `(dental)`, `(shared)`, `(registry)`, `(guards)`, `(branding)`, `(m9)`, `(icd)`, `(m10)`, `(timeline)`, `(docs)`, `(layout)`, `(p1)`, `(p2)`, `(nutricion)`, `(lint)`.
 
 ---
 
@@ -453,6 +492,7 @@ Actualmente **ninguna clínica tiene fce-plataform en producción** — el repo 
 | Copiloto Escritura | IA inline en NotaClinicaForm: bullets → nota clínica en prosa. Modelo `claude-sonnet-4-6` |
 | N1 | Módulo M10 Plan de Intervención: plantillas por dominio, GAS, progreso, PDF, timeline, registro_externo para instrumentos externos |
 | P1 | Perfiles profesionales: `especialidad-config.ts` (fuente única de verdad), `servicio-config.ts`, workspace adaptado (instrumentos sugeridos, launchers condicionados por puede_prescribir/puede_indicar_examenes/tieneCopilotoIA), validación especialidad en DB, selector perfil activo con cookie `id_profesional_activo`, SQL RLS hotfix + onboarding cenupsi |
+| P2 | Workspaces especializados: secciones estructuradas en nota clínica (Medicina/Enfermería/Psicología/Nutrición), `SeccionEstructuradaRenderer`, `TerapiaOcupacionalEval` (6 sub-áreas, TO → beta), corrección códigos instrumentos (wisc5/corah_ansiedad/sensory_profile), `lib/nutricion/antropometria.ts`, seed MNA/MUST/SGA (pendiente validación clínica) |
 
 ### Pendientes
 
@@ -479,6 +519,7 @@ Actualmente **ninguna clínica tiene fce-plataform en producción** — el repo 
 | Tipo `registro_externo` en `instrumentos_valoracion` | 2026-05-31 |
 | **SQL P1 pendiente**: RLS hotfix (`fce_notas_soap`, `fce_evaluaciones`, `profesionales`) | 2026-06-01 |
 | **SQL P1 pendiente**: onboarding cenupsi (`modulos_activos` + `especialidades_activas`) | 2026-06-01 |
+| **SQL P2 pendiente**: seed instrumentos nutricionales MNA/MUST/SGA — requiere validación clínica por nutricionista | 2026-06-02 |
 
 ### Deuda técnica
 
@@ -495,6 +536,10 @@ Actualmente **ninguna clínica tiene fce-plataform en producción** — el repo 
 | `estado_resultados` de órdenes de examen siempre `pendiente` | Baja |
 | `04-criterios-tecnicos.md` desactualizado post-R13 | Media |
 | `PatientActionNav` legacy — reemplazado por `ActionBar` en UI pero no eliminado | Baja |
+| `renderEval()` en `rehab/page.tsx` usa `if (especialidad === '...')` preexistente — mover a `getEspecialidadConfig` con campo `evalComponente` | Media — R1 |
+| Umbrales circunferencia cintura en `antropometria.ts` son ATP-III/OMS caucásicos — calibrar para población latinoamericana con nutricionista | Media |
+| Seed MNA/MUST/SGA requiere validación clínica formal antes de activar en producción | Alta |
+| Sección "Contexto" de `TerapiaOcupacionalEval` sin campo `observaciones_contexto` — agregar si se reporta por la clínica | Baja |
 
 ---
 
@@ -733,7 +778,68 @@ Ver `docs/plan-redisenio/sprints/N1-neurodesarrollo-activacion.md` para el SQL. 
 
 ---
 
-## 20. VARIABLES DE ENTORNO REQUERIDAS
+## 20. SPRINT P2 — NOTAS ESTRUCTURADAS Y WORKSPACES ESPECIALIZADOS
+
+### NotaClinicaForm — secciones estructuradas por especialidad
+
+`NotaClinicaForm` acepta prop `especialidad?: string`. Cuando se pasa, renderiza las secciones configuradas en `getEspecialidadConfig(especialidad).secciones` usando `SeccionEstructuradaRenderer`.
+
+```tsx
+// clinico/page.tsx (Server Component)
+<NotaClinicaForm
+  especialidad={encuentro.especialidad}      // ← nuevo en P2
+  tieneCopilotoIA={espConfig.tieneCopilotoIA}
+  encuentroId={encuentroId}
+  ...
+/>
+```
+
+**Almacenamiento**: las respuestas de las secciones estructuradas se guardan en la columna `secciones_estructuradas jsonb` de `fce_notas_clinicas`. Esta columna también almacena los campos M10 (neurodesarrollo). El submit fusiona ambos:
+```typescript
+secciones_estructuradas: {
+  ...(m10Activo ? camposM10 : {}),         // conductas_observadas, etc.
+  ...(seccionesEsp.length > 0 ? camposP2 : {}),  // motivo, contenido, plan, etc.
+}
+```
+
+**Trigger de inmutabilidad**: `trg_block_update_signed_nota` (función `block_update_signed_nota_clinica`) bloquea UPDATE de `secciones_estructuradas` en notas firmadas. Ya estaba activo antes de P2.
+
+**Especialidades con secciones configuradas** (P2):
+- **Medicina General**: Motivo · Anamnesis próxima + Examen físico · Plan
+- **Enfermería**: Motivo/Valoración · Procedimientos (multi_select) + Evolución + Indicaciones
+- **Psicología**: Motivo · Estado mental + Desarrollo sesión + Técnicas (multi_select) · Plan + Próxima sesión (fecha)
+- **Nutrición**: Motivo · Antropometría (peso/talla/IMC/circunferencia) + Anamnesis alimentaria + Diagnóstico nutricional · Plan alimentario
+
+### IMC automático en Nutrición
+
+Controlado por `tieneCalculoIMC: true` en `EspecialidadConfig`. **NUNCA** usar `if (especialidad === "Nutrición")` — siempre via config.
+
+```typescript
+// calcularIMC en NotaClinicaForm — funciones de lib/nutricion/antropometria.ts
+// peso: 1-500 kg, talla: 50-250 cm → retorna null fuera de rango
+// Clasificación OMS: Bajo peso <18.5 | Normal <25 | Sobrepeso <30 | Obesidad I <35 | II <40 | III ≥40
+```
+
+### TerapiaOcupacionalEval — 6 sub-áreas
+
+Sub-áreas: `avd` (AVD básicas/instrumentales + nivel independencia) · `destrezas` (motricidad fina/gruesa/coordinación) · `sensorial` (procesamiento táctil/auditivo/visual/vestibular + Sensory Profile) · `cognitivo` (atención/memoria/funciones ejecutivas) · `contexto` (entorno + barreras/facilitadores) · `apoyo` (productos de apoyo + entrenamiento).
+
+Guarda en `fce_evaluaciones.data` (jsonb, modelo rehab). No requiere tabla nueva. Estado de Terapia Ocupacional en `ESPECIALIDADES_REGISTRY`: `"beta"`.
+
+### Módulo nutrición — src/lib/nutricion/antropometria.ts
+
+```typescript
+import { calcularIMC, clasificarCircunferenciaCintura, calcularAntropometria }
+  from "@/lib/nutricion/antropometria";
+
+// Server-safe (sin imports React/Next.js). Funciones puras.
+// Umbrales cintura: F >80cm riesgo leve, >88cm riesgo alto; M >94cm / >102cm
+// ⚠️ Umbrales ATP-III/OMS caucásicos — pendiente calibración para población latinoamericana
+```
+
+---
+
+## 21. VARIABLES DE ENTORNO REQUERIDAS
 
 ```bash
 # Supabase
@@ -751,7 +857,7 @@ ICD_API_CLIENT_SECRET=...         # Solo server-side
 
 ---
 
-## 21. RECURSOS
+## 22. RECURSOS
 
 - Supabase: `vigyhfpwyxihrjiygfsa` (sa-east-1)
 - Deploy: Vercel
