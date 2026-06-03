@@ -493,12 +493,13 @@ Actualmente **ninguna clínica tiene fce-plataform en producción** — el repo 
 | N1 | Módulo M10 Plan de Intervención: plantillas por dominio, GAS, progreso, PDF, timeline, registro_externo para instrumentos externos |
 | P1 | Perfiles profesionales: `especialidad-config.ts` (fuente única de verdad), `servicio-config.ts`, workspace adaptado (instrumentos sugeridos, launchers condicionados por puede_prescribir/puede_indicar_examenes/tieneCopilotoIA), validación especialidad en DB, selector perfil activo con cookie `id_profesional_activo`, SQL RLS hotfix + onboarding cenupsi |
 | P2 | Workspaces especializados: secciones estructuradas en nota clínica (Medicina/Enfermería/Psicología/Nutrición), `SeccionEstructuradaRenderer`, `TerapiaOcupacionalEval` (6 sub-áreas, TO → beta), corrección códigos instrumentos (wisc5/corah_ansiedad/sensory_profile), `lib/nutricion/antropometria.ts`, seed MNA/MUST/SGA (pendiente validación clínica) |
+| O0 | Limpieza técnica pre-onboarding: package.json (8 scripts fantasma, 5 registrados), PatientActionNav eliminado, migrations M9/M10 reconstruidas, deuda técnica actualizada |
 
 ### Pendientes
 
 | Sprint | Foco |
 |---|---|
-| R1 | Limpieza Korporis-isms (permissions.ts legacy, datos con especialidad sin tilde) |
+| R1 | Limpieza Korporis-isms: `renderEval()` en rehab/page.tsx usa `if (especialidad===...)` en lugar de `getEspecialidadConfig` |
 | R8 | Switch DNS Korporis legacy → fce-plataform |
 | D7 | PDF export ficha dental + smoke tests + config Nuvident en producción |
 
@@ -525,9 +526,7 @@ Actualmente **ninguna clínica tiene fce-plataform en producción** — el repo 
 
 | Item | Prioridad |
 |---|---|
-| Datos históricos con especialidad sin tilde en `profesionales` (ej: 'Kinesiologia') | Alta — R1 |
-| `permissions.ts` legacy con roles viejos | Alta — R1 |
-| Migrations ICD-11 pendientes (`fce_notas_clinicas` + `fce_periogramas`) — SQL en `scripts/test-sprint-icd1.ts` | Alta |
+| Migrations ICD-11 pendientes (`fce_notas_clinicas` + `fce_periogramas`) — SQL en `supabase/migrations/20260506_01_icd_notas_clinicas.sql` y `20260506_02_icd_periograma.sql` | Alta |
 | Gestión `puede_prescribir` / `puede_indicar_examenes` en panel clínica | Media |
 | Modal de selección de perfil al primer ingreso (cuando N>1 perfiles, sin cookie) | Media |
 | Instrumentos con `validado: false` en seed (8 de 10) | Media |
@@ -535,7 +534,6 @@ Actualmente **ninguna clínica tiene fce-plataform en producción** — el repo 
 | Seed examenes_catalogo vacío — poblar antes de activar en producción | Media |
 | `estado_resultados` de órdenes de examen siempre `pendiente` | Baja |
 | `04-criterios-tecnicos.md` desactualizado post-R13 | Media |
-| `PatientActionNav` legacy — reemplazado por `ActionBar` en UI pero no eliminado | Baja |
 | `renderEval()` en `rehab/page.tsx` usa `if (especialidad === '...')` preexistente — mover a `getEspecialidadConfig` con campo `evalComponente` | Media — R1 |
 | Umbrales circunferencia cintura en `antropometria.ts` son ATP-III/OMS caucásicos — calibrar para población latinoamericana con nutricionista | Media |
 | Seed MNA/MUST/SGA requiere validación clínica formal antes de activar en producción | Alta |
