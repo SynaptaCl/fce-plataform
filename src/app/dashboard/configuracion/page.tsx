@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { ShieldCheck, ChevronRight } from "lucide-react";
+import { ShieldCheck, ChevronRight, Users, Briefcase } from "lucide-react";
 import { getClinicaConfigFromSession } from "@/lib/modules/config";
 import { ROLES_QUE_CONFIGURAN } from "@/lib/modules/registry";
 
@@ -87,6 +87,104 @@ export default async function ConfiguracionPage() {
               </div>
               <div style={{ fontSize: 12, color: "var(--color-ink-3, #94A3B8)" }}>
                 Verifica si {clinicaNombre} está lista para ir a producción
+              </div>
+            </div>
+            <ChevronRight size={16} style={{ color: "var(--color-ink-3, #94A3B8)", flexShrink: 0 }} />
+          </div>
+        </Link>
+
+        {/* Card — Profesionales */}
+        <Link href="/dashboard/configuracion/profesionales" style={{ textDecoration: "none" }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 16,
+              padding: "16px 20px",
+              background: "var(--color-surface-1, #ffffff)",
+              borderRadius: 12,
+              border: "1px solid var(--color-kp-border, #E2E8F0)",
+              cursor: "pointer",
+              transition: "box-shadow 0.15s ease",
+            }}
+            className="config-card"
+          >
+            <div
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 10,
+                background: "rgba(0,176,168,0.1)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0,
+              }}
+            >
+              <Users size={20} style={{ color: "var(--color-kp-accent, #00B0A8)" }} />
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div
+                style={{
+                  fontSize: 14,
+                  fontWeight: 600,
+                  color: "var(--color-ink-1, #1E293B)",
+                  marginBottom: 2,
+                }}
+              >
+                Profesionales
+              </div>
+              <div style={{ fontSize: 12, color: "var(--color-ink-3, #94A3B8)" }}>
+                Edita registros, activa o desactiva profesionales
+              </div>
+            </div>
+            <ChevronRight size={16} style={{ color: "var(--color-ink-3, #94A3B8)", flexShrink: 0 }} />
+          </div>
+        </Link>
+
+        {/* Card — Servicios */}
+        <Link href="/dashboard/configuracion/servicios" style={{ textDecoration: "none" }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 16,
+              padding: "16px 20px",
+              background: "var(--color-surface-1, #ffffff)",
+              borderRadius: 12,
+              border: "1px solid var(--color-kp-border, #E2E8F0)",
+              cursor: "pointer",
+              transition: "box-shadow 0.15s ease",
+            }}
+            className="config-card"
+          >
+            <div
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 10,
+                background: "rgba(0,176,168,0.1)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                flexShrink: 0,
+              }}
+            >
+              <Briefcase size={20} style={{ color: "var(--color-kp-accent, #00B0A8)" }} />
+            </div>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div
+                style={{
+                  fontSize: 14,
+                  fontWeight: 600,
+                  color: "var(--color-ink-1, #1E293B)",
+                  marginBottom: 2,
+                }}
+              >
+                Servicios
+              </div>
+              <div style={{ fontSize: 12, color: "var(--color-ink-3, #94A3B8)" }}>
+                Asigna profesionales a los servicios de la clínica
               </div>
             </div>
             <ChevronRight size={16} style={{ color: "var(--color-ink-3, #94A3B8)", flexShrink: 0 }} />
