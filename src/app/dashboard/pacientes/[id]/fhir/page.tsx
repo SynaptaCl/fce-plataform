@@ -15,7 +15,7 @@ import {
 import { FhirPreview } from "@/components/shared/FhirPreview";
 import type { VitalSigns } from "@/types";
 
-export const metadata = { title: "FHIR Preview — FCE Korporis" };
+export const metadata = { title: "FHIR Preview — FCE" };
 
 export default async function FhirPage({
   params,

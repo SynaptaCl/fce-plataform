@@ -9,12 +9,11 @@
 
 **fce-plataform** — Ficha Clínica Electrónica multi-tenant para clínicas chilenas. Next.js App Router + Supabase. Cubre módulos FCE (M1–M10). Agenda, pagos, chatbot viven en repo `synapta`.
 
-**3 repos comparten DB** Supabase `vigyhfpwyxihrjiygfsa`:
+**2 repos comparten DB** Supabase `vigyhfpwyxihrjiygfsa`:
 
 | Repo | Rol | Estado |
 |---|---|---|
 | `synapta` | Landing + admin + agenda + chatbot | Producción |
-| `korporis-fce` | FCE legacy Korporis | Producción (se archiva en R8) |
 | `fce-plataform` | **Este repo** — FCE multi-modelo | En construcción |
 
 ---
@@ -26,7 +25,7 @@
 3. `docs/plan-redisenio/04-criterios-tecnicos.md` — reglas transversales
 4. Sprint en curso: `docs/plan-redisenio/sprints/R{N}-*.md`
 5. `docs/schema-real.md` — schema DB (o verificar vía MCP Supabase)
-6. `clinics/<slug>/CLAUDE.md` — contexto por clínica (`korporis`, `nuvident`, `renata`, `cenupsi`)
+6. `clinics/<slug>/CLAUDE.md` — contexto por clínica (`nuvident`, `renata`, `cenupsi`)
 7. `docs/onboarding-clinica.md` — flujo completo de onboarding con CLI + validador
 
 ---
@@ -416,7 +415,7 @@ scripts/
   → test-sprint-p2-f3.ts     (P2: valida TerapiaOcupacionalEval + estado registry — 10 checks)
   → test-sprint-p2-f4.ts     (P2: valida seed nutricional + cálculos antropométricos — 43 checks)
 
-clinics/{korporis,nuvident,renata}/CLAUDE.md
+clinics/{nuvident,renata,cenupsi}/CLAUDE.md
 ```
 
 ---
@@ -455,10 +454,7 @@ Scopes: `(clinico)`, `(rehab)`, `(dental)`, `(shared)`, `(registry)`, `(guards)`
 ## 13. CONTEXTO SENSIBLE
 
 ### DB compartida
-3 repos escriben la misma DB. Toda migration requiere coordinación humana. Claude Code genera SQL, no lo aplica.
-
-### Korporis en producción
-NO tocar `korporis-fce`. Migración en R7-R8 con backup + staging + smoke test + switch DNS.
+2 repos escriben la misma DB (synapta + fce-plataform). Toda migration requiere coordinación humana. Claude Code genera SQL, no lo aplica.
 
 ### Cenupsi — banco de pruebas técnico
 `clinics/cenupsi/CLAUDE.md` — Cenupsi se usa como banco de pruebas para el flujo completo de onboarding. **NO es cliente confirmado.** No se solicitan datos reales al equipo Cenupsi, no se envía comunicación comercial hasta decisión confirmada. Los datos de profesionales reales NO se inventan ni se rellenan.
@@ -480,7 +476,7 @@ Actualmente **ninguna clínica tiene fce-plataform en producción** — el repo 
 | R4 | Nota clínica form + CRUD + firma |
 | R5 | Sistema instrumentos completo |
 | R6 | Timeline unificado — Renata MVP en producción |
-| R7 | Korporis migrado a estructura encuentro |
+| R7 | Migración estructura encuentro — modelo rehabilitación (Kine/Fono/Maso) |
 | R9-R11 | M7 Prescripciones completo: DB + UI + PDF + Timeline + audit |
 | R12 | M8 Exámenes: tipos TS, registry, server actions, validaciones Zod |
 | R13 | M8 Exámenes: UI completa — form, PDF, timeline, compartir |
@@ -503,8 +499,7 @@ Actualmente **ninguna clínica tiene fce-plataform en producción** — el repo 
 
 | Sprint | Foco |
 |---|---|
-| R1 | Limpieza Korporis-isms: `renderEval()` en rehab/page.tsx usa `if (especialidad===...)` en lugar de `getEspecialidadConfig` |
-| R8 | Switch DNS Korporis legacy → fce-plataform |
+| R1 | `renderEval()` en rehab/page.tsx — mover `if (especialidad===...)` a `getEspecialidadConfig` (campo `evalComponente`) |
 | D7 | PDF export ficha dental + smoke tests + config Nuvident en producción |
 
 ### DB aplicada (fuera de sprints)
@@ -863,6 +858,6 @@ ICD_API_CLIENT_SECRET=...         # Solo server-side
 
 - Supabase: `vigyhfpwyxihrjiygfsa` (sa-east-1)
 - Deploy: Vercel
-- Repos hermanos: `synapta`, `korporis-fce` (legacy)
+- Repo hermano: `synapta` (landing + admin + agenda + chatbot)
 - Modelos IA: `claude-haiku-4-5-20251001` (Resumen IA) · `claude-sonnet-4-6` (Copiloto Escritura)
-- Clínicas: `clinics/korporis/CLAUDE.md`, `clinics/nuvident/CLAUDE.md`, `clinics/renata/CLAUDE.md`
+- Clínicas: `clinics/nuvident/CLAUDE.md`, `clinics/renata/CLAUDE.md`, `clinics/cenupsi/CLAUDE.md`

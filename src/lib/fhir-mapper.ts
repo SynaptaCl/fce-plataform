@@ -1,6 +1,6 @@
 /**
  * FHIR R4 CL Core Mapper
- * Mapea registros de korporis-fce a recursos HL7 FHIR R4 (perfil CL Core).
+ * Mapea registros de fce-plataform a recursos HL7 FHIR R4 (perfil CL Core).
  * Funciones puras — sin efectos secundarios, sin llamadas a DB.
  *
  * Referencia: Guía de Implementación FHIR Chile Core

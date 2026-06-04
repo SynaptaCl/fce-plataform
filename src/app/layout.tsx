@@ -18,11 +18,11 @@ const dmMono = DM_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "FCE — Korporis Centro de Salud",
-    template: "%s | FCE Korporis",
+    default: "FCE — Plataforma Clínica",
+    template: "%s | FCE",
   },
   description:
-    "Ficha Clínica Electrónica de Korporis Centro de Salud — Kinesiología, Fonoaudiología y Masoterapia",
+    "Ficha Clínica Electrónica multi-tenant — fce-plataform",
 };
 
 export default function RootLayout({

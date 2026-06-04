@@ -5,7 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getPdfPatientData } from "@/app/actions/exportar-pdf";
 import { PdfExportView } from "@/components/shared/PdfExportView";
 
-export const metadata = { title: "Exportar PDF — FCE Korporis" };
+export const metadata = { title: "Exportar PDF — FCE" };
 
 export default async function ExportarPdfPage({
   params,

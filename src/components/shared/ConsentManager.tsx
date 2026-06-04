@@ -17,17 +17,15 @@ const CONSENT_TEMPLATES: Record<ConsentType, { label: string; texto: string }> =
     label: "Consentimiento General de Tratamiento",
     texto: `CONSENTIMIENTO INFORMADO PARA TRATAMIENTO DE SALUD
 
-Yo, el/la paciente (o su representante legal), declaro haber sido informado/a de manera comprensible sobre la naturaleza, objetivos, métodos, posibles riesgos y beneficios del tratamiento propuesto en Korporis Centro de Salud (kinesiología, fonoaudiología y/o masoterapia), ubicado en San Joaquín, Santiago de Chile.
+Yo, el/la paciente (o su representante legal), declaro haber sido informado/a de manera comprensible sobre la naturaleza, objetivos, métodos, posibles riesgos y beneficios del tratamiento propuesto en el establecimiento de salud.
 
 En virtud de lo dispuesto en la Ley N° 20.584 sobre derechos y deberes de los pacientes, y el Decreto N° 41 del Ministerio de Salud (MINSAL), manifiesto mi consentimiento libre, voluntario e informado para:
 
 1. Recibir los tratamientos y procedimientos clínicos indicados por el profesional de salud a cargo.
 2. Que los datos relativos a mi salud sean registrados en la Ficha Clínica Electrónica (FCE) del establecimiento, con fines exclusivamente clínicos y de continuidad asistencial.
-3. Que dicha información sea compartida entre los profesionales del equipo clínico de Korporis, siempre bajo deber de confidencialidad.
+3. Que dicha información sea compartida entre los profesionales del equipo clínico del establecimiento, siempre bajo deber de confidencialidad.
 
-Declaro haber recibido información sobre mi derecho a revocar este consentimiento en cualquier momento, sin que ello perjudique la atención recibida hasta ese instante.
-
-Korporis Centro de Salud — San Joaquín, Santiago`,
+Declaro haber recibido información sobre mi derecho a revocar este consentimiento en cualquier momento, sin que ello perjudique la atención recibida hasta ese instante.`,
   },
   menores: {
     label: "Consentimiento para Menores de Edad / Personas en Situación de Vulnerabilidad",
@@ -35,11 +33,11 @@ Korporis Centro de Salud — San Joaquín, Santiago`,
 
 Yo, el/la suscrito/a, en calidad de padre/madre/tutor/a legal del/la menor o persona en situación de vulnerabilidad que se identifica en la ficha clínica, declaro haber sido debidamente informado/a sobre:
 
-1. La naturaleza del tratamiento propuesto (kinesiología, fonoaudiología y/o masoterapia) a realizarse en Korporis Centro de Salud.
+1. La naturaleza del tratamiento propuesto a realizarse en el establecimiento de salud.
 2. Los objetivos terapéuticos, métodos empleados, posibles riesgos, beneficios esperados y alternativas disponibles.
 3. El derecho del/la representado/a a recibir información adecuada a su grado de madurez y a ser escuchado/a en el proceso de atención (Ley N° 20.584, Art. 16).
 
-Autorizo expresamente la realización de los procedimientos clínicos indicados por el equipo profesional de Korporis, y el registro de los datos de salud en la Ficha Clínica Electrónica del establecimiento.
+Autorizo expresamente la realización de los procedimientos clínicos indicados por el equipo profesional del establecimiento, y el registro de los datos de salud en la Ficha Clínica Electrónica del establecimiento.
 
 Declaro que la información entregada fue clara, comprensible y suficiente para tomar esta decisión de forma libre e informada.
 
@@ -50,7 +48,7 @@ RUT del representante legal: ______________________`,
     label: "Consentimiento para Atención por Teleconsulta",
     texto: `CONSENTIMIENTO INFORMADO PARA TELECONSULTA / ATENCIÓN A DISTANCIA
 
-Yo, el/la paciente (o su representante legal), declaro haber sido informado/a sobre la modalidad de atención a distancia (teleconsulta) ofrecida por Korporis Centro de Salud, y acepto voluntariamente recibirla bajo las siguientes condiciones:
+Yo, el/la paciente (o su representante legal), declaro haber sido informado/a sobre la modalidad de atención a distancia (teleconsulta) ofrecida por el establecimiento de salud, y acepto voluntariamente recibirla bajo las siguientes condiciones:
 
 1. Comprendo que la teleconsulta se realiza mediante plataforma digital con video y audio en tiempo real, y que presenta diferencias respecto a la atención presencial.
 2. Acepto que el profesional podrá evaluar mis condiciones de salud de forma remota, con las limitaciones inherentes a la modalidad (imposibilidad de exploración física directa).

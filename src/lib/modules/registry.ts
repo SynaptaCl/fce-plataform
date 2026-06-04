@@ -355,7 +355,7 @@ export function getDependentes(moduleId: ModuleId): ModuleId[] {
 // ============================================================================
 
 /**
- * Estructura de clinicas.config.branding (ejemplo Korporis):
+ * Estructura de clinicas.config.branding (ejemplo):
  * {
  *   "navy": "#006B6B",
  *   "accent": "#F5A623",
@@ -364,8 +364,8 @@ export function getDependentes(moduleId: ModuleId): ModuleId[] {
  *   "navy_deep": "#004545",
  *   "primary_hover": "#009990",
  *   "logo_url": "...",
- *   "clinic_initials": "KP",
- *   "clinic_short_name": "Korporis"
+ *   "clinic_initials": "CL",
+ *   "clinic_short_name": "Clínica"
  * }
  *
  * El FCE consume tokens kp-* que se inyectan como CSS variables.
@@ -392,7 +392,7 @@ export interface FceTokens {
   "primary-hover": string;
 }
 
-/** Fallback: paleta por defecto (Korporis teal) si branding está vacío. */
+/** Fallback: paleta por defecto (teal) si branding está vacío. */
 export const DEFAULT_FCE_TOKENS: FceTokens = {
   "primary": "#006B6B",
   "primary-deep": "#004545",

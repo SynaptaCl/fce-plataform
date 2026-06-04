@@ -234,7 +234,7 @@ export async function getPdfPatientData(
   const clinicaData = clinicaRes.data as any;
   const branding: BrandingConfig | null = clinicaData?.config?.branding ?? null;
   const clinicName: string =
-    clinicaData?.nombre ?? branding?.clinic_short_name ?? "KORPORIS CENTRO DE SALUD";
+    clinicaData?.nombre ?? branding?.clinic_short_name ?? "ESTABLECIMIENTO DE SALUD";
 
   return {
     success: true,
