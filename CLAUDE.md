@@ -26,7 +26,8 @@
 3. `docs/plan-redisenio/04-criterios-tecnicos.md` — reglas transversales
 4. Sprint en curso: `docs/plan-redisenio/sprints/R{N}-*.md`
 5. `docs/schema-real.md` — schema DB (o verificar vía MCP Supabase)
-6. `clinics/<slug>/CLAUDE.md` — contexto por clínica
+6. `clinics/<slug>/CLAUDE.md` — contexto por clínica (`korporis`, `nuvident`, `renata`, `cenupsi`)
+7. `docs/onboarding-clinica.md` — flujo completo de onboarding con CLI + validador
 
 ---
 
@@ -459,6 +460,9 @@ Scopes: `(clinico)`, `(rehab)`, `(dental)`, `(shared)`, `(registry)`, `(guards)`
 ### Korporis en producción
 NO tocar `korporis-fce`. Migración en R7-R8 con backup + staging + smoke test + switch DNS.
 
+### Cenupsi — banco de pruebas técnico
+`clinics/cenupsi/CLAUDE.md` — Cenupsi se usa como banco de pruebas para el flujo completo de onboarding. **NO es cliente confirmado.** No se solicitan datos reales al equipo Cenupsi, no se envía comunicación comercial hasta decisión confirmada. Los datos de profesionales reales NO se inventan ni se rellenan.
+
 ### Clínicas activas
 Actualmente **ninguna clínica tiene fce-plataform en producción** — el repo está en construcción. Los módulos aún no se han activado para ningún tenant real. Para trabajar "para" una clínica, leer `clinics/<slug>/CLAUDE.md` y respetar sus módulos activos cuando se onboardee.
 
@@ -493,6 +497,7 @@ Actualmente **ninguna clínica tiene fce-plataform en producción** — el repo 
 | P1 | Perfiles profesionales: `especialidad-config.ts` (fuente única de verdad), `servicio-config.ts`, workspace adaptado (instrumentos sugeridos, launchers condicionados por puede_prescribir/puede_indicar_examenes/tieneCopilotoIA), validación especialidad en DB, selector perfil activo con cookie `id_profesional_activo`, SQL RLS hotfix + onboarding cenupsi |
 | P2 | Workspaces especializados: secciones estructuradas en nota clínica (Medicina/Enfermería/Psicología/Nutrición), `SeccionEstructuradaRenderer`, `TerapiaOcupacionalEval` (6 sub-áreas, TO → beta), corrección códigos instrumentos (wisc5/corah_ansiedad/sensory_profile), `lib/nutricion/antropometria.ts`, seed MNA/MUST/SGA (pendiente validación clínica) |
 | O0 | Limpieza técnica pre-onboarding: package.json (8 scripts fantasma, 5 registrados), PatientActionNav eliminado, migrations M9/M10 reconstruidas, deuda técnica actualizada |
+| O1 | Self-service onboarding: CLI templates (F2), validador pre go-live (F3), panel estado salud (F4), self-service director — profesionales + servicios (F5), E2E con Cenupsi como banco de pruebas técnico (F6) |
 
 ### Pendientes
 
@@ -518,7 +523,7 @@ Actualmente **ninguna clínica tiene fce-plataform en producción** — el repo 
 | Columna `secciones_estructuradas jsonb` en `fce_notas_clinicas` | 2026-05-31 |
 | Tipo `registro_externo` en `instrumentos_valoracion` | 2026-05-31 |
 | **SQL P1 pendiente**: RLS hotfix (`fce_notas_soap`, `fce_evaluaciones`, `profesionales`) | 2026-06-01 |
-| **SQL P1 pendiente**: onboarding cenupsi (`modulos_activos` + `especialidades_activas`) | 2026-06-01 |
+| **SQL O1 pendiente**: onboarding cenupsi — `20260604_onboard_cenupsi.sql` (activa 10 módulos + 5 especialidades) | 2026-06-04 |
 | **SQL P2 pendiente**: seed instrumentos nutricionales MNA/MUST/SGA — requiere validación clínica por nutricionista | 2026-06-02 |
 
 ### Deuda técnica
