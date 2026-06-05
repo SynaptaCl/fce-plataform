@@ -75,7 +75,7 @@ export async function estructurarNota(
     const response = await anthropic.messages.create({
       model: MODEL,
       max_tokens: 1024,
-      system: buildSystemPrompt(encuentro.especialidad),
+      system: buildSystemPrompt(encuentro.especialidad, input.seccion),
       messages: [{ role: 'user', content: buildUserPrompt(bulletsTrimmed) }],
     })
 

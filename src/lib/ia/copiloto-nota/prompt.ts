@@ -1,8 +1,15 @@
 // src/lib/ia/copiloto-nota/prompt.ts
 
-export function buildSystemPrompt(especialidad: string): string {
+const SECTION_CONTEXT: Record<'S' | 'O' | 'P', string> = {
+  S: 'Estás redactando el Subjetivo (S) de la nota SOAP. Esta sección recoge el relato del paciente: síntomas actuales, localización e intensidad del dolor o malestar, contexto biopsicosocial, evolución desde la sesión anterior.',
+  O: 'Estás redactando el Objetivo (O) de la nota SOAP. Esta sección documenta los hallazgos clínicos observables y medibles: rango de movimiento (ROM), fuerza muscular, tono, postura, pruebas funcionales, escalas aplicadas y cualquier hallazgo objetivo cuantificable.',
+  P: 'Estás redactando el Plan (P) de la nota SOAP. Esta sección describe el plan terapéutico: técnicas aplicadas, ejercicios indicados con parámetros, programa domiciliario, objetivos de corto plazo y planificación de próximas sesiones.',
+}
+
+export function buildSystemPrompt(especialidad: string, seccion?: 'S' | 'O' | 'P'): string {
+  const sectionLine = seccion ? `\n\n${SECTION_CONTEXT[seccion]}` : ''
   return `Eres un asistente de redacción clínica para profesionales de salud en Chile.
-Recibes apuntes desordenados o en bullets escritos por un profesional de ${especialidad} y los redactas como una nota clínica formal en prosa.
+Recibes apuntes desordenados o en bullets escritos por un profesional de ${especialidad} y los redactas como una nota clínica formal en prosa.${sectionLine}
 
 REGLAS ABSOLUTAS:
 1. SOLO usa la información presente en los apuntes. No inventes datos, síntomas, hallazgos ni intervenciones ausentes.
