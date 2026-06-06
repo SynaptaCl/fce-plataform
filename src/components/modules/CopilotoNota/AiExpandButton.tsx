@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Loader2, Sparkles } from 'lucide-react'
 import { estructurarNota } from '@/app/actions/copiloto-nota'
 import type { EstructurarNotaInput } from '@/lib/ia/copiloto-nota/types'
@@ -26,7 +26,16 @@ export function AiExpandButton({
 }: AiExpandButtonProps) {
   const [loading, setLoading] = useState(false)
   const [errorMsg, setErrorMsg] = useState<string | null>(null)
+  const mountedRef = useRef(true)
 
+  useEffect(() => {
+    mountedRef.current = true
+    return () => {
+      mountedRef.current = false
+    }
+  }, [])
+
+  // All hooks called unconditionally above; safe to return early here
   if (!text.trim()) return null
 
   async function handleClick() {
@@ -42,6 +51,9 @@ export function AiExpandButton({
       seccion: section,
     }
     const result = await estructurarNota(input)
+
+    // Check if component unmounted during async call
+    if (!mountedRef.current) return
 
     setLoading(false)
     onLoadingChange?.(false)
@@ -75,7 +87,12 @@ export function AiExpandButton({
         <span>{loading ? 'Expandiendo…' : 'IA'}</span>
       </button>
       {errorMsg && (
-        <p className="text-xs text-red-600 text-right max-w-48">{errorMsg}</p>
+        <p
+          className="text-xs text-right max-w-48"
+          style={{ color: 'var(--color-kp-danger, #ef4444)' }}
+        >
+          {errorMsg}
+        </p>
       )}
     </div>
   )
