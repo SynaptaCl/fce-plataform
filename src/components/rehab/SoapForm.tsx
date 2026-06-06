@@ -208,16 +208,18 @@ export function SoapForm({
   ) {
     const refMap = { subjetivo: sRef, objetivo: oRef, plan: pRef }
     const el = refMap[field].current
+    let handled = false
     if (el) {
       el.focus()
       el.select()
       try {
-        document.execCommand('insertText', false, expanded)
+        handled = document.execCommand('insertText', false, expanded)
       } catch {
-        setValue(field, expanded)
+        // some browsers throw in certain contexts
       }
-    } else {
-      setValue(field, expanded)
+    }
+    if (!handled) {
+      setValue(field, expanded, { shouldDirty: true, shouldTouch: true })
     }
   }
 
