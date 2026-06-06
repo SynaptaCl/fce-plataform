@@ -87,6 +87,7 @@ export default async function RehabPage({
   const isProfesional = rol === "profesional";
   const canWrite = isAdmin || isProfesional;
   if (!canWrite) notFound();
+  if (!idClinica) notFound();
 
   const encuentroFinalizado = encuentro.status === "finalizado";
   const readOnly = encuentroFinalizado || (soapNote?.firmado ?? false);
@@ -210,6 +211,8 @@ export default async function RehabPage({
           <div className="flex-1 p-6 lg:border-r border-kp-border">
             <SoapForm
               patientId={id}
+              encuentroId={encuentroId}
+              idClinica={idClinica}
               initialNote={soapNote}
               readOnly={readOnly}
             />

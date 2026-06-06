@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useForm, Controller, useFieldArray } from "react-hook-form";
+import { useForm, useWatch, Controller, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Plus, Trash2, PenLine, Lock, CheckCircle2 } from "lucide-react";
@@ -15,6 +15,7 @@ import { AlertBanner } from "@/components/ui/AlertBanner";
 import { CifMapper } from "./CifMapper";
 import { upsertSoapNote, signSoapNote } from "@/app/actions/rehab/soap";
 import type { SoapNote, CifAssessment } from "@/types";
+import { AiExpandButton } from "@/components/modules/CopilotoNota";
 
 // ── Types ──────────────────────────────────────────────────────────────────
 
@@ -61,26 +62,31 @@ function QuadrantCard({
   title,
   subtitle,
   children,
+  headerAction,
 }: {
   letter: "S" | "O" | "A" | "P";
   title: string;
   subtitle?: string;
   children: React.ReactNode;
+  headerAction?: React.ReactNode;
 }) {
   const s = QUADRANT_STYLES[letter];
   return (
     <div className={cn("rounded-xl border-2 p-4 space-y-3", s.bg, s.border)}>
-      <div className="flex items-center gap-2">
-        <span className={cn(
-          "w-7 h-7 rounded-lg border text-sm font-black flex items-center justify-center shrink-0",
-          s.badge
-        )}>
-          {letter}
-        </span>
-        <div>
-          <h4 className={cn("text-sm font-bold leading-tight", s.heading)}>{title}</h4>
-          {subtitle && <p className="text-xs text-ink-3 mt-0.5">{subtitle}</p>}
+      <div className="flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <span className={cn(
+            "w-7 h-7 rounded-lg border text-sm font-black flex items-center justify-center shrink-0",
+            s.badge
+          )}>
+            {letter}
+          </span>
+          <div>
+            <h4 className={cn("text-sm font-bold leading-tight", s.heading)}>{title}</h4>
+            {subtitle && <p className="text-xs text-ink-3 mt-0.5">{subtitle}</p>}
+          </div>
         </div>
+        {headerAction}
       </div>
       {children}
     </div>
@@ -91,6 +97,8 @@ function QuadrantCard({
 
 interface SoapFormProps {
   patientId: string;
+  encuentroId: string;
+  idClinica: string;
   initialNote?: SoapNote | null;
   objetivoHint?: string;
   readOnly?: boolean;
@@ -98,7 +106,14 @@ interface SoapFormProps {
 
 // ── Componente principal ───────────────────────────────────────────────────
 
-export function SoapForm({ patientId, initialNote, objetivoHint, readOnly: readOnlyProp = false }: SoapFormProps) {
+export function SoapForm({
+  patientId,
+  encuentroId,
+  idClinica,
+  initialNote,
+  objetivoHint,
+  readOnly: readOnlyProp = false,
+}: SoapFormProps) {
   const router = useRouter();
   const [noteId, setNoteId] = useState<string | undefined>(
     initialNote?.id
@@ -113,10 +128,16 @@ export function SoapForm({ patientId, initialNote, objetivoHint, readOnly: readO
 
   const readOnly = readOnlyProp || signed;
 
+  const [expandingSection, setExpandingSection] = useState<'S' | 'O' | 'P' | null>(null)
+  const sRef = useRef<HTMLTextAreaElement>(null)
+  const oRef = useRef<HTMLTextAreaElement>(null)
+  const pRef = useRef<HTMLTextAreaElement>(null)
+
   const {
     register,
     control,
     handleSubmit,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<SoapFormData>({
     resolver: zodResolver(soapSchema),
@@ -142,6 +163,14 @@ export function SoapForm({ patientId, initialNote, objetivoHint, readOnly: readO
   });
 
   const intervencionesFields = useFieldArray({ control, name: "intervenciones" });
+
+  const { ref: sRhfRef, ...sReg } = register('subjetivo')
+  const { ref: oRhfRef, ...oReg } = register('objetivo')
+  const { ref: pRhfRef, ...pReg } = register('plan')
+  const [watchedS, watchedO, watchedP] = useWatch({
+    control,
+    name: ['subjetivo', 'objetivo', 'plan'],
+  })
 
   async function onSubmit(data: SoapFormData) {
     setServerError(null);
@@ -173,6 +202,25 @@ export function SoapForm({ patientId, initialNote, objetivoHint, readOnly: readO
     }
   }
 
+  function handleCopilotoResult(
+    field: 'subjetivo' | 'objetivo' | 'plan',
+    expanded: string
+  ) {
+    const refMap = { subjetivo: sRef, objetivo: oRef, plan: pRef }
+    const el = refMap[field].current
+    if (el) {
+      el.focus()
+      el.select()
+      try {
+        document.execCommand('insertText', false, expanded)
+      } catch {
+        setValue(field, expanded)
+      }
+    } else {
+      setValue(field, expanded)
+    }
+  }
+
   return (
     <div className="space-y-4">
       {signed && (
@@ -199,20 +247,53 @@ export function SoapForm({ patientId, initialNote, objetivoHint, readOnly: readO
       <form onSubmit={handleSubmit(onSubmit)} noValidate className="space-y-4">
 
         {/* S — Subjetivo */}
-        <QuadrantCard letter="S" title="Subjetivo"
-          subtitle="Relato del paciente — síntomas, dolor, contexto biopsicosocial">
+        <QuadrantCard
+          letter="S"
+          title="Subjetivo"
+          subtitle="Relato del paciente — síntomas, dolor, contexto biopsicosocial"
+          headerAction={!readOnly && (
+            <AiExpandButton
+              text={watchedS ?? ''}
+              section="S"
+              encuentroId={encuentroId}
+              idClinica={idClinica}
+              onResult={(expanded) => handleCopilotoResult('subjetivo', expanded)}
+              onLoadingChange={(loading) => setExpandingSection(loading ? 'S' : null)}
+              disabled={expandingSection !== null && expandingSection !== 'S'}
+            />
+          )}
+        >
           <Textarea
             placeholder="Paciente refiere… EVA X/10… desde hace…"
-            required rows={4}
-            readOnly={readOnly}
+            required
+            rows={4}
+            readOnly={readOnly || expandingSection === 'S'}
             error={errors.subjetivo?.message}
-            {...register("subjetivo")}
+            ref={(el: HTMLTextAreaElement | null) => {
+              if (typeof sRhfRef === 'function') sRhfRef(el)
+              sRef.current = el
+            }}
+            {...sReg}
           />
         </QuadrantCard>
 
         {/* O — Objetivo */}
-        <QuadrantCard letter="O" title="Objetivo"
-          subtitle="Hallazgos clínicos observables y medibles">
+        <QuadrantCard
+          letter="O"
+          title="Objetivo"
+          subtitle="Hallazgos clínicos observables y medibles"
+          headerAction={!readOnly && (
+            <AiExpandButton
+              text={watchedO ?? ''}
+              section="O"
+              encuentroId={encuentroId}
+              idClinica={idClinica}
+              onResult={(expanded) => handleCopilotoResult('objetivo', expanded)}
+              onLoadingChange={(loading) => setExpandingSection(loading ? 'O' : null)}
+              disabled={expandingSection !== null && expandingSection !== 'O'}
+            />
+          )}
+        >
           {objetivoHint && !readOnly && !initialNote?.objetivo && (
             <p className="text-xs text-ink-3 bg-surface-1 border border-kp-border rounded px-2 py-1.5">
               💡 Evaluación disponible: {objetivoHint}
@@ -220,10 +301,15 @@ export function SoapForm({ patientId, initialNote, objetivoHint, readOnly: readO
           )}
           <Textarea
             placeholder="Signos vitales… ROM… fuerza Daniels… pruebas especiales…"
-            required rows={4}
-            readOnly={readOnly}
+            required
+            rows={4}
+            readOnly={readOnly || expandingSection === 'O'}
             error={errors.objetivo?.message}
-            {...register("objetivo")}
+            ref={(el: HTMLTextAreaElement | null) => {
+              if (typeof oRhfRef === 'function') oRhfRef(el)
+              oRef.current = el
+            }}
+            {...oReg}
           />
         </QuadrantCard>
 
@@ -244,16 +330,35 @@ export function SoapForm({ patientId, initialNote, objetivoHint, readOnly: readO
         </QuadrantCard>
 
         {/* P — Plan */}
-        <QuadrantCard letter="P" title="Plan"
-          subtitle="Intervenciones, objetivos terapéuticos y tareas">
+        <QuadrantCard
+          letter="P"
+          title="Plan"
+          subtitle="Intervenciones, objetivos terapéuticos y tareas"
+          headerAction={!readOnly && (
+            <AiExpandButton
+              text={watchedP ?? ''}
+              section="P"
+              encuentroId={encuentroId}
+              idClinica={idClinica}
+              onResult={(expanded) => handleCopilotoResult('plan', expanded)}
+              onLoadingChange={(loading) => setExpandingSection(loading ? 'P' : null)}
+              disabled={expandingSection !== null && expandingSection !== 'P'}
+            />
+          )}
+        >
           <div className="space-y-4">
             <Textarea
               label="Plan terapéutico"
               placeholder="Objetivos a corto/mediano plazo, técnicas a utilizar…"
-              required rows={3}
-              readOnly={readOnly}
+              required
+              rows={3}
+              readOnly={readOnly || expandingSection === 'P'}
               error={errors.plan?.message}
-              {...register("plan")}
+              ref={(el: HTMLTextAreaElement | null) => {
+                if (typeof pRhfRef === 'function') pRhfRef(el)
+                pRef.current = el
+              }}
+              {...pReg}
             />
 
             {/* Intervenciones */}
