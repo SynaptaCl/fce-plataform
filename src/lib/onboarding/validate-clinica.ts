@@ -64,6 +64,8 @@ export interface ClinicaValidationInput {
   profesionales: ProfesionalRow[];
   /** profesional.id → admin_user.id[] (vacío si tabla no existe o sin links) */
   adminLinksByProfesional: Record<string, string[]>;
+  /** El slug que se buscó — para mensajes de error diagnósticos */
+  slugBuscado?: string;
 }
 
 // ── Lógica de validación pura (sin DB) ────────────────────────────────────────
@@ -80,8 +82,8 @@ export function validateClinicaData(input: ClinicaValidationInput): ValidationRe
   if (!input.clinica) {
     bloqueos.push({
       codigo: "clinica_no_existe",
-      mensaje: "No existe ninguna clínica con ese slug en la tabla clinicas.",
-      accionSugerida: "Verificar el slug exacto o crear la clínica en el panel de administración.",
+      mensaje: `No existe ninguna clínica con slug "${input.slugBuscado ?? "?"}" en la tabla clinicas.`,
+      accionSugerida: "Verificar que admin_users.id_clinica apunta a la clínica correcta, o crear la clínica en el panel de administración.",
     });
     return { ready: false, bloqueos, advertencias };
   }
@@ -251,11 +253,15 @@ async function fetchValidationInput(slug: string): Promise<ClinicaValidationInpu
   const supabase = createServiceClient();
 
   // 1. Clínica
-  const { data: clinica } = await supabase
+  const { data: clinica, error: clinicaError } = await supabase
     .from("clinicas")
     .select("id, slug, config")
     .eq("slug", slug)
     .maybeSingle();
+
+  if (clinicaError) {
+    console.error("[validateClinica] Error al buscar clínica por slug:", slug, clinicaError.message);
+  }
 
   if (!clinica) {
     return {
@@ -264,6 +270,7 @@ async function fetchValidationInput(slug: string): Promise<ClinicaValidationInpu
       especialidadesCatalogo: [],
       profesionales: [],
       adminLinksByProfesional: {},
+      slugBuscado: slug,
     };
   }
 
