@@ -35,6 +35,9 @@ async function logAudit(supabase: any, userId: string, accion: string, registroI
 export async function getEvaluaciones(
   patientId: string
 ): Promise<ActionResult<Evaluation[]>> {
+  // fce_evaluaciones no tiene columna id_clinica — el aislamiento de tenant se
+  // delega al RLS policy fce_evaluaciones_select (20260601_01 / 20260606_02),
+  // que filtra via JOIN a fce_encuentros.id_clinica.
   const { supabase } = await requireAuth();
 
   const { data, error } = await supabase

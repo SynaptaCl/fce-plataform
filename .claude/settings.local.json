@@ -159,7 +159,24 @@
       "mcp__363fad75-1b71-485c-8c4d-203106b352d3__apply_migration",
       "Bash(npm test *)",
       "Bash(powershell -Command \"Get-ChildItem -Path 'C:\\\\Users\\\\alexi\\\\synapta' -Recurse -Include 'globals.css', 'Button.tsx', 'Navbar.tsx', 'tailwind.config.js', 'tailwind.config.ts', 'ContactForm.tsx', 'InteractiveWaveBackground*' -ErrorAction SilentlyContinue | Select-Object -ExpandProperty FullName\")",
-      "mcp__plugin_claude-mem_mcp-search__smart_outline"
+      "mcp__plugin_claude-mem_mcp-search__smart_outline",
+      "Bash(2>&1)",
+      "PowerShell($env = @{}; Get-Content .env.local | Where-Object { $_ -match \"^[^#]\" } | ForEach-Object { $k,$v = $_ -split \"=\",2; $env[$k] = $v }; $env:NEXT_PUBLIC_SUPABASE_URL=$env[\"NEXT_PUBLIC_SUPABASE_URL\"]; $env:SUPABASE_SERVICE_ROLE_KEY=$env[\"SUPABASE_SERVICE_ROLE_KEY\"]; npx tsx scripts/test-sprint-p2-f2.ts 2>&1 | Select-String -Pattern \"\\\\[Test 8\\\\]|  ✓ 8|  ✗ 8|Resultado|Todos los\")",
+      "PowerShell($env = @{}; Get-Content .env.local | Where-Object { $_ -match \"^[^#]\" } | ForEach-Object { $k,$v = $_ -split \"=\",2; $env[$k] = $v }; $env:NEXT_PUBLIC_SUPABASE_URL=$env[\"NEXT_PUBLIC_SUPABASE_URL\"]; $env:SUPABASE_SERVICE_ROLE_KEY=$env[\"SUPABASE_SERVICE_ROLE_KEY\"]; npx tsx scripts/test-sprint-p2-f2.ts 2>&1 | Select-String -Pattern \"Test 8|  . 8|Resultado|Todos los|omitido\")",
+      "mcp__claude_ai_Vercel__list_teams",
+      "mcp__claude_ai_Vercel__list_projects",
+      "mcp__claude_ai_Vercel__list_deployments",
+      "Bash(dir C:Usersalexifce-plataformscripts *)",
+      "Bash(Get-ChildItem C:Usersalexifce-plataformscripts *)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\alexi\\\\fce-plataform\\\\scripts\" -Force)",
+      "Bash(Select-Object Name)",
+      "mcp__plugin_claude-mem_mcp-search__search",
+      "Bash(dir /s src\\\\app\\\\dashboard\\\\*page.tsx)",
+      "Bash(awk -F: '{print $1}')",
+      "Bash(cat)",
+      "Read(//tmp/**)",
+      "Bash(dir *)",
+      "Bash(echo \"---EXIT:$?\")"
     ]
   },
   "mcpServers": {

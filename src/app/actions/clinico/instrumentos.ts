@@ -62,12 +62,16 @@ export async function getCatalogoInstrumentos(
 export async function getInstrumentosAplicados(
   encuentroId: string,
 ): Promise<ActionResult<InstrumentoAplicado[]>> {
-  const { supabase } = await requireAuth();
+  const { supabase, user } = await requireAuth();
+
+  const idClinica = await getIdClinica(supabase, user.id);
+  if (!idClinica) return { success: false, error: "No se encontró la clínica asociada al usuario." };
 
   const { data, error } = await supabase
     .from("instrumentos_aplicados")
     .select("*, instrumento:instrumentos_valoracion(*)")
     .eq("id_encuentro", encuentroId)
+    .eq("id_clinica", idClinica)
     .order("aplicado_at", { ascending: true });
 
   if (error) return { success: false, error: error.message };

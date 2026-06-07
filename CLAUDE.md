@@ -1,6 +1,6 @@
 # CLAUDE.md — FCE Platform (fce-plataform)
 
-> Última actualización: 2026-06-02 (post-P2 workspaces especializados)
+> Última actualización: 2026-06-06 (hardening multi-tenant — defense-in-depth en Server Actions)
 > Este documento es la fuente de verdad para Claude Code. Leerlo antes de cualquier cambio.
 
 ---
@@ -404,9 +404,11 @@ src/types/
     plan-intervencion.ts, plantilla-dominio.ts, index.ts
 
 supabase/migrations/
-  → 20260601_01_hotfix_rls_tenant_isolation.sql   (P1: pendiente aplicar — cierra fuga cross-tenant)
+  → ~~20260601_01_hotfix_rls_tenant_isolation.sql~~ (obsoleta — renombrada a .sql.obsolete; reemplazada por 20260606_02)
   → 20260601_02_onboarding_cenupsi_fce_config.sql (P1: pendiente aplicar — activa módulos cenupsi)
   → 20260602_03_seed_instrumentos_nutricion.sql   (P2: pendiente validación clínica — MNA/MUST/SGA)
+  → 20260606_01_version_get_clinica_ids_for_user.sql (aplicada — versiona función RLS que faltaba en repo)
+  → 20260606_02_fix_rls_tenant_isolation_5_policies.sql (aplicada — 5 políticas RLS corregidas post-auditoría)
 
 scripts/
   → test-sprint-n1.ts        (smoke test manual M10)
@@ -494,6 +496,7 @@ Actualmente **ninguna clínica tiene fce-plataform en producción** — el repo 
 | P2 | Workspaces especializados: secciones estructuradas en nota clínica (Medicina/Enfermería/Psicología/Nutrición), `SeccionEstructuradaRenderer`, `TerapiaOcupacionalEval` (6 sub-áreas, TO → beta), corrección códigos instrumentos (wisc5/corah_ansiedad/sensory_profile), `lib/nutricion/antropometria.ts`, seed MNA/MUST/SGA (pendiente validación clínica) |
 | O0 | Limpieza técnica pre-onboarding: package.json (8 scripts fantasma, 5 registrados), PatientActionNav eliminado, migrations M9/M10 reconstruidas, deuda técnica actualizada |
 | O1 | Self-service onboarding: CLI templates (F2), validador pre go-live (F3), panel estado salud (F4), self-service director — profesionales + servicios (F5), E2E con Cenupsi como banco de pruebas técnico (F6) |
+| O1-plantillas | **synapta** `lib/servicios-plantillas.ts`: plantilla `multidisciplinaria_rehabilitacion` — 9 categorías, 39 servicios. `getPlantillasDisponibles()` retorna 2 plantillas (estética + rehabilitación). |
 
 ### Pendientes
 
@@ -517,7 +520,8 @@ Actualmente **ninguna clínica tiene fce-plataform en producción** — el repo 
 | `fce_planes_intervencion`, `fce_plan_objetivos`, `fce_plan_progreso`, `plantillas_dominios` | 2026-05-31 |
 | Columna `secciones_estructuradas jsonb` en `fce_notas_clinicas` | 2026-05-31 |
 | Tipo `registro_externo` en `instrumentos_valoracion` | 2026-05-31 |
-| **SQL P1 pendiente**: RLS hotfix (`fce_notas_soap`, `fce_evaluaciones`, `profesionales`) | 2026-06-01 |
+| ~~SQL P1 pendiente~~: RLS hotfix (`fce_notas_soap`, `fce_evaluaciones`, `profesionales`) — reemplazado por 20260606_02 | 2026-06-01 |
+| Fix RLS tenant isolation (5 policies) + versionar `get_clinica_ids_for_user` + defense-in-depth en 13 Server Actions | 2026-06-06 |
 | **SQL O1 pendiente**: onboarding cenupsi — `20260604_onboard_cenupsi.sql` (activa 10 módulos + 5 especialidades) | 2026-06-04 |
 | **SQL P2 pendiente**: seed instrumentos nutricionales MNA/MUST/SGA — requiere validación clínica por nutricionista | 2026-06-02 |
 
@@ -525,6 +529,7 @@ Actualmente **ninguna clínica tiene fce-plataform en producción** — el repo 
 
 | Item | Prioridad |
 |---|---|
+| ~~Migración RLS pendiente 20260601_01~~ — reemplazada por `20260606_02_fix_rls_tenant_isolation_5_policies.sql` (aplicada) | ~~Resuelta~~ |
 | Migrations ICD-11 pendientes (`fce_notas_clinicas` + `fce_periogramas`) — SQL en `supabase/migrations/20260506_01_icd_notas_clinicas.sql` y `20260506_02_icd_periograma.sql` | Alta |
 | Gestión `puede_prescribir` / `puede_indicar_examenes` en panel clínica | Media |
 | Modal de selección de perfil al primer ingreso (cuando N>1 perfiles, sin cookie) | Media |

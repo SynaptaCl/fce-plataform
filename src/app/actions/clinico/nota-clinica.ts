@@ -37,12 +37,22 @@ async function logAudit(supabase: any, userId: string, accion: string, registroI
 export async function getNotaClinica(
   encuentroId: string,
 ): Promise<ActionResult<NotaClinica | null>> {
-  const { supabase } = await requireAuth();
+  const { supabase, user } = await requireAuth();
+
+  const { data: adminRow } = await supabase
+    .from("admin_users")
+    .select("id_clinica")
+    .eq("auth_id", user.id)
+    .eq("activo", true)
+    .single();
+  const idClinica: string | null = adminRow?.id_clinica ?? null;
+  if (!idClinica) return { success: false, error: "No se encontró la clínica asociada al usuario." };
 
   const { data, error } = await supabase
     .from("fce_notas_clinicas")
     .select("*")
     .eq("id_encuentro", encuentroId)
+    .eq("id_clinica", idClinica)
     .maybeSingle();
 
   if (error) return { success: false, error: error.message };
@@ -104,7 +114,8 @@ export async function upsertNotaClinica(
     const { error } = await supabase
       .from("fce_notas_clinicas")
       .update({ ...cleanedData, updated_at: new Date().toISOString() })
-      .eq("id", existing.id);
+      .eq("id", existing.id)
+      .eq("id_clinica", idClinica);
 
     if (error) return { success: false, error: error.message };
     id = existing.id;
@@ -157,11 +168,12 @@ export async function signNotaClinica(
     return { success: false, error: "No se encontró el perfil profesional del usuario." };
   }
 
-  // Leer id_encuentro antes de firmar
+  // Leer id_encuentro antes de firmar — filtramos por id_clinica para bloquear cross-tenant
   const { data: notaRow } = await supabase
     .from("fce_notas_clinicas")
     .select("id_encuentro, firmado")
     .eq("id", notaId)
+    .eq("id_clinica", idClinica ?? "")
     .single();
 
   if (!notaRow) return { success: false, error: "Nota no encontrada." };
@@ -176,6 +188,7 @@ export async function signNotaClinica(
       updated_at: new Date().toISOString(),
     })
     .eq("id", notaId)
+    .eq("id_clinica", idClinica ?? "")
     .eq("firmado", false);
 
   if (error) return { success: false, error: error.message };

@@ -32,11 +32,14 @@ async function logAudit(supabase: any, userId: string, accion: string, tablaAfec
 export async function getConsentimientos(
   patientId: string
 ): Promise<ActionResult<Consent[]>> {
-  const { supabase } = await requireAuth();
+  const { supabase, user } = await requireAuth();
+  const idClinica = await getIdClinica(supabase, user.id);
+  if (!idClinica) return { success: false, error: "No se encontró la clínica asociada al usuario." };
   const { data, error } = await supabase
     .from("fce_consentimientos")
     .select("*")
     .eq("id_paciente", patientId)
+    .eq("id_clinica", idClinica)
     .order("created_at", { ascending: false });
   if (error) return { success: false, error: error.message };
   return { success: true, data: data as Consent[] };
@@ -77,7 +80,7 @@ export async function createConsentimiento(
       contenido: parsed.data.contenido,
       version: nextVersion,
       created_by: profesionalId,
-      ...(idClinica ? { id_clinica: idClinica } : {}),
+      id_clinica: idClinica,
     })
     .select("id")
     .single();
@@ -97,7 +100,11 @@ export async function signConsentimiento(
     return { success: false, error: "Firma inválida" };
   }
   const { supabase, user } = await requireAuth();
-  const profesionalId = await getProfesionalId(supabase, user.id);
+  const [idClinica, profesionalId] = await Promise.all([
+    getIdClinica(supabase, user.id),
+    getProfesionalId(supabase, user.id),
+  ]);
+  if (!idClinica) return { success: false, error: "No se encontró la clínica asociada al usuario." };
   if (!profesionalId) return { success: false, error: "No se encontró el profesional asociado al usuario." };
   const timestamp = new Date().toISOString();
   const hash = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 9)}`;
@@ -111,6 +118,7 @@ export async function signConsentimiento(
       firmado_at: timestamp,
     })
     .eq("id", consentId)
+    .eq("id_clinica", idClinica)
     .eq("firmado", false);
 
   if (error) return { success: false, error: error.message };

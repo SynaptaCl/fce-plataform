@@ -58,12 +58,18 @@ async function logAudit(
 export async function getPrescripcionesByPatient(
   patientId: string
 ): Promise<ActionResult<Prescripcion[]>> {
-  const { supabase } = await requireAuth();
+  const { supabase, user } = await requireAuth();
+
+  const { data: adminRow } = await supabase
+    .from("admin_users").select("id_clinica").eq("auth_id", user.id).eq("activo", true).single();
+  const idClinica: string | null = adminRow?.id_clinica ?? null;
+  if (!idClinica) return { success: false, error: "No se encontró la clínica asociada al usuario." };
 
   const { data, error } = await supabase
     .from("fce_prescripciones")
     .select("*")
     .eq("id_paciente", patientId)
+    .eq("id_clinica", idClinica)
     .order("created_at", { ascending: false });
 
   if (error) return { success: false, error: error.message };
@@ -75,12 +81,18 @@ export async function getPrescripcionesByPatient(
 export async function getPrescripcionById(
   prescripcionId: string
 ): Promise<ActionResult<Prescripcion>> {
-  const { supabase } = await requireAuth();
+  const { supabase, user } = await requireAuth();
+
+  const { data: adminRow } = await supabase
+    .from("admin_users").select("id_clinica").eq("auth_id", user.id).eq("activo", true).single();
+  const idClinica: string | null = adminRow?.id_clinica ?? null;
+  if (!idClinica) return { success: false, error: "No se encontró la clínica asociada al usuario." };
 
   const { data, error } = await supabase
     .from("fce_prescripciones")
     .select("*")
     .eq("id", prescripcionId)
+    .eq("id_clinica", idClinica)
     .single();
 
   if (error || !data) {

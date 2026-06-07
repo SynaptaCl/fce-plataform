@@ -36,12 +36,16 @@ async function logAudit(supabase: any, userId: string, accion: string, tablaAfec
 export async function getAnamnesis(
   patientId: string
 ): Promise<ActionResult<Anamnesis | null>> {
-  const { supabase } = await requireAuth();
+  const { supabase, user } = await requireAuth();
+
+  const idClinica = await getIdClinica(supabase, user.id);
+  if (!idClinica) return { success: false, error: "No se encontró la clínica asociada al usuario." };
 
   const { data, error } = await supabase
     .from("fce_anamnesis")
     .select("*")
     .eq("id_paciente", patientId)
+    .eq("id_clinica", idClinica)
     .maybeSingle();
 
   if (error) return { success: false, error: error.message };
@@ -61,34 +65,38 @@ export async function upsertAnamnesis(
 
   const { supabase, user } = await requireAuth();
 
+  const [idClinica, profesionalId] = await Promise.all([
+    getIdClinica(supabase, user.id),
+    getProfesionalId(supabase, user.id),
+  ]);
+  if (!idClinica) return { success: false, error: "No se encontró la clínica asociada al usuario." };
+
   // ¿Ya existe una anamnesis para este paciente?
   const { data: existing } = await supabase
     .from("fce_anamnesis")
     .select("id")
     .eq("id_paciente", patientId)
+    .eq("id_clinica", idClinica)
     .maybeSingle();
 
   let id: string;
 
   if (existing?.id) {
-    // UPDATE
+    // UPDATE — incluye id_clinica para bloquear cross-tenant en la escritura
     const { error } = await supabase
       .from("fce_anamnesis")
       .update({
         ...parsed.data,
         updated_at: new Date().toISOString(),
       })
-      .eq("id", existing.id);
+      .eq("id", existing.id)
+      .eq("id_clinica", idClinica);
 
     if (error) return { success: false, error: error.message };
     id = existing.id;
     await logAudit(supabase, user.id, "update", "anamnesis", id, patientId);
   } else {
     // INSERT
-    const [idClinica, profesionalId] = await Promise.all([
-      getIdClinica(supabase, user.id),
-      getProfesionalId(supabase, user.id),
-    ]);
     if (!profesionalId) return { success: false, error: "No se encontró el profesional asociado al usuario." };
     const { data: created, error } = await supabase
       .from("fce_anamnesis")
@@ -96,7 +104,7 @@ export async function upsertAnamnesis(
         id_paciente: patientId,
         ...parsed.data,
         created_by: profesionalId,
-        ...(idClinica ? { id_clinica: idClinica } : {}),
+        id_clinica: idClinica,
       })
       .select("id")
       .single();
@@ -115,12 +123,16 @@ export async function upsertAnamnesis(
 export async function getLatestVitalSigns(
   patientId: string
 ): Promise<ActionResult<VitalSigns | null>> {
-  const { supabase } = await requireAuth();
+  const { supabase, user } = await requireAuth();
+
+  const idClinica = await getIdClinica(supabase, user.id);
+  if (!idClinica) return { success: false, error: "No se encontró la clínica asociada al usuario." };
 
   const { data, error } = await supabase
     .from("fce_signos_vitales")
     .select("*")
     .eq("id_paciente", patientId)
+    .eq("id_clinica", idClinica)
     .order("recorded_at", { ascending: false })
     .limit(1)
     .maybeSingle();

@@ -15,13 +15,14 @@ async function requireAdmin() {
   // admin_users tiene el rol, NO profesionales
   const { data: adminUser } = await supabase
     .from("admin_users")
-    .select("rol")
+    .select("rol, id_clinica")
     .eq("auth_id", user.id)
     .maybeSingle();
 
   if (adminUser?.rol !== "admin") redirect("/dashboard");
 
-  return { supabase, user };
+  const idClinica: string | null = adminUser?.id_clinica ?? null;
+  return { supabase, user, idClinica };
 }
 
 // ── getAuditLogs ───────────────────────────────────────────────────────────
@@ -36,13 +37,18 @@ export type AuditFilter = {
 export async function getAuditLogs(
   filter: AuditFilter = {}
 ): Promise<ActionResult<AuditEntry[]>> {
-  const { supabase } = await requireAdmin();
+  const { supabase, idClinica } = await requireAdmin();
 
   let query = supabase
     .from("logs_auditoria")
     .select("*")
     .order("created_at", { ascending: false })
     .limit(200);
+
+  // Filtrar siempre por la clínica del admin — impide ver logs de otras clínicas
+  if (idClinica) {
+    query = query.eq("id_clinica", idClinica);
+  }
 
   if (filter.patientId) {
     query = query.eq("id_paciente", filter.patientId);

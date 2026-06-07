@@ -106,17 +106,19 @@ export async function getPdfPatientData(
   } = await supabase.auth.getUser();
   if (authError || !user) redirect("/login");
 
-  // Fetch paciente + admin en paralelo
-  const [patientRes, adminRes] = await Promise.all([
-    supabase.from("pacientes").select("*").eq("id", patientId).single(),
-    supabase.from("admin_users").select("id_clinica").eq("auth_id", user.id).maybeSingle(),
-  ]);
+  // Fetch admin primero para obtener idClinica antes de leer datos clínicos
+  const adminRes = await supabase
+    .from("admin_users").select("id_clinica").eq("auth_id", user.id).maybeSingle();
+  const idClinica = adminRes.data?.id_clinica ?? null;
+  if (!idClinica) return { success: false, error: "No se encontró la clínica asociada al usuario." };
+
+  // Fetch paciente con guard de tenant
+  const patientRes = await supabase
+    .from("pacientes").select("*").eq("id", patientId).eq("id_clinica", idClinica).single();
 
   if (patientRes.error || !patientRes.data) {
     return { success: false, error: "Paciente no encontrado" };
   }
-
-  const idClinica = adminRes.data?.id_clinica ?? null;
 
   // Fetch resto de datos en paralelo
   const [anamnesisRes, vitalesRes, evaluacionesRes, soapsRes, consentimientosRes, clinicaRes, notasClinicasRes, instrumentosRes, prescripcionesRes, egresosRes] =

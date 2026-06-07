@@ -139,10 +139,16 @@ export async function getPatientById(
 ): Promise<ActionResult<Patient>> {
   const { supabase, user } = await requireAuth();
 
+  // Defense-in-depth: RLS cubre pacientes via 20260606_02, pero filtramos
+  // explícitamente para bloquear cross-tenant antes de llegar a la DB.
+  const idClinica = await getIdClinica(supabase, user.id);
+  if (!idClinica) return { success: false, error: "No se encontró la clínica asociada al usuario." };
+
   const { data, error } = await supabase
     .from("pacientes")
     .select("*")
     .eq("id", id)
+    .eq("id_clinica", idClinica)
     .single();
 
   if (error) return { success: false, error: error.message };
@@ -202,6 +208,9 @@ export async function updatePatient(
 
   const { supabase, user } = await requireAuth();
 
+  const idClinica = await getIdClinica(supabase, user.id);
+  if (!idClinica) return { success: false, error: "No se encontró la clínica asociada al usuario." };
+
   const payload = {
     ...parsed.data,
     rut: formatRut(parsed.data.rut),
@@ -211,7 +220,8 @@ export async function updatePatient(
   const { error } = await supabase
     .from("pacientes")
     .update(payload)
-    .eq("id", id);
+    .eq("id", id)
+    .eq("id_clinica", idClinica);
 
   if (error) {
     if (error.code === "23505") {
@@ -220,7 +230,7 @@ export async function updatePatient(
     return { success: false, error: error.message };
   }
 
-  await logAudit(supabase, user.id, "update", "pacientes", id, null, id);
+  await logAudit(supabase, user.id, "update", "pacientes", id, idClinica, id);
 
   revalidatePath("/dashboard/pacientes");
   revalidatePath(`/dashboard/pacientes/${id}`);

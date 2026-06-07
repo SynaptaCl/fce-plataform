@@ -152,12 +152,16 @@ export interface EncuentroContext {
  * Si el encuentro no tiene cita (walk-in), nombreServicio = null.
  */
 export async function getEncuentroContext(encuentroId: string): Promise<ActionResult<EncuentroContext>> {
-  const { supabase } = await requireAuth();
+  const { supabase, user } = await requireAuth();
+
+  const idClinica = await getIdClinica(supabase, user.id);
+  if (!idClinica) return { success: false, error: "No se encontró la clínica asociada al usuario." };
 
   const { data: encuentro, error: encError } = await supabase
     .from("fce_encuentros")
     .select("especialidad, id_cita")
     .eq("id", encuentroId)
+    .eq("id_clinica", idClinica)
     .single();
 
   if (encError || !encuentro) {

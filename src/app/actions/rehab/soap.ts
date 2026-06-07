@@ -97,6 +97,9 @@ async function getOrCreateEncounter(
 export async function getSoapNotes(
   patientId: string,
 ): Promise<ActionResult<SoapNote[]>> {
+  // fce_notas_soap no tiene columna id_clinica — el aislamiento de tenant se
+  // delega íntegramente al RLS de la policy fce_soap_select (20260601_01 /
+  // 20260606_02), que filtra via JOIN a fce_encuentros.id_clinica.
   const { supabase } = await requireAuth();
 
   const { data, error } = await supabase
@@ -209,7 +212,8 @@ export async function signSoapNote(
   const firmadoPor = profData?.id ?? null;
   if (!firmadoPor) return { success: false, error: "No se encontró el profesional asociado al usuario." };
 
-  // Leer id_encuentro ANTES de firmar para garantizar que lo obtenemos
+  // fce_notas_soap no tiene id_clinica — el guard de tenant en UPDATE/SELECT
+  // lo provee el RLS policy fce_soap_select (20260606_02) via JOIN a fce_encuentros.
   const { data: notaConEncuentro } = await supabase
     .from("fce_notas_soap")
     .select("id_encuentro")
