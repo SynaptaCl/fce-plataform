@@ -15,14 +15,12 @@
     "test:sprint-o1-f1": "tsx scripts/test-sprint-o1-f1.ts",
     "test:sprint-o1-f2": "tsx scripts/test-sprint-o1-f2.ts",
     "onboard:clinica": "tsx scripts/onboard-clinica.ts",
-    "validate:clinica": "tsx scripts/validate-clinica.ts",
-    "test:sprint-o1-f3": "tsx scripts/test-sprint-o1-f3.ts",
-    "test:sprint-o1-f5": "tsx scripts/test-sprint-o1-f5.ts",
-    "test:sprint-o1-f6": "tsx scripts/test-sprint-o1-f6.ts"
+    "test:sprint-o1-f5": "tsx scripts/test-sprint-o1-f5.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.92.0",
     "@hookform/resolvers": "^5.2.2",
+    "@sentry/nextjs": "^10.56.0",
     "@supabase/ssr": "^0.10.2",
     "@supabase/supabase-js": "^2.103.0",
     "clsx": "^2.1.1",

@@ -97,15 +97,14 @@ async function getOrCreateEncounter(
 export async function getSoapNotes(
   patientId: string,
 ): Promise<ActionResult<SoapNote[]>> {
-  // fce_notas_soap no tiene columna id_clinica — el aislamiento de tenant se
-  // delega íntegramente al RLS de la policy fce_soap_select (20260601_01 /
-  // 20260606_02), que filtra via JOIN a fce_encuentros.id_clinica.
-  const { supabase } = await requireAuth();
+  const { supabase, user } = await requireAuth();
+  const idClinica = await getIdClinica(supabase, user.id);
 
   const { data, error } = await supabase
     .from("fce_notas_soap")
     .select("*")
     .eq("id_paciente", patientId)
+    .eq("id_clinica", idClinica)
     .order("created_at", { ascending: false });
 
   if (error) return { success: false, error: error.message };
@@ -135,6 +134,7 @@ export async function upsertSoapNote(
   const especialidad = (prof?.especialidad as string) ?? "Kinesiología";
   const profesionalId = prof?.id ?? null;
 
+  const idClinica = await getIdClinica(supabase, user.id);
   let id: string;
 
   const soapData = {
@@ -148,6 +148,7 @@ export async function upsertSoapNote(
       .from("fce_notas_soap")
       .select("firmado")
       .eq("id", noteId)
+      .eq("id_clinica", idClinica)
       .single();
 
     if (existing?.firmado) {
@@ -157,14 +158,15 @@ export async function upsertSoapNote(
     const { error } = await supabase
       .from("fce_notas_soap")
       .update({ ...soapData })
-      .eq("id", noteId);
+      .eq("id", noteId)
+      .eq("id_clinica", idClinica);
 
     if (error) return { success: false, error: error.message };
     id = noteId;
     await logAudit(supabase, user.id, "update", "soap_note", id, patientId);
   } else {
     // CREATE — buscar encuentro pre-creado o crear walk-in
-    const idClinica = await getIdClinica(supabase, user.id);
+    if (!idClinica) return { success: false, error: "No se encontró la clínica del usuario." };
     let encounterId: string;
     try {
       if (!profesionalId) {
@@ -180,6 +182,7 @@ export async function upsertSoapNote(
       .insert({
         id_paciente: patientId,
         id_encuentro: encounterId,
+        id_clinica: idClinica,
         ...soapData,
         firmado: false,
       })
@@ -212,12 +215,13 @@ export async function signSoapNote(
   const firmadoPor = profData?.id ?? null;
   if (!firmadoPor) return { success: false, error: "No se encontró el profesional asociado al usuario." };
 
-  // fce_notas_soap no tiene id_clinica — el guard de tenant en UPDATE/SELECT
-  // lo provee el RLS policy fce_soap_select (20260606_02) via JOIN a fce_encuentros.
+  const idClinica = await getIdClinica(supabase, user.id);
+
   const { data: notaConEncuentro } = await supabase
     .from("fce_notas_soap")
     .select("id_encuentro")
     .eq("id", noteId)
+    .eq("id_clinica", idClinica)
     .single();
 
   const { error } = await supabase
@@ -228,6 +232,7 @@ export async function signSoapNote(
       firmado_por: firmadoPor,
     })
     .eq("id", noteId)
+    .eq("id_clinica", idClinica)
     .eq("firmado", false); // solo si no estaba ya firmado
 
   if (error) return { success: false, error: error.message };

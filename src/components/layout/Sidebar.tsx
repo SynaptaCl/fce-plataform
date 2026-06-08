@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -13,8 +13,6 @@ import {
 } from "lucide-react";
 import type { BrandingConfig } from "@/lib/modules/registry";
 import { createClient } from "@/lib/supabase/client";
-import { getBloqueoCount } from "@/app/actions/configuracion";
-
 const ROLES_CON_CONFIG = ["admin", "director", "superadmin"];
 const STORAGE_KEY = "fce-sidebar-expanded";
 const W_EXPANDED = 240;
@@ -181,15 +179,6 @@ export function Sidebar({
     if (typeof window === "undefined") return { expanded: false, mounted: false };
     return { expanded: localStorage.getItem(STORAGE_KEY) === "true", mounted: true };
   });
-
-  const [bloqueoCount, setBloqueoCount] = useState(0);
-
-  useEffect(() => {
-    if (!ROLES_CON_CONFIG.includes(rol)) return;
-    getBloqueoCount()
-      .then(setBloqueoCount)
-      .catch(() => {});
-  }, [rol]);
 
   function toggle() {
     setSidebarState((prev) => {
@@ -452,15 +441,7 @@ export function Sidebar({
               label="Configuración"
               active={activeSection === "config"}
               expanded={expanded}
-              badge={bloqueoCount}
             />
-            {expanded && (
-              <SubNavItem
-                href="/dashboard/configuracion/estado"
-                label="Estado de la clínica"
-                active={pathname === "/dashboard/configuracion/estado"}
-              />
-            )}
           </>
         )}
       </nav>

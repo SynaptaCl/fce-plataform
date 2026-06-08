@@ -10,6 +10,7 @@ import { OrdenExamenInputSchema } from "@/lib/ordenes-examen/validations";
 import { buildProfesionalSnapshot } from "@/lib/prescripciones/snapshot";
 import type { ActionResult } from "@/lib/modules/guards";
 import type { Rol } from "@/lib/modules/registry";
+import { log } from "@/lib/logger";
 import type { OrdenExamen, ExamenCatalogo, ExamenIndicado } from "@/types/orden-examen";
 
 // ── Helper: sesión activa ──────────────────────────────────────────────────
@@ -141,7 +142,7 @@ export async function createAndSignOrdenExamen(input: {
     .single();
 
   if (insertError || !orden) {
-    console.error("[FCE] Error creando orden de examen:", insertError);
+    log("error", { action: "crear_orden_examen", id_clinica: idClinica, id_paciente: input.patientId, error: insertError });
     return { success: false, error: "No se pudo crear la orden de examen" };
   }
 

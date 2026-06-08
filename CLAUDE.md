@@ -146,9 +146,7 @@ El workspace dental vive en `/encuentro/[encuentroId]/dental/page.tsx` y usa `De
 
 Para columnas exactas consultar `docs/schema-real.md` o MCP Supabase.
 
-**Con `id_clinica`**: pacientes, fce_anamnesis, fce_encuentros, fce_consentimientos, clinicas_fce_config, instrumentos_aplicados, fce_notas_clinicas, fce_prescripciones, fce_ordenes_examen, fce_egresos, fce_planes_intervencion, fce_plan_objetivos, fce_plan_progreso
-
-**Sin `id_clinica`** (filtrar via JOIN): fce_evaluaciones, fce_notas_soap
+**Con `id_clinica`**: pacientes, fce_anamnesis, fce_encuentros, fce_consentimientos, clinicas_fce_config, instrumentos_aplicados, fce_notas_clinicas, fce_prescripciones, fce_ordenes_examen, fce_egresos, fce_planes_intervencion, fce_plan_objetivos, fce_plan_progreso, fce_notas_soap, fce_evaluaciones
 
 **Catálogos globales**: especialidades_catalogo, instrumentos_valoracion, medicamentos_catalogo, examenes_catalogo, plantillas_dominios
 
@@ -522,6 +520,7 @@ Actualmente **ninguna clínica tiene fce-plataform en producción** — el repo 
 | Tipo `registro_externo` en `instrumentos_valoracion` | 2026-05-31 |
 | ~~SQL P1 pendiente~~: RLS hotfix (`fce_notas_soap`, `fce_evaluaciones`, `profesionales`) — reemplazado por 20260606_02 | 2026-06-01 |
 | Fix RLS tenant isolation (5 policies) + versionar `get_clinica_ids_for_user` + defense-in-depth en 13 Server Actions | 2026-06-06 |
+| Add `id_clinica` a `fce_notas_soap` y `fce_evaluaciones` + RLS directo sin JOIN | 2026-06-06 |
 | **SQL O1 pendiente**: onboarding cenupsi — `20260604_onboard_cenupsi.sql` (activa 10 módulos + 5 especialidades) | 2026-06-04 |
 | **SQL P2 pendiente**: seed instrumentos nutricionales MNA/MUST/SGA — requiere validación clínica por nutricionista | 2026-06-02 |
 
@@ -855,11 +854,43 @@ ANTHROPIC_API_KEY=...             # Solo server-side, sin NEXT_PUBLIC_
 # ICD-11 WHO API
 ICD_API_CLIENT_ID=...             # Solo server-side
 ICD_API_CLIENT_SECRET=...         # Solo server-side
+
+# Sentry
+NEXT_PUBLIC_SENTRY_DSN=...        # Público — client + server
+SENTRY_AUTH_TOKEN=...             # Solo CI/Vercel — upload source maps
 ```
 
 ---
 
-## 22. RECURSOS
+## 22. OBSERVABILIDAD
+
+### Sentry
+Configurado en `sentry.client.config.ts`, `sentry.server.config.ts`, `sentry.edge.config.ts`. DSN en `NEXT_PUBLIC_SENTRY_DSN`. `withSentryConfig` en `next.config.ts`. `tracesSampleRate`: 0.1 en prod, 1.0 en dev.
+
+### Logger estructurado
+Usar `log()` de `src/lib/logger.ts` en Server Actions — **nunca** `console.error` directo.
+
+```typescript
+import { log } from "@/lib/logger";
+
+// En catch/error blocks:
+log("error", { action: "crear_prescripcion", id_clinica: idClinica, id_paciente: input.patientId, error: err });
+
+// Para intentos cross-tenant detectados:
+log("warn", { action: "cross_tenant_attempt", id_clinica: idClinica, detail: "query sin clinica match" });
+```
+
+**Niveles**: `info` (happy path) · `warn` (recuperable, breadcrumb Sentry) · `error` (captura Sentry)
+
+**CRÍTICO — PII prohibido en logs**: nunca incluir nombre paciente, RUT, email, teléfono. Solo UUIDs (`id_clinica`, `id_paciente`, `id_encuentro`).
+
+### Variables de entorno (Sentry)
+- `NEXT_PUBLIC_SENTRY_DSN` — DSN público (client + server)
+- `SENTRY_AUTH_TOKEN` — para upload de source maps en CI/Vercel
+
+---
+
+## 23. RECURSOS
 
 - Supabase: `vigyhfpwyxihrjiygfsa` (sa-east-1)
 - Deploy: Vercel

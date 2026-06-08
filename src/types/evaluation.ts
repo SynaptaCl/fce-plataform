@@ -129,6 +129,7 @@ export interface Evaluation {
   id: string;
   id_encuentro: string | null;
   id_paciente: string;
+  id_clinica: string;
   especialidad: EspecialidadCodigo;
   sub_area: string;
   data: Record<string, unknown>;

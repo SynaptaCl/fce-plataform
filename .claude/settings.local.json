@@ -176,7 +176,14 @@
       "Bash(cat)",
       "Read(//tmp/**)",
       "Bash(dir *)",
-      "Bash(echo \"---EXIT:$?\")"
+      "Bash(echo \"---EXIT:$?\")",
+      "Bash(gh api *)",
+      "PowerShell(npx -y github:JuliusBrussee/caveman -- --dry-run --only claude-code 2>&1)",
+      "PowerShell(npx -y github:JuliusBrussee/caveman -- --list 2>&1)",
+      "PowerShell(npx -y github:JuliusBrussee/caveman -- --dry-run --only claude 2>&1)",
+      "PowerShell(npx -y github:JuliusBrussee/caveman -- --only claude --non-interactive 2>&1)",
+      "Bash(Get-Content package.json)",
+      "Bash(Select-String \"sentry\")"
     ]
   },
   "mcpServers": {

@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { ActionResult } from "@/app/actions/patients";
-import { getProfesionalId } from "@/app/actions/patients";
+import { getIdClinica, getProfesionalId } from "@/app/actions/patients";
 import type { Evaluation } from "@/types";
 
 // ── Helper ─────────────────────────────────────────────────────────────────
@@ -35,15 +35,14 @@ async function logAudit(supabase: any, userId: string, accion: string, registroI
 export async function getEvaluaciones(
   patientId: string
 ): Promise<ActionResult<Evaluation[]>> {
-  // fce_evaluaciones no tiene columna id_clinica — el aislamiento de tenant se
-  // delega al RLS policy fce_evaluaciones_select (20260601_01 / 20260606_02),
-  // que filtra via JOIN a fce_encuentros.id_clinica.
-  const { supabase } = await requireAuth();
+  const { supabase, user } = await requireAuth();
+  const idClinica = await getIdClinica(supabase, user.id);
 
   const { data, error } = await supabase
     .from("fce_evaluaciones")
     .select("*")
     .eq("id_paciente", patientId)
+    .eq("id_clinica", idClinica)
     .order("created_at", { ascending: false });
 
   if (error) return { success: false, error: error.message };
@@ -61,13 +60,18 @@ export async function upsertEvaluacion(
 ): Promise<ActionResult<{ id: string }>> {
   const { supabase, user } = await requireAuth();
 
-  const profesionalId = await getProfesionalId(supabase, user.id);
+  const [profesionalId, idClinica] = await Promise.all([
+    getProfesionalId(supabase, user.id),
+    getIdClinica(supabase, user.id),
+  ]);
   if (!profesionalId) return { success: false, error: "No se encontró el profesional asociado al usuario." };
+  if (!idClinica) return { success: false, error: "No se encontró la clínica del usuario." };
 
   const { data: existing } = await supabase
     .from("fce_evaluaciones")
     .select("id")
     .eq("id_paciente", patientId)
+    .eq("id_clinica", idClinica)
     .eq("especialidad", especialidad)
     .eq("sub_area", subArea)
     .maybeSingle();
@@ -78,7 +82,8 @@ export async function upsertEvaluacion(
     const { error } = await supabase
       .from("fce_evaluaciones")
       .update({ data })
-      .eq("id", existing.id);
+      .eq("id", existing.id)
+      .eq("id_clinica", idClinica);
 
     if (error) return { success: false, error: error.message };
     id = existing.id;
@@ -89,6 +94,7 @@ export async function upsertEvaluacion(
       .insert({
         id_paciente: patientId,
         id_encuentro: null,
+        id_clinica: idClinica,
         especialidad,
         sub_area: subArea,
         data,

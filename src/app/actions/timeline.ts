@@ -187,22 +187,17 @@ export async function getPatientTimeline(
     }
   }
 
-  // serviceClient bypasea RLS en fce_notas_soap y fce_evaluaciones (que no tienen id_clinica).
-  // El ownership del paciente ya fue verificado arriba; el filtrado por clínica
-  // se aplica a nivel de aplicación con lógica deny-by-default.
+  // serviceClient bypasea RLS — necesario para el timeline que agrega datos de múltiples tablas.
+  // fce_notas_soap y fce_evaluaciones tienen id_clinica desde 20260606_03; filtramos como defense-in-depth.
   const serviceClient = createServiceClient();
 
   const [soapRes, evalRes, vitalsRes, consentRes, anamnesisRes, notasRes, instrumentosRes, prescripcionesRes, ordenesExamenRes, egresosRes, planesRes] = await Promise.all([
-    serviceClient
-      .from("fce_notas_soap")
-      .select("*")
-      .eq("id_paciente", patientId)
-      .order("created_at", { ascending: false }),
-    serviceClient
-      .from("fce_evaluaciones")
-      .select("*")
-      .eq("id_paciente", patientId)
-      .order("created_at", { ascending: false }),
+    idClinica
+      ? serviceClient.from("fce_notas_soap").select("*").eq("id_paciente", patientId).eq("id_clinica", idClinica).order("created_at", { ascending: false })
+      : serviceClient.from("fce_notas_soap").select("*").eq("id_paciente", patientId).order("created_at", { ascending: false }),
+    idClinica
+      ? serviceClient.from("fce_evaluaciones").select("*").eq("id_paciente", patientId).eq("id_clinica", idClinica).order("created_at", { ascending: false })
+      : serviceClient.from("fce_evaluaciones").select("*").eq("id_paciente", patientId).order("created_at", { ascending: false }),
     idClinica
       ? supabase.from("fce_signos_vitales").select("*").eq("id_paciente", patientId).eq("id_clinica", idClinica).order("recorded_at", { ascending: false })
       : supabase.from("fce_signos_vitales").select("*").eq("id_paciente", patientId).order("recorded_at", { ascending: false }),

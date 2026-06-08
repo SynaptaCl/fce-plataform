@@ -10,6 +10,7 @@ import { buscarMedicamentos } from "@/lib/medicamentos/catalogo";
 import { PrescripcionInputSchema } from "@/lib/prescripciones/validations";
 import { buildProfesionalSnapshot } from "@/lib/prescripciones/snapshot";
 import type { ActionResult } from "@/lib/modules/guards";
+import { log } from "@/lib/logger";
 import type { Rol } from "@/lib/modules/registry";
 import type { Prescripcion, MedicamentoPrescrito, ModoFirma, TipoPrescripcion } from "@/types/prescripcion";
 import type { MedicamentoCatalogo } from "@/types/medicamento";
@@ -212,7 +213,7 @@ export async function createAndSignPrescripcion(input: {
     .single();
 
   if (insertError || !prescripcion) {
-    console.error("[FCE] Error creando prescripción:", insertError);
+    log("error", { action: "crear_prescripcion", id_clinica: idClinica, id_paciente: input.patientId, error: insertError });
     return { success: false, error: "No se pudo crear la prescripción" };
   }
 

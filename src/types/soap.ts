@@ -10,6 +10,7 @@ export interface SoapNote {
   id: string;
   id_encuentro: string | null;
   id_paciente: string;
+  id_clinica: string;
   subjetivo: string;
   objetivo: string;
   analisis_cif: CifAssessment;

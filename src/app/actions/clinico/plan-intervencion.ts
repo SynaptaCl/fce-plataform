@@ -8,6 +8,7 @@ import { assertModuleEnabled, assertPuedeFirmar } from "@/lib/modules/guards";
 import { getProfesionalActivo } from "@/lib/fce/profesional";
 import type { ActionResult } from "@/lib/modules/guards";
 import type { Rol } from "@/lib/modules/registry";
+import { log } from "@/lib/logger";
 import type {
   PlanIntervencion,
   PlanObjetivo,
@@ -183,7 +184,7 @@ export async function crearPlanIntervencion(params: {
     .single();
 
   if (insertError || !plan) {
-    console.error("[FCE] Error creando plan de intervención:", insertError);
+    log("error", { action: "crear_plan_intervencion", id_clinica: idClinica, id_paciente: params.patientId, error: insertError });
     return { success: false, error: "No se pudo crear el plan de intervención." };
   }
 
@@ -384,7 +385,7 @@ export async function upsertObjetivo(
       .single();
 
     if (insertError || !inserted) {
-      console.error("[FCE] Error creando objetivo:", insertError);
+      log("error", { action: "crear_objetivo_plan", id_clinica: idClinica, error: insertError });
       return { success: false, error: "No se pudo crear el objetivo." };
     }
 
@@ -509,7 +510,7 @@ export async function registrarProgreso(params: {
     .single();
 
   if (insertError || !progreso) {
-    console.error("[FCE] Error registrando progreso:", insertError);
+    log("error", { action: "registrar_progreso_plan", id_clinica: idClinica, error: insertError });
     return { success: false, error: "No se pudo registrar el progreso." };
   }
 

@@ -27,15 +27,6 @@ interface DashboardShellProps {
  * Derives the breadcrumb ReactNode from the current pathname.
  */
 function getBreadcrumb(pathname: string, patientName?: string): React.ReactNode {
-  if (pathname === "/dashboard/configuracion/estado") {
-    return (
-      <>
-        <span style={{ color: "var(--color-ink-3, #94A3B8)", fontWeight: 400 }}>Configuración</span>
-        <span style={{ color: "var(--color-ink-3, #94A3B8)" }}>›</span>
-        <span>Estado de la clínica</span>
-      </>
-    );
-  }
   if (pathname.startsWith("/dashboard/configuracion")) {
     return "Configuración";
   }

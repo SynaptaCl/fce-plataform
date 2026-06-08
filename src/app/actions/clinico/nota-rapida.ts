@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getProfesionalActivo } from "@/lib/fce/profesional";
 import { getIdClinica } from "@/app/actions/patients";
 import type { ActionResult } from "@/app/actions/patients";
+import { log } from "@/lib/logger";
 
 // ── Validation ────────────────────────────────────────────────────────────────
 
@@ -112,7 +113,7 @@ export async function createQuickNote(
 
   if (errNota || !nota) {
     // El encuentro quedó creado pero la nota falló — inocuo (no aparece en Timeline)
-    console.error("[FCE] createQuickNote: encuentro creado pero fallo en nota:", errNota?.message);
+    log("error", { action: "create_quick_note", id_clinica: idClinica, id_paciente: patientId, id_encuentro: encuentroId, error: errNota });
     return { success: false, error: errNota?.message ?? "Error al guardar la nota clínica." };
   }
 
