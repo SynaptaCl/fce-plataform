@@ -26,7 +26,9 @@ export type ModuleId =
   | "M7_prescripciones"
   | "M8_examenes"
   | "M9_egresos"
-  | "M10_plan_intervencion";
+  | "M10_plan_intervencion"
+  | "M11_presupuestos"
+  | "M12_informes";
 
 // ============================================================================
 // IDs de especialidades (coinciden con especialidades_catalogo.codigo)
@@ -257,6 +259,32 @@ export const MODULE_REGISTRY: Record<ModuleId, ModuleDefinition> = {
     tablasSupabase: ["fce_planes_intervencion", "fce_plan_objetivos", "fce_plan_progreso", "plantillas_dominios"],
     rutasApp: [], // Se poblará en fases posteriores del sprint N1
     componentes: ["PlanIntervencionLauncher", "PlanIntervencionPanel", "ObjetivoEditor", "ProgresoRegistro"],
+    requiereEspecialidad: false,
+    estado: "beta",
+  },
+
+  M11_presupuestos: {
+    id: "M11_presupuestos",
+    label: "Presupuestos",
+    descripcion: "Presupuestos clínicos con items y firma. Compartido entre todas las especialidades.",
+    obligatorio: false,
+    dependeDe: ["M1_identificacion"],
+    tablasSupabase: ["fce_presupuestos", "fce_presupuesto_items"],
+    rutasApp: ["/dashboard/pacientes/[id]/exportar-pdf"],
+    componentes: ["PresupuestoForm", "PresupuestoList", "PresupuestoPdfView"],
+    requiereEspecialidad: false,
+    estado: "beta",
+  },
+
+  M12_informes: {
+    id: "M12_informes",
+    label: "Informes Clínicos",
+    descripcion: "Informes para isapre, colegio, laboral, judicial y otros. Documento inmutable post-firma.",
+    obligatorio: false,
+    dependeDe: ["M1_identificacion"],
+    tablasSupabase: ["fce_informes"],
+    rutasApp: ["/dashboard/pacientes/[id]/exportar-pdf"],
+    componentes: ["InformeForm", "InformeList", "InformePdfView"],
     requiereEspecialidad: false,
     estado: "beta",
   },

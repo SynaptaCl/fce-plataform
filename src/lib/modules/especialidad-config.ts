@@ -47,6 +47,8 @@ export interface EspecialidadConfig {
   tieneCopilotoIA: boolean;
   tieneResumenIA: boolean;
   tieneCalculoIMC?: boolean;  // Si true, el form calcula IMC desde peso_kg/talla_cm en sección "contenido"
+  tienePresupuesto?: boolean;  // Si true, tab Presupuestos visible en hub docs
+  tieneInformes?: boolean;     // Si true, tab Informes visible en hub docs
   secciones: SeccionNota[];
   accionesRapidas: AccionRapida[];
 }
@@ -60,6 +62,8 @@ export const ESPECIALIDAD_CONFIG: Record<string, EspecialidadConfig> = {
     tieneEscalaFuncional: true,
     tieneCopilotoIA: false,
     tieneResumenIA: true,
+    tienePresupuesto: true,
+    tieneInformes: true,
     secciones: [],
     accionesRapidas: [
       { id: "plan", label: "Plan de intervención", modulo: "M10", icon: "ClipboardList" },
@@ -73,6 +77,8 @@ export const ESPECIALIDAD_CONFIG: Record<string, EspecialidadConfig> = {
     tieneEscalaFuncional: true,
     tieneCopilotoIA: false,
     tieneResumenIA: true,
+    tienePresupuesto: true,
+    tieneInformes: true,
     secciones: [],
     accionesRapidas: [
       { id: "plan", label: "Plan de intervención", modulo: "M10", icon: "ClipboardList" },
@@ -86,6 +92,8 @@ export const ESPECIALIDAD_CONFIG: Record<string, EspecialidadConfig> = {
     tieneEscalaFuncional: false,
     tieneCopilotoIA: false,
     tieneResumenIA: false,
+    tienePresupuesto: true,
+    tieneInformes: true,
     secciones: [],
     accionesRapidas: [],
   },
@@ -97,6 +105,8 @@ export const ESPECIALIDAD_CONFIG: Record<string, EspecialidadConfig> = {
     tieneEscalaFuncional: true,
     tieneCopilotoIA: false,
     tieneResumenIA: true,
+    tienePresupuesto: true,
+    tieneInformes: true,
     secciones: [],
     accionesRapidas: [
       { id: "plan", label: "Plan de intervención", modulo: "M10", icon: "ClipboardList" },
@@ -110,6 +120,8 @@ export const ESPECIALIDAD_CONFIG: Record<string, EspecialidadConfig> = {
     tieneEscalaFuncional: false,
     tieneCopilotoIA: false,
     tieneResumenIA: false,
+    tienePresupuesto: true,
+    tieneInformes: true,
     secciones: [],
     accionesRapidas: [],
   },
@@ -121,6 +133,8 @@ export const ESPECIALIDAD_CONFIG: Record<string, EspecialidadConfig> = {
     tieneEscalaFuncional: false,
     tieneCopilotoIA: true,
     tieneResumenIA: true,
+    tienePresupuesto: true,
+    tieneInformes: true,
     secciones: [
       {
         id: "motivo", label: "Motivo de consulta",
@@ -168,6 +182,8 @@ export const ESPECIALIDAD_CONFIG: Record<string, EspecialidadConfig> = {
     tieneEscalaFuncional: false,
     tieneCopilotoIA: true,
     tieneResumenIA: false,
+    tienePresupuesto: true,
+    tieneInformes: true,
     secciones: [
       {
         id: "motivo", label: "Motivo",
@@ -202,6 +218,8 @@ export const ESPECIALIDAD_CONFIG: Record<string, EspecialidadConfig> = {
     tieneEscalaFuncional: false,
     tieneCopilotoIA: true,
     tieneResumenIA: true,
+    tienePresupuesto: true,
+    tieneInformes: true,
     secciones: [
       {
         id: "motivo", label: "Motivo de consulta",
@@ -246,6 +264,8 @@ export const ESPECIALIDAD_CONFIG: Record<string, EspecialidadConfig> = {
     tieneCopilotoIA: true,
     tieneResumenIA: false,
     tieneCalculoIMC: true,
+    tienePresupuesto: true,
+    tieneInformes: true,
     secciones: [
       {
         id: "motivo", label: "Motivo de consulta",
@@ -290,6 +310,8 @@ export const ESPECIALIDAD_CONFIG: Record<string, EspecialidadConfig> = {
     tieneEscalaFuncional: false,
     tieneCopilotoIA: false,
     tieneResumenIA: false,
+    tienePresupuesto: true,
+    tieneInformes: true,
     secciones: [
       { id: "motivo", label: "Motivo de consulta", campos: [], colapsable: false, defaultAbierta: true },
       { id: "contenido", label: "Evolución dental", campos: [], colapsable: false, defaultAbierta: true },

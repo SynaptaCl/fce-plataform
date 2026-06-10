@@ -97,3 +97,11 @@ export function assertPuedeConfigurar(rol: Rol | null): ActionResult<true> {
 export function requireModuloEgresos(config: ClinicaConfig | null): void {
   requireModule(config, "M9_egresos");
 }
+
+export function requirePresupuestos(config: ClinicaConfig | null): ActionResult<true> {
+  return assertModuleEnabled(config, "M11_presupuestos");
+}
+
+export function requireInformes(config: ClinicaConfig | null): ActionResult<true> {
+  return assertModuleEnabled(config, "M12_informes");
+}
