@@ -1,13 +1,13 @@
 # CLAUDE.md — FCE Platform (fce-plataform)
 
-> Última actualización: 2026-06-06 (hardening multi-tenant — defense-in-depth en Server Actions)
+> Última actualización: 2026-06-10 (M11 Presupuestos + M12 Informes Clínicos)
 > Este documento es la fuente de verdad para Claude Code. Leerlo antes de cualquier cambio.
 
 ---
 
 ## 1. QUÉ ES ESTE PROYECTO
 
-**fce-plataform** — Ficha Clínica Electrónica multi-tenant para clínicas chilenas. Next.js App Router + Supabase. Cubre módulos FCE (M1–M10). Agenda, pagos, chatbot viven en repo `synapta`.
+**fce-plataform** — Ficha Clínica Electrónica multi-tenant para clínicas chilenas. Next.js App Router + Supabase. Cubre módulos FCE (M1–M12). Agenda, pagos, chatbot viven en repo `synapta`.
 
 **2 repos comparten DB** Supabase `vigyhfpwyxihrjiygfsa`:
 
@@ -139,6 +139,8 @@ El workspace dental vive en `/encuentro/[encuentroId]/dental/page.tsx` y usa `De
 | M8_examenes | `fce_ordenes_examen`, `examenes_catalogo` | beta | no |
 | M9_egresos | `fce_egresos` | beta | no |
 | M10_plan_intervencion | `fce_planes_intervencion`, `fce_plan_objetivos`, `fce_plan_progreso`, `plantillas_dominios` | beta | no |
+| M11_presupuestos | `fce_presupuestos`, `fce_presupuesto_items` | beta | no |
+| M12_informes | `fce_informes` | beta | no |
 
 ---
 
@@ -146,7 +148,9 @@ El workspace dental vive en `/encuentro/[encuentroId]/dental/page.tsx` y usa `De
 
 Para columnas exactas consultar `docs/schema-real.md` o MCP Supabase.
 
-**Con `id_clinica`**: pacientes, fce_anamnesis, fce_encuentros, fce_consentimientos, clinicas_fce_config, instrumentos_aplicados, fce_notas_clinicas, fce_prescripciones, fce_ordenes_examen, fce_egresos, fce_planes_intervencion, fce_plan_objetivos, fce_plan_progreso, fce_notas_soap, fce_evaluaciones
+**Con `id_clinica`**: pacientes, fce_anamnesis, fce_encuentros, fce_consentimientos, clinicas_fce_config, instrumentos_aplicados, fce_notas_clinicas, fce_prescripciones, fce_ordenes_examen, fce_egresos, fce_planes_intervencion, fce_plan_objetivos, fce_plan_progreso, fce_notas_soap, fce_evaluaciones, fce_presupuestos, fce_presupuesto_items, fce_informes
+
+**`fce_informes`** tiene trigger `trg_block_update_signed_informe` — inmutabilidad post-firma (igual que SOAP, consentimientos, prescripciones). `fce_presupuestos` NO tiene trigger de inmutabilidad — el firmado bloquea via application layer, no DB trigger.
 
 **Catálogos globales**: especialidades_catalogo, instrumentos_valoracion, medicamentos_catalogo, examenes_catalogo, plantillas_dominios
 
@@ -318,6 +322,9 @@ src/app/actions/
   ├── encuentros.ts       → createEncuentro + getEncuentroContext (P1: resuelve nombre servicio)
   ├── egresos.ts, timeline.ts, exportar-pdf.ts, resumen-ia.ts
   ├── prescripciones.ts, ordenes-examen.ts
+  ├── presupuestos.ts     → getPresupuestos, crearPresupuesto, actualizarPresupuesto, firmarPresupuesto, eliminarPresupuesto
+  ├── informes.ts         → getInformes, crearInforme, actualizarInforme, firmarInforme, eliminarInforme
+  ├── informes-ia.ts      → estructurarInforme (Copiloto IA para informes clínicos)
   ├── copiloto-nota.ts
   ├── profesionales.ts    → crearProfesional + actualizarProfesional (P1: valida especialidad vs DB)
   ├── perfil-selector.ts  → setPerfilActivo (P1: setea cookie id_profesional_activo)
@@ -341,7 +348,9 @@ src/components/
   │   │               InstrumentoExpandedCard, ConsentimientoExpandedCard,
   │   │               SignosVitalesExpandedCard, PlanIntervencionExpandedCard, _shared.tsx
   │   ├── ResumenIA/ → ResumenIAButton, ResumenIAModal, ResumenIAReport (index.ts)
-  │   └── CopilotoNota/ → CopilotoNotaButton, CopilotoNotaPanel (index.ts)
+  │   ├── CopilotoNota/ → CopilotoNotaButton, CopilotoNotaPanel (index.ts)
+  │   ├── PresupuestoForm.tsx, PresupuestoList.tsx, PresupuestoPdfView.tsx (M11)
+  │   └── InformeForm.tsx, InformeList.tsx, InformePdfView.tsx (M12)
   ├── rehab/    → SoapForm, CifMapper, CifSearch, KinesiologiaEval, FonoaudiologiaEval,
   │               MasoterapiaEval, TerapiaOcupacionalEval (P2: 6 sub-áreas TO),
   │               GenericEval (index.ts)
@@ -495,6 +504,7 @@ Actualmente **ninguna clínica tiene fce-plataform en producción** — el repo 
 | O0 | Limpieza técnica pre-onboarding: package.json (8 scripts fantasma, 5 registrados), PatientActionNav eliminado, migrations M9/M10 reconstruidas, deuda técnica actualizada |
 | O1 | Self-service onboarding: CLI templates (F2), validador pre go-live (F3), panel estado salud (F4), self-service director — profesionales + servicios (F5), E2E con Cenupsi como banco de pruebas técnico (F6) |
 | O1-plantillas | **synapta** `lib/servicios-plantillas.ts`: plantilla `multidisciplinaria_rehabilitacion` — 9 categorías, 39 servicios. `getPlantillasDisponibles()` retorna 2 plantillas (estética + rehabilitación). |
+| M11-M12 | Presupuestos (M11) e Informes Clínicos (M12): tipos, server actions, UI completa (Form/List/PdfView), hub de documentos con tabs, Copiloto IA para informes |
 
 ### Pendientes
 
