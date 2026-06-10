@@ -97,22 +97,30 @@ function mapDestinationEntity(entity: RawDestinationEntity): ICDSearchResult {
  *
  * Endpoint: GET /icd/release/11/2025-01/mms/search
  * La versión (2025-01) es obligatoria en el path — sin ella la API retorna 404.
+ * chaptersFilter: capítulos WHO separados por ";". Ej: "06" para salud mental.
  */
 export async function buscarDiagnostico(
   query: string,
   lang = 'es',
+  chaptersFilter?: string,
 ): Promise<ICDSearchResult[]> {
   if (query.trim() === '' || query.length < 2) {
     return [];
   }
 
-  const data = await icdFetch('/icd/release/11/2025-01/mms/search', {
+  const params: Record<string, string> = {
     q: query,
     displayLanguage: lang,
     flatResults: 'true',
     includeKeywordResult: 'true',
     useFlexibleSearch: 'false',
-  });
+  };
+
+  if (chaptersFilter) {
+    params.chaptersFilter = chaptersFilter;
+  }
+
+  const data = await icdFetch('/icd/release/11/2025-01/mms/search', params);
 
   // Validación defensiva de la respuesta
   if (data === null || typeof data !== 'object') {
@@ -168,7 +176,21 @@ export async function buscarDiagnostico(
     return [];
   }
 
-  return entities.slice(0, MAX_RESULTS).map(mapDestinationEntity);
+  const mapped = entities.slice(0, MAX_RESULTS).map(mapDestinationEntity);
+
+  // Client-side fallback: filter by chapter prefix if API param was ignored.
+  // ICD-11 chapter "06" → codes 6A00-6E8Z (strip leading zero: "06" → "6").
+  if (chaptersFilter) {
+    const prefixes = chaptersFilter.split(';').map((c) => c.trim().replace(/^0+/, ''));
+    const filtered = mapped.filter(
+      (r) => r.code && prefixes.some((p) => r.code!.startsWith(p))
+    );
+    if (filtered.length > 0) {
+      return filtered;
+    }
+  }
+
+  return mapped;
 }
 
 /**

@@ -111,6 +111,9 @@ export function NotaClinicaForm({
     ? espConfig.secciones.filter((s) => s.campos.length > 0)
     : [];
 
+  const diagnosticoConfig = espConfig?.diagnostico;
+  const mostrarICD = diagnosticoConfig?.tipo === 'icd11_mms';
+
   const [contenidoEstructurado, setContenidoEstructurado] = useState<ContenidoEstructurado>(
     () => {
       const existing = notaExistente?.secciones_estructuradas as ContenidoEstructurado | null | undefined;
@@ -189,9 +192,11 @@ export function NotaClinicaForm({
 
     const result = await upsertNotaClinica(encuentroId, patientId, {
       ...data,
-      cie10_codigos: cie10,
-      icd_codigos: icdCodigos,
-      icd_version: 'ICD-11 2025-01',
+      ...(mostrarICD ? {
+        cie10_codigos: cie10,
+        icd_codigos: icdCodigos,
+        icd_version: 'ICD-11 2025-01',
+      } : {}),
       secciones_estructuradas: {
         ...(m10Activo ? seccionesEstructuradas : {}),
         ...(seccionesEsp.length > 0 ? contenidoEstructurado : {}),
@@ -454,76 +459,115 @@ export function NotaClinicaForm({
           </div>
         )}
 
-        {/* Diagnóstico ICD-11 */}
-        <div className="space-y-1.5">
-          <label className="text-sm font-medium text-ink-2">
-            Diagnóstico ICD-11 <span className="text-ink-3 font-normal">(opcional)</span>
-          </label>
-          <DiagnosticoSearch
-            value={icdCodigos}
-            onChange={setIcdCodigos}
-            readOnly={readOnly}
-          />
-          {/* Fallback: diagnóstico de texto libre (notas antiguas sin código ICD) */}
-          {icdCodigos.length === 0 && notaExistente?.diagnostico && (
-            <div className="flex items-center gap-2 mt-1">
-              <span
-                className="inline-flex items-center px-2.5 py-1 rounded-full text-xs border border-kp-border bg-surface-0 text-ink-2"
-              >
-                diagnóstico sin código ICD: {notaExistente.diagnostico}
-              </span>
-            </div>
-          )}
-          {/* Campo diagnóstico texto (hidden, backwards compat) */}
-          <input type="hidden" {...register("diagnostico")} />
-        </div>
+        {/* Diagnóstico ICD-11 — solo especialidades con diagnostico.tipo === 'icd11_mms' */}
+        {mostrarICD && (
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-ink-2">
+              {diagnosticoConfig!.label} <span className="text-ink-3 font-normal">(opcional)</span>
+            </label>
+            <DiagnosticoSearch
+              value={icdCodigos}
+              onChange={setIcdCodigos}
+              readOnly={readOnly}
+              chaptersFilter={diagnosticoConfig?.chaptersFilter}
+              placeholder={diagnosticoConfig?.chaptersFilter
+                ? 'Busca diagnóstico de salud mental (ej: depresión, ansiedad, TDAH)'
+                : undefined
+              }
+            />
+            {/* Fallback: diagnóstico de texto libre (notas antiguas sin código ICD) */}
+            {icdCodigos.length === 0 && notaExistente?.diagnostico && (
+              <div className="flex items-center gap-2 mt-1">
+                <span
+                  className="inline-flex items-center px-2.5 py-1 rounded-full text-xs border border-kp-border bg-surface-0 text-ink-2"
+                >
+                  diagnóstico sin código ICD: {notaExistente.diagnostico}
+                </span>
+              </div>
+            )}
+            {/* Campo diagnóstico texto (hidden, backwards compat) */}
+            <input type="hidden" {...register("diagnostico")} />
+          </div>
+        )}
 
-        {/* CIE-10 */}
-        <div className="space-y-1.5">
-          <label className="text-sm font-medium text-ink-2">
-            Códigos CIE-10 <span className="text-ink-3 font-normal">(separados por coma, opcional)</span>
-          </label>
-          <Input
-            value={cie10Input}
-            onChange={(e) => setCie10Input(e.target.value)}
-            disabled={readOnly}
-            placeholder="J06.9, Z00.0…"
-            className={cn(readOnly && "opacity-70 cursor-not-allowed")}
-          />
-          {/* Mostrar tags */}
-          {cie10Input.trim() && (
-            <div className="flex flex-wrap gap-1.5 mt-1">
-              {cie10Input
-                .split(",")
-                .map((s) => s.trim().toUpperCase())
-                .filter(Boolean)
-                .map((code) => (
-                  <span
-                    key={code}
-                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-surface-0 border border-kp-border text-xs font-mono text-ink-2"
-                  >
+        {/* CIE-10 — solo cuando el bloque ICD está habilitado y mostrarCIE10 es true */}
+        {mostrarICD && diagnosticoConfig?.mostrarCIE10 && (
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-ink-2">
+              Códigos CIE-10 <span className="text-ink-3 font-normal">(separados por coma, opcional)</span>
+            </label>
+            <Input
+              value={cie10Input}
+              onChange={(e) => setCie10Input(e.target.value)}
+              disabled={readOnly}
+              placeholder="J06.9, Z00.0…"
+              className={cn(readOnly && "opacity-70 cursor-not-allowed")}
+            />
+            {/* Mostrar tags */}
+            {cie10Input.trim() && (
+              <div className="flex flex-wrap gap-1.5 mt-1">
+                {cie10Input
+                  .split(",")
+                  .map((s) => s.trim().toUpperCase())
+                  .filter(Boolean)
+                  .map((code) => (
+                    <span
+                      key={code}
+                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-surface-0 border border-kp-border text-xs font-mono text-ink-2"
+                    >
+                      {code}
+                      {!readOnly && (
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setCie10Input(
+                              cie10Input
+                                .split(",")
+                                .filter((s) => s.trim().toUpperCase() !== code)
+                                .join(", ")
+                            )
+                          }
+                          className="text-ink-3 hover:text-red-500"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      )}
+                    </span>
+                  ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Backwards-compat: nota firmada de especialidad sin ICD que ya tenía datos de diagnóstico */}
+        {!mostrarICD && readOnly && !!(notaExistente?.icd_codigos?.length || notaExistente?.diagnostico || (notaExistente?.cie10_codigos ?? []).length > 0) && (
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-ink-2">
+              Diagnóstico registrado <span className="text-ink-3 font-normal">(histórico)</span>
+            </label>
+            {(notaExistente?.icd_codigos ?? []).length > 0 && (
+              <DiagnosticoSearch
+                value={notaExistente!.icd_codigos!}
+                onChange={() => {}}
+                readOnly={true}
+              />
+            )}
+            {notaExistente?.diagnostico && (notaExistente?.icd_codigos ?? []).length === 0 && (
+              <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs border border-kp-border bg-surface-0 text-ink-2">
+                {notaExistente.diagnostico}
+              </span>
+            )}
+            {(notaExistente?.cie10_codigos ?? []).length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mt-1">
+                {notaExistente!.cie10_codigos!.map((code: string) => (
+                  <span key={code} className="inline-flex items-center px-2 py-0.5 rounded-full bg-surface-0 border border-kp-border text-xs font-mono text-ink-2">
                     {code}
-                    {!readOnly && (
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setCie10Input(
-                            cie10Input
-                              .split(",")
-                              .filter((s) => s.trim().toUpperCase() !== code)
-                              .join(", ")
-                          )
-                        }
-                        className="text-ink-3 hover:text-red-500"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                    )}
                   </span>
                 ))}
-            </div>
-          )}
-        </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Plan */}
         <div className="space-y-1.5">

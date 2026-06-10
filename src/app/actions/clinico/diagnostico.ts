@@ -6,9 +6,12 @@ import { log } from "@/lib/logger";
 import { buscarDiagnostico } from "@/lib/icd/search";
 import { obtenerEntidad } from "@/lib/icd/entity";
 
-export async function searchDiagnosticos(query: string): Promise<ActionResult<ICDSearchResult[]>> {
+export async function searchDiagnosticos(
+  query: string,
+  chaptersFilter?: string,
+): Promise<ActionResult<ICDSearchResult[]>> {
   try {
-    const results = await buscarDiagnostico(query);
+    const results = await buscarDiagnostico(query, 'es', chaptersFilter);
     return { success: true, data: results };
   } catch (error) {
     log("error", { action: "icd_search_diagnosticos", error });

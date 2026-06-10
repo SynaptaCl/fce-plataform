@@ -12,6 +12,7 @@ interface DiagnosticoSearchProps {
   onChange: (codes: ICDCodeSnap[]) => void;
   readOnly?: boolean;
   placeholder?: string;
+  chaptersFilter?: string;
 }
 
 const ICD_VERSION = '11/2025-01';
@@ -39,6 +40,7 @@ export function DiagnosticoSearch({
   onChange,
   readOnly = false,
   placeholder = 'Busca por nombre o código ICD-11 (ej: diabetes, J45)',
+  chaptersFilter,
 }: DiagnosticoSearchProps) {
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<ICDSearchResult[]>([]);
@@ -63,7 +65,7 @@ export function DiagnosticoSearch({
     debounceRef.current = setTimeout(async () => {
       setIsLoading(true);
       try {
-        const res = await searchDiagnosticos(query.trim());
+        const res = await searchDiagnosticos(query.trim(), chaptersFilter);
         if (res.success && res.data) {
           setResults(res.data.slice(0, 10));
           setDropdownOpen(true);
@@ -85,7 +87,7 @@ export function DiagnosticoSearch({
         clearTimeout(debounceRef.current);
       }
     };
-  }, [query]);
+  }, [query, chaptersFilter]);
 
   // Close dropdown on click outside
   useEffect(() => {

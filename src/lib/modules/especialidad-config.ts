@@ -30,6 +30,13 @@ export interface SeccionNota {
   defaultAbierta: boolean;
 }
 
+export interface DiagnosticoConfig {
+  tipo: 'icd11_mms' | 'ninguno';
+  label: string;
+  mostrarCIE10?: boolean;
+  chaptersFilter?: string;  // Capítulos WHO separados por ";". Ej: "06" para salud mental
+}
+
 export interface AccionRapida {
   id: string;
   label: string;
@@ -49,6 +56,7 @@ export interface EspecialidadConfig {
   tieneCalculoIMC?: boolean;  // Si true, el form calcula IMC desde peso_kg/talla_cm en sección "contenido"
   tienePresupuesto?: boolean;  // Si true, tab Presupuestos visible en hub docs
   tieneInformes?: boolean;     // Si true, tab Informes visible en hub docs
+  diagnostico?: DiagnosticoConfig;
   secciones: SeccionNota[];
   accionesRapidas: AccionRapida[];
 }
@@ -135,6 +143,7 @@ export const ESPECIALIDAD_CONFIG: Record<string, EspecialidadConfig> = {
     tieneResumenIA: true,
     tienePresupuesto: true,
     tieneInformes: true,
+    diagnostico: { tipo: 'icd11_mms', label: 'Diagnóstico (ICD-11)', mostrarCIE10: true },
     secciones: [
       {
         id: "motivo", label: "Motivo de consulta",
@@ -152,12 +161,6 @@ export const ESPECIALIDAD_CONFIG: Record<string, EspecialidadConfig> = {
           { id: "anamnesis_proxima", label: "Anamnesis próxima", tipo: "texto_largo", obligatorio: false, placeholder: "Historia de la enfermedad actual, inicio, duración, factores agravantes/aliviantes…" },
           { id: "examen_fisico", label: "Examen físico", tipo: "texto_largo", obligatorio: false, placeholder: "Hallazgos del examen físico segmentario…" },
         ],
-      },
-      {
-        id: "diagnostico", label: "Diagnóstico (ICD-11)",
-        descripcion: "Diagnóstico estructurado con selector ICD-11",
-        colapsable: true, defaultAbierta: false,
-        campos: [],  // El selector ICD-11 se maneja aparte en el form
       },
       {
         id: "plan", label: "Plan",
@@ -220,6 +223,12 @@ export const ESPECIALIDAD_CONFIG: Record<string, EspecialidadConfig> = {
     tieneResumenIA: true,
     tienePresupuesto: true,
     tieneInformes: true,
+    diagnostico: {
+      tipo: 'icd11_mms',
+      label: 'Diagnóstico psicológico (CIE-11)',
+      mostrarCIE10: false,
+      chaptersFilter: '06',
+    },
     secciones: [
       {
         id: "motivo", label: "Motivo de consulta",
@@ -312,6 +321,7 @@ export const ESPECIALIDAD_CONFIG: Record<string, EspecialidadConfig> = {
     tieneResumenIA: false,
     tienePresupuesto: true,
     tieneInformes: true,
+    diagnostico: { tipo: 'icd11_mms', label: 'Diagnóstico (ICD-11)', mostrarCIE10: true },
     secciones: [
       { id: "motivo", label: "Motivo de consulta", campos: [], colapsable: false, defaultAbierta: true },
       { id: "contenido", label: "Evolución dental", campos: [], colapsable: false, defaultAbierta: true },
