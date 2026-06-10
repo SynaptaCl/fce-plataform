@@ -83,7 +83,7 @@ export function InformeList({ idPaciente, idEncuentro }: Props) {
     setShowForm(true);
   }
 
-  function handleFormSuccess(_i: InformeClinico) {
+  function handleFormSuccess() {
     setShowForm(false);
     setSelectedInforme(undefined);
     loadInformes();

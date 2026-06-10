@@ -78,7 +78,7 @@ export function PresupuestoList({ idPaciente, idEncuentro }: Props) {
     setShowForm(true);
   }
 
-  function handleFormSuccess(p: Presupuesto) {
+  function handleFormSuccess() {
     setShowForm(false);
     setSelectedPresupuesto(undefined);
     // Refresh list
