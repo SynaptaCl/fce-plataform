@@ -137,6 +137,7 @@ export function DentalWorkspace({
                 notaExistente={notaExistente}
                 readOnly={readOnly}
                 idClinica={idClinica}
+                especialidad={especialidad}
               />
             </div>
             <div className="w-full lg:w-80 xl:w-96 lg:pl-6 mt-6 lg:mt-0">

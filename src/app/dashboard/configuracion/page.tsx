@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
-import Link from "next/link";
-import { User, Lock, Building2, Users, Briefcase, ChevronRight } from "lucide-react";
+import { User, Lock, Building2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { ROLES_QUE_CONFIGURAN } from "@/lib/modules/registry";
 import { CambiarClaveForm } from "./CambiarClaveForm";
@@ -96,41 +95,6 @@ export default async function ConfiguracionPage() {
         </Section>
       )}
 
-      {/* ── Administración (solo admin/director) ── */}
-      {isAdmin && (
-        <div style={{ marginTop: 8 }}>
-          <div
-            style={{
-              fontSize: 12,
-              fontWeight: 600,
-              color: "var(--color-ink-3, #94A3B8)",
-              textTransform: "uppercase",
-              letterSpacing: "0.05em",
-              marginBottom: 10,
-            }}
-          >
-            Administración
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-            <ConfigCard
-              href="/dashboard/configuracion/profesionales"
-              icon={<Users size={18} />}
-              title="Profesionales"
-              description="Edita registros, activa o desactiva profesionales"
-            />
-            <ConfigCard
-              href="/dashboard/configuracion/servicios"
-              icon={<Briefcase size={18} />}
-              title="Servicios"
-              description="Asigna profesionales a los servicios de la clínica"
-            />
-          </div>
-        </div>
-      )}
-
-      <style>{`
-        .config-card:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.07); }
-      `}</style>
     </div>
   );
 }
@@ -191,62 +155,3 @@ function InfoRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-function ConfigCard({
-  href,
-  icon,
-  title,
-  description,
-}: {
-  href: string;
-  icon: React.ReactNode;
-  title: string;
-  description: string;
-}) {
-  return (
-    <Link href={href} style={{ textDecoration: "none" }}>
-      <div
-        className="config-card"
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 16,
-          padding: "14px 20px",
-          background: "var(--color-surface-1, #ffffff)",
-          borderRadius: 12,
-          border: "1px solid var(--color-kp-border, #E2E8F0)",
-          cursor: "pointer",
-          transition: "box-shadow 0.15s ease",
-        }}
-      >
-        <div
-          style={{
-            width: 36,
-            height: 36,
-            borderRadius: 8,
-            background: "rgba(0,176,168,0.1)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            flexShrink: 0,
-          }}
-        >
-          <span style={{ color: "var(--color-kp-accent, #00B0A8)" }}>{icon}</span>
-        </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div
-            style={{
-              fontSize: 14,
-              fontWeight: 600,
-              color: "var(--color-ink-1, #1E293B)",
-              marginBottom: 2,
-            }}
-          >
-            {title}
-          </div>
-          <div style={{ fontSize: 12, color: "var(--color-ink-3, #94A3B8)" }}>{description}</div>
-        </div>
-        <ChevronRight size={16} style={{ color: "var(--color-ink-3, #94A3B8)", flexShrink: 0 }} />
-      </div>
-    </Link>
-  );
-}

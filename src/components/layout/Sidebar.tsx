@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useLayoutEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
@@ -118,42 +118,6 @@ function NavItem({ href, icon, label, active, expanded, badge }: NavItemProps) {
   );
 }
 
-// ── SubNavItem ─────────────────────────────────────────────────────────────────
-
-interface SubNavItemProps {
-  href: string;
-  label: string;
-  active: boolean;
-}
-
-function SubNavItem({ href, label, active }: SubNavItemProps) {
-  return (
-    <Link
-      href={href}
-      style={{
-        display: "flex",
-        alignItems: "center",
-        height: 30,
-        paddingLeft: 36,
-        paddingRight: 10,
-        color: active ? "var(--color-kp-accent, #00B0A8)" : "rgba(255,255,255,0.38)",
-        background: active ? "rgba(0,176,168,0.1)" : "transparent",
-        textDecoration: "none",
-        fontSize: 12,
-        fontWeight: active ? 500 : 400,
-        borderRadius: "0 6px 6px 0",
-        transition: "background 0.14s ease, color 0.14s ease",
-        whiteSpace: "nowrap",
-        overflow: "hidden",
-        textOverflow: "ellipsis",
-      }}
-      className="fce-sb-nav"
-    >
-      {label}
-    </Link>
-  );
-}
-
 // ── Sidebar ────────────────────────────────────────────────────────────────────
 
 interface SidebarProps {
@@ -175,10 +139,15 @@ export function Sidebar({
 }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const [{ expanded, mounted }, setSidebarState] = useState(() => {
-    if (typeof window === "undefined") return { expanded: false, mounted: false };
-    return { expanded: localStorage.getItem(STORAGE_KEY) === "true", mounted: true };
-  });
+  const [{ expanded, mounted }, setSidebarState] = useState({ expanded: false, mounted: false });
+
+  useLayoutEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setSidebarState({
+      expanded: localStorage.getItem(STORAGE_KEY) === "true",
+      mounted: true,
+    });
+  }, []);
 
   function toggle() {
     setSidebarState((prev) => {
