@@ -78,3 +78,5 @@ export type {
   PlanIntervencionDetalle,
 } from "./plan-intervencion";
 export type { Dominio, PlantillaDominio } from "./plantilla-dominio";
+export type { Presupuesto, PresupuestoItem, PresupuestoFormData } from "./presupuesto";
+export type { TipoInforme, InformeClinico, InformeFormData } from "./informe";
