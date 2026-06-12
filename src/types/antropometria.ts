@@ -57,7 +57,13 @@ export interface AntropometriaInput {
 
   observaciones?: string;
 
-  // sexo del paciente (para cálculo de pliegues y cintura), no se persiste aquí
+  // sexo del paciente (para cálculo de pliegues, cintura y z-score pediátrico)
   sexoRegistral?: 'M' | 'F';
   edadAnios?: number;
+  edadMeses?: number;   // requerido para z-score pediátrico
+
+  // Gestacional (N2)
+  fur?: string;                  // ISO date "YYYY-MM-DD"
+  semanaGestacional?: number;    // calculada desde FUR o manual
+  imcPregestacional?: number;    // IMC antes del embarazo
 }

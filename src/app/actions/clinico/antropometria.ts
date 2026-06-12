@@ -8,6 +8,8 @@ import { getProfesionalActivo } from "@/lib/fce/profesional";
 import { log } from "@/lib/logger";
 import { calcularIMC, clasificarCircunferenciaCintura } from "@/lib/nutricion/antropometria";
 import { calcularGrasaCorporal, calcularMasaMagra } from "@/lib/nutricion/pliegues";
+import { getBMIDataset, getLMS, calcularZScore, calcularIndicadorPediatrico } from "@/lib/nutricion/zscore";
+import { clasificarGestacional } from "@/lib/nutricion/atalah";
 import type { ActionResult } from "@/lib/modules/guards";
 import type { AntropometriaRecord, AntropometriaInput } from "@/types/antropometria";
 
@@ -30,6 +32,10 @@ const antropometriaSchema = z.object({
   observaciones:   z.string().max(2000).optional(),
   sexoRegistral:   z.enum(["M","F"]).optional(),
   edadAnios:       z.number().min(1).max(120).optional(),
+  edadMeses:       z.number().min(0).max(228).optional(),
+  fur:             z.string().optional(),
+  semanaGestacional: z.number().min(4).max(42).optional(),
+  imcPregestacional: z.number().min(10).max(80).optional(),
 });
 
 // ── Helper: sesión ───────────────────────────────────────────────────────────
@@ -121,12 +127,16 @@ export async function registrarAntropometria(
   const profesional = await getProfesionalActivo(supabase, user.id, idClinica);
   if (!profesional) return { success: false, error: "Profesional no encontrado." };
 
-  const { peso_kg, talla_cm, circ_cintura_cm, pliegues, formula_grasa, sexoRegistral, edadAnios, observaciones, modo } = parsed.data;
+  const {
+    peso_kg, talla_cm, circ_cintura_cm, pliegues, formula_grasa,
+    sexoRegistral, edadAnios, edadMeses, observaciones, modo,
+    fur, semanaGestacional, imcPregestacional,
+  } = parsed.data;
 
   // Cálculos server-side
   const resultIMC = calcularIMC(peso_kg, talla_cm);
   const imc = resultIMC?.imc ?? null;
-  const clasificacion = resultIMC?.clasificacion ?? null;
+  let clasificacion: string | null = resultIMC?.clasificacion ?? null;
 
   let riesgo_cintura: string | null = null;
   if (circ_cintura_cm) {
@@ -149,6 +159,38 @@ export async function registrarAntropometria(
     }
   }
 
+  // ── Z-score pediátrico ───────────────────────────────────────────────────────
+  let zscore_imc: number | null = null;
+  let percentil_imc: number | null = null;
+  if (modo === 'pediatrico' && imc !== null && sexoRegistral && edadMeses !== undefined) {
+    const indicador = calcularIndicadorPediatrico(
+      imc,
+      edadMeses,
+      getBMIDataset(sexoRegistral, edadMeses),
+    );
+    if (indicador) {
+      zscore_imc   = indicador.z;
+      percentil_imc = indicador.percentil;
+      clasificacion = indicador.clasificacion;
+    }
+  }
+
+  // ── Atalah gestacional ───────────────────────────────────────────────────────
+  let clasificacion_gestacional: string | null = null;
+  let semana_final: number | null = semanaGestacional ?? null;
+  let rango_min: number | null = null;
+  let rango_max: number | null = null;
+  if (modo === 'gestacional' && imc !== null && imcPregestacional != null) {
+    const semana = semana_final ?? null;
+    if (semana !== null) {
+      const res = clasificarGestacional(imcPregestacional, imc, semana);
+      clasificacion_gestacional = res.descripcion;
+      clasificacion = res.descripcion;
+      rango_min = res.rangoGananciaTotal.min;
+      rango_max = res.rangoGananciaTotal.max;
+    }
+  }
+
   const payload = {
     id_clinica:      idClinica,
     id_paciente:     input.idPaciente,
@@ -165,9 +207,18 @@ export async function registrarAntropometria(
     formula_grasa:    formula_grasa ?? null,
     perc_grasa,
     masa_magra_kg,
+    zscore_imc,
+    percentil_imc,
+    semana_gestacional:     semana_final,
+    imc_pregestacional:     imcPregestacional ?? null,
+    rango_ganancia_min:     rango_min,
+    rango_ganancia_max:     rango_max,
     observaciones:    observaciones ?? null,
     registrado_por:   profesional.id,
   };
+
+  // Suprimir advertencia de variable no usada (solo para clasificacion_gestacional que ya va en `clasificacion`)
+  void clasificacion_gestacional;
 
   const { data, error } = await supabase
     .from("fce_antropometria")

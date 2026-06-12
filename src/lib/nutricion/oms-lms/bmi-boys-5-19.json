@@ -1,0 +1,24 @@
+{
+  "_source": "WHO Reference 2007 — IMC/edad niños 5-19 años (61-228 meses)",
+  "_url": "https://www.who.int/tools/growth-reference-data-for-5to19-years",
+  "_validation_status": "PENDIENTE_CLINICA",
+  "_warning": "Valores representativos en hitos anuales con interpolación lineal. Requiere verificación por nutricionista contra tablas mensuales oficiales WHO antes de uso clínico.",
+  "_interpolation": "linear between milestones",
+  "data": [
+    {"age_months": 61,  "L": -1.0219, "M": 15.3437, "S": 0.07810},
+    {"age_months": 72,  "L": -1.0864, "M": 15.2612, "S": 0.07858},
+    {"age_months": 84,  "L": -1.1467, "M": 15.3033, "S": 0.08118},
+    {"age_months": 96,  "L": -1.1987, "M": 15.4472, "S": 0.08454},
+    {"age_months": 108, "L": -1.2416, "M": 15.6948, "S": 0.08783},
+    {"age_months": 120, "L": -1.2728, "M": 16.0571, "S": 0.09099},
+    {"age_months": 132, "L": -1.2915, "M": 16.5456, "S": 0.09397},
+    {"age_months": 144, "L": -1.2984, "M": 17.1685, "S": 0.09663},
+    {"age_months": 156, "L": -1.2929, "M": 17.9170, "S": 0.09894},
+    {"age_months": 168, "L": -1.2754, "M": 18.7042, "S": 0.10093},
+    {"age_months": 180, "L": -1.2459, "M": 19.4861, "S": 0.10268},
+    {"age_months": 192, "L": -1.2054, "M": 20.2088, "S": 0.10428},
+    {"age_months": 204, "L": -1.1557, "M": 20.8451, "S": 0.10566},
+    {"age_months": 216, "L": -1.0979, "M": 21.3735, "S": 0.10699},
+    {"age_months": 228, "L": -1.0341, "M": 21.8132, "S": 0.10834}
+  ]
+}

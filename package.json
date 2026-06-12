@@ -16,7 +16,8 @@
     "test:sprint-o1-f2": "tsx scripts/test-sprint-o1-f2.ts",
     "onboard:clinica": "tsx scripts/onboard-clinica.ts",
     "test:sprint-o1-f5": "tsx scripts/test-sprint-o1-f5.ts",
-    "test:sprint-n1-nutricion": "tsx scripts/test-sprint-n1-nutricion.ts"
+    "test:sprint-n1-nutricion": "tsx scripts/test-sprint-n1-nutricion.ts",
+    "test:sprint-n2-nutricion": "tsx scripts/test-sprint-n2-nutricion.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.92.0",

@@ -1,0 +1,20 @@
+{
+  "_source": "WHO Child Growth Standards 2006 — IMC/edad niñas 0-60 meses",
+  "_url": "https://www.who.int/tools/child-growth-standards/standards/body-mass-index-for-age",
+  "_validation_status": "PENDIENTE_CLINICA",
+  "_warning": "Valores representativos en hitos anuales con interpolación lineal. Requiere verificación por nutricionista contra tablas mensuales oficiales WHO antes de uso clínico.",
+  "_interpolation": "linear between milestones",
+  "data": [
+    {"age_months": 0,  "L":  0.0816, "M": 13.3363, "S": 0.09092},
+    {"age_months": 6,  "L": -0.2067, "M": 15.9919, "S": 0.08064},
+    {"age_months": 12, "L": -0.2268, "M": 16.9627, "S": 0.08640},
+    {"age_months": 18, "L": -0.3530, "M": 16.6957, "S": 0.08371},
+    {"age_months": 24, "L": -0.4949, "M": 16.2468, "S": 0.08023},
+    {"age_months": 30, "L": -0.5481, "M": 15.9739, "S": 0.07996},
+    {"age_months": 36, "L": -0.5952, "M": 15.7386, "S": 0.07963},
+    {"age_months": 42, "L": -0.6555, "M": 15.5641, "S": 0.07921},
+    {"age_months": 48, "L": -0.7083, "M": 15.4614, "S": 0.07878},
+    {"age_months": 54, "L": -0.7567, "M": 15.3814, "S": 0.07844},
+    {"age_months": 60, "L": -0.8005, "M": 15.3139, "S": 0.07806}
+  ]
+}

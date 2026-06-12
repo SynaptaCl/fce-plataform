@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect, useTransition, useCallback } from "react";
-import { Scale, TrendingUp, Plus, ChevronDown, ChevronUp, Trash2, Loader2 } from "lucide-react";
-import { differenceInYears, parseISO } from "date-fns";
+import { useState, useEffect, useTransition, useCallback, useMemo } from "react";
+import { Scale, TrendingUp, Plus, ChevronDown, ChevronUp, Trash2, Loader2, Baby, HeartPulse } from "lucide-react";
+import { differenceInYears, differenceInMonths, parseISO } from "date-fns";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { AlertBanner } from "@/components/ui/AlertBanner";
@@ -23,8 +23,10 @@ import {
   FORMULAS_PLIEGUES,
   SITIO_LABELS,
 } from "@/lib/nutricion/pliegues";
-import type { AntropometriaRecord } from "@/types/antropometria";
+import type { AntropometriaRecord, ModoAntropometria } from "@/types/antropometria";
 import type { FormulaId, SitioPliegue } from "@/lib/nutricion/pliegues";
+import { getBMIDataset, calcularIndicadorPediatrico } from "@/lib/nutricion/zscore";
+import { clasificarGestacional, calcularSemanaGestacional, clasificarIMCPregestacional } from "@/lib/nutricion/atalah";
 
 interface Props {
   pacienteId: string;
@@ -60,6 +62,19 @@ function formatFecha(iso: string): string {
 function calcEdad(fechaNacimiento: string): number {
   return differenceInYears(new Date(), parseISO(fechaNacimiento));
 }
+function calcEdadMeses(fechaNacimiento: string): number {
+  return differenceInMonths(new Date(), parseISO(fechaNacimiento));
+}
+
+const ZSCORE_COLORS: Record<string, string> = {
+  "Desnutrición severa": "#991B1B",
+  "Desnutrición":        "#EF4444",
+  "Riesgo bajo peso":    "#F59E0B",
+  "Normal":              "#22C55E",
+  "Posible sobrepeso":   "#F97316",
+  "Sobrepeso":           "#F97316",
+  "Obesidad":            "#DC2626",
+};
 
 export function AntropometriaPanel({
   pacienteId,
@@ -95,6 +110,30 @@ export function AntropometriaPanel({
   const [circCintura, setCircCintura] = useState("");
   const [circCadera, setCircCadera] = useState("");
   const [observaciones, setObservaciones] = useState("");
+
+  // ── Detección de modo ──────────────────────────────────────────────────────
+  const edadPaciente = fechaNacimiento ? calcEdad(fechaNacimiento) : null;
+  const edadMesesPaciente = fechaNacimiento ? calcEdadMeses(fechaNacimiento) : null;
+  const puedeSerPediatrico =
+    edadPaciente !== null && edadPaciente < 19 &&
+    (sexoRegistral === "M" || sexoRegistral === "F");
+
+  const [embarazoActivo, setEmbarazoActivo] = useState(false);
+
+  const modoDetectado: ModoAntropometria = embarazoActivo
+    ? "gestacional"
+    : puedeSerPediatrico
+    ? "pediatrico"
+    : "adulto";
+
+  // ── Gestacional ────────────────────────────────────────────────────────────
+  const [furInput, setFurInput] = useState("");
+  const [semanaManual, setSemanaManual] = useState("");
+  const [imcPregestacionalInput, setImcPregestacionalInput] = useState("");
+
+  const semanaCalculada = furInput
+    ? calcularSemanaGestacional(furInput)
+    : semanaManual ? parseInt(semanaManual) : undefined;
 
   // Pliegues
   const [showPliegues, setShowPliegues] = useState(false);
@@ -143,10 +182,28 @@ export function AntropometriaPanel({
   const previewMasaMagra =
     previewGrasa && peso > 0 ? calcularMasaMagra(peso, previewGrasa.percGrasa) : null;
 
+  // ── Preview z-score pediátrico ─────────────────────────────────────────────
+  const previewZScore = useMemo(() => {
+    if (modoDetectado !== "pediatrico") return null;
+    if (!previewIMC || !sexoRegistral || sexoRegistral === "Otro") return null;
+    if (edadMesesPaciente === null) return null;
+    const sx = sexoRegistral as "M" | "F";
+    return calcularIndicadorPediatrico(previewIMC.imc, edadMesesPaciente, getBMIDataset(sx, edadMesesPaciente));
+  }, [modoDetectado, previewIMC, sexoRegistral, edadMesesPaciente]);
+
+  // ── Preview Atalah gestacional ─────────────────────────────────────────────
+  const previewAtalah = useMemo(() => {
+    if (modoDetectado !== "gestacional") return null;
+    const imcPre = parseFloat(imcPregestacionalInput);
+    if (!previewIMC || isNaN(imcPre) || semanaCalculada === undefined || isNaN(semanaCalculada)) return null;
+    return clasificarGestacional(imcPre, previewIMC.imc, semanaCalculada);
+  }, [modoDetectado, previewIMC, imcPregestacionalInput, semanaCalculada]);
+
   // ── Resetear form ──────────────────────────────────────────────────────────
   function resetForm() {
     setPesoKg(""); setTallaCm(""); setCircCintura(""); setCircCadera("");
     setObservaciones(""); setPliegues({}); setEdadManual("");
+    setFurInput(""); setSemanaManual(""); setImcPregestacionalInput("");
     setShowPliegues(false); setError(null); setSuccess(false);
   }
 
@@ -174,12 +231,14 @@ export function AntropometriaPanel({
 
     const edadNum = edad;
 
+    const imcPreNum = parseFloat(imcPregestacionalInput);
+
     startTransition(async () => {
       const result = await registrarAntropometria({
         idPaciente: pacienteId,
         idClinica,
         idEncuentro: encuentroId,
-        modo: "adulto",
+        modo: modoDetectado,
         peso_kg: pesoNum,
         talla_cm: tallaNum,
         circ_cintura_cm: circCinturaNum2 && !isNaN(circCinturaNum2) ? circCinturaNum2 : undefined,
@@ -191,6 +250,10 @@ export function AntropometriaPanel({
         observaciones: observaciones.trim() || undefined,
         sexoRegistral: sexoFormula,
         edadAnios: edadNum,
+        edadMeses: edadMesesPaciente ?? undefined,
+        fur: furInput || undefined,
+        semanaGestacional: semanaCalculada,
+        imcPregestacional: !isNaN(imcPreNum) ? imcPreNum : undefined,
       });
 
       if (!result.success) {
@@ -276,7 +339,7 @@ export function AntropometriaPanel({
       {/* Gráfico de evolución */}
       {showChart && historia.length >= 2 && (
         <div className="px-5 py-3 border-b" style={{ borderColor: "var(--color-kp-border)" }}>
-          <AntropometriaChart data={historia} />
+          <AntropometriaChart data={historia} modo={modoDetectado} />
         </div>
       )}
 
@@ -288,6 +351,109 @@ export function AntropometriaPanel({
           style={{ borderColor: "var(--color-kp-border)", background: "var(--color-surface-0)" }}
         >
           {error && <AlertBanner variant="danger">{error}</AlertBanner>}
+
+          {/* Badge de modo */}
+          {modoDetectado !== "adulto" && (
+            <AlertBanner variant="warning">
+              <span className="font-semibold">
+                {modoDetectado === "pediatrico" ? "⚠️ Modo pediátrico" : "⚠️ Modo gestacional"} —
+              </span>{" "}
+              datos de referencia OMS/Atalah en validación clínica. Requiere verificación por nutricionista antes de uso diagnóstico.
+            </AlertBanner>
+          )}
+
+          {/* Toggle embarazo (visible solo si no es pediátrico) */}
+          {!puedeSerPediatrico && (
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border transition-colors"
+                style={{
+                  borderColor: embarazoActivo ? "var(--color-kp-warning)" : "var(--color-kp-border)",
+                  background: embarazoActivo ? "#FEF3C722" : "var(--color-surface-1)",
+                  color: embarazoActivo ? "#92400E" : "var(--color-ink-2)",
+                }}
+                onClick={() => setEmbarazoActivo((p) => !p)}
+              >
+                <HeartPulse size={13} />
+                {embarazoActivo ? "Modo gestacional activo" : "Activar modo gestacional"}
+              </button>
+            </div>
+          )}
+
+          {/* Sección gestacional */}
+          {modoDetectado === "gestacional" && (
+            <div
+              className="space-y-3 p-3 rounded-lg border"
+              style={{ borderColor: "var(--color-kp-warning)", background: "#FEF3C711" }}
+            >
+              <p className="text-xs font-semibold" style={{ color: "#92400E" }}>Datos gestacionales</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-medium mb-1 block" style={{ color: "var(--color-ink-2)" }}>
+                    FUR (fecha última regla)
+                  </label>
+                  <Input
+                    type="date"
+                    value={furInput}
+                    onChange={(e) => setFurInput(e.target.value)}
+                  />
+                  {semanaCalculada !== undefined && !isNaN(semanaCalculada) && (
+                    <p className="text-xs mt-1" style={{ color: "var(--color-ink-3)" }}>
+                      Semana gestacional estimada: <strong>{semanaCalculada}</strong>
+                    </p>
+                  )}
+                </div>
+                <div>
+                  <label className="text-xs font-medium mb-1 block" style={{ color: "var(--color-ink-2)" }}>
+                    Semana gestacional (manual)
+                  </label>
+                  <Input
+                    type="number"
+                    min={4}
+                    max={42}
+                    placeholder="Ej: 20"
+                    value={semanaManual}
+                    onChange={(e) => setSemanaManual(e.target.value)}
+                    disabled={!!furInput}
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="text-xs font-medium mb-1 block" style={{ color: "var(--color-ink-2)" }}>
+                  IMC pregestacional
+                </label>
+                <Input
+                  type="number"
+                  step="0.1"
+                  min={10}
+                  max={80}
+                  placeholder="IMC antes del embarazo"
+                  value={imcPregestacionalInput}
+                  onChange={(e) => setImcPregestacionalInput(e.target.value)}
+                  className="w-40"
+                />
+                {imcPregestacionalInput && !isNaN(parseFloat(imcPregestacionalInput)) && (
+                  <p className="text-xs mt-1" style={{ color: "var(--color-ink-3)" }}>
+                    Categoría: <strong>{clasificarIMCPregestacional(parseFloat(imcPregestacionalInput))}</strong>
+                  </p>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Modo pediátrico: info de edad */}
+          {modoDetectado === "pediatrico" && fechaNacimiento && (
+            <div
+              className="flex items-center gap-2 px-3 py-2 rounded-lg"
+              style={{ background: "#EFF6FF", border: "1px solid #BFDBFE" }}
+            >
+              <Baby size={14} style={{ color: "#2563EB" }} />
+              <span className="text-xs" style={{ color: "#1E40AF" }}>
+                Paciente pediátrico — {edadPaciente} años ({edadMesesPaciente} meses)
+              </span>
+            </div>
+          )}
 
           {/* Básico */}
           <div className="grid grid-cols-2 gap-3">
@@ -343,6 +509,55 @@ export function AntropometriaPanel({
                   · {previewIMC.riesgoCardiometabolico}
                 </span>
               )}
+            </div>
+          )}
+
+          {/* Z-score pediátrico preview */}
+          {modoDetectado === "pediatrico" && previewZScore && (
+            <div
+              className="flex items-center gap-3 px-3 py-2 rounded-lg"
+              style={{ background: "#EFF6FF", border: "1px solid #BFDBFE" }}
+            >
+              <Baby size={13} style={{ color: "#2563EB" }} />
+              <span className="text-xs" style={{ color: "#1E40AF" }}>Z-score IMC/edad</span>
+              <span
+                className="text-sm font-bold"
+                style={{ color: ZSCORE_COLORS[previewZScore.clasificacion] ?? "#1E293B" }}
+              >
+                {previewZScore.z > 0 ? "+" : ""}{previewZScore.z.toFixed(2)}
+              </span>
+              <span
+                className="text-xs font-medium px-2 py-0.5 rounded-full"
+                style={{
+                  background: `${ZSCORE_COLORS[previewZScore.clasificacion] ?? "#94A3B8"}22`,
+                  color: ZSCORE_COLORS[previewZScore.clasificacion] ?? "#94A3B8",
+                }}
+              >
+                {previewZScore.clasificacion}
+              </span>
+              <span className="text-xs" style={{ color: "#1E40AF" }}>
+                P{previewZScore.percentil}
+              </span>
+            </div>
+          )}
+
+          {/* Atalah gestacional preview */}
+          {modoDetectado === "gestacional" && previewAtalah && (
+            <div
+              className="flex items-center gap-3 px-3 py-2 rounded-lg"
+              style={{ background: "#FEF3C7", border: "1px solid #FDE68A" }}
+            >
+              <HeartPulse size={13} style={{ color: "#92400E" }} />
+              <span className="text-xs" style={{ color: "#92400E" }}>Atalah gestacional</span>
+              <span
+                className="text-sm font-bold"
+                style={{ color: "#92400E" }}
+              >
+                {previewAtalah.descripcion}
+              </span>
+              <span className="text-xs" style={{ color: "#78350F" }}>
+                Semana {previewAtalah.semana} · Ganancia recomendada: {previewAtalah.rangoGananciaTotal.min}–{previewAtalah.rangoGananciaTotal.max} kg
+              </span>
             </div>
           )}
 
