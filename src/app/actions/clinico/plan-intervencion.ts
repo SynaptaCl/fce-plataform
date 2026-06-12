@@ -120,27 +120,33 @@ export async function getPlanIntervencionDetalle(
 
   const objetivosList = (objetivos ?? []) as PlanObjetivo[];
 
-  // 3. Para cada objetivo, obtener el último progreso
-  const objetivosConProgreso = await Promise.all(
-    objetivosList.map(async (obj) => {
-      const { data: progreso } = await supabase
-        .from("fce_plan_progreso")
-        .select("*")
-        .eq("id_objetivo", obj.id)
-        .order("registrado_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
+  // 3. Historial completo de progreso de todos los objetivos en una sola query
+  const progresoPorObjetivo: Record<string, PlanProgreso[]> = {};
+  if (objetivosList.length > 0) {
+    const { data: progresos, error: progError } = await supabase
+      .from("fce_plan_progreso")
+      .select("*")
+      .in("id_objetivo", objetivosList.map((o) => o.id))
+      .eq("id_clinica", idClinica)
+      .order("registrado_at", { ascending: true });
 
-      return {
-        ...obj,
-        ...(progreso ? { ultimo_progreso: progreso as PlanProgreso } : {}),
-      };
-    })
-  );
+    if (progError) return { success: false, error: progError.message };
+
+    for (const p of (progresos ?? []) as PlanProgreso[]) {
+      (progresoPorObjetivo[p.id_objetivo] ??= []).push(p);
+    }
+  }
+
+  const objetivosConProgreso = objetivosList.map((obj) => {
+    const historial = progresoPorObjetivo[obj.id];
+    const ultimo = historial?.[historial.length - 1];
+    return { ...obj, ...(ultimo ? { ultimo_progreso: ultimo } : {}) };
+  });
 
   const detalle: PlanIntervencionDetalle = {
     ...(plan as PlanIntervencion),
     objetivos: objetivosConProgreso,
+    progresoPorObjetivo,
   };
 
   return { success: true, data: detalle };

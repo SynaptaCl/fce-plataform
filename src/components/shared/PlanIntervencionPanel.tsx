@@ -7,16 +7,20 @@ import {
   actualizarPlanIntervencion,
   firmarPlanIntervencion,
 } from "@/app/actions/clinico/plan-intervencion";
+import { getPlantillasDominios } from "@/app/actions/clinico/plantillas-dominios";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { ObjetivoEditor } from "./ObjetivoEditor";
 import { ProgresoRegistro } from "./ProgresoRegistro";
+import { ProgresoChart } from "./ProgresoChart";
+import { PlanIntervencionPdfView } from "./PlanIntervencionPdfView";
 import type {
   PlanIntervencionDetalle,
   PlanObjetivo,
   EstadoPlanIntervencion,
   NivelGAS,
 } from "@/types/plan-intervencion";
+import type { PlantillaDominio } from "@/types/plantilla-dominio";
 
 // ── Props ─────────────────────────────────────────────────────────────────────
 
@@ -111,6 +115,9 @@ export function PlanIntervencionPanel({
   const [objetivoEditando, setObjetivoEditando] = useState<PlanObjetivo | undefined>(undefined);
   const [progresoObjetivo, setProgresoObjetivo] = useState<PlanObjetivo | null>(null);
 
+  // Plantillas de dominios (catálogo global)
+  const [plantillas, setPlantillas] = useState<PlantillaDominio[]>([]);
+
   // ── Load ────────────────────────────────────────────────────────────────────
 
   async function cargarPlan() {
@@ -130,6 +137,29 @@ export function PlanIntervencionPanel({
     cargarPlan();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [planId]);
+
+  useEffect(() => {
+    getPlantillasDominios().then((result) => {
+      if (result.success) setPlantillas(result.data);
+    });
+  }, []);
+
+  // ── Condición / plantilla de dominios ────────────────────────────────────────
+
+  async function cambiarCondicion(codigo: string) {
+    setSavingField(true);
+    await actualizarPlanIntervencion(planId, { condicion_codigo: codigo || null });
+    setSavingField(false);
+    setPlan((prev) => (prev ? { ...prev, condicion_codigo: codigo || null } : prev));
+  }
+
+  const plantillaActiva = plan?.condicion_codigo
+    ? plantillas.find((p) => p.condicion_codigo === plan.condicion_codigo)
+    : undefined;
+  const dominiosDisponibles = plantillaActiva?.dominios
+    .slice()
+    .sort((a, b) => a.orden - b.orden)
+    .map((d) => ({ codigo: d.codigo, label: d.label }));
 
   // ── Inline edits ────────────────────────────────────────────────────────────
 
@@ -317,6 +347,28 @@ export function PlanIntervencionPanel({
                     <Clock className="size-3" />
                     Inicio: {formatFecha(plan.fecha_inicio)}
                   </span>
+
+                  {/* Condición / plantilla de dominios */}
+                  {plantillas.length > 0 && (
+                    <select
+                      value={plan.condicion_codigo ?? ""}
+                      onChange={(e) => cambiarCondicion(e.target.value)}
+                      disabled={savingField}
+                      className="rounded-lg border px-1.5 py-0.5 text-xs focus:outline-none"
+                      style={{
+                        borderColor: "var(--color-kp-border)",
+                        color: "var(--color-ink-2)",
+                        background: "var(--color-surface-1)",
+                      }}
+                    >
+                      <option value="">Sin condición base</option>
+                      {plantillas.map((p) => (
+                        <option key={p.condicion_codigo} value={p.condicion_codigo}>
+                          {p.condicion_label}
+                        </option>
+                      ))}
+                    </select>
+                  )}
 
                   {/* Fecha revisión editable */}
                   {editingFechaRevision ? (
@@ -538,6 +590,25 @@ export function PlanIntervencionPanel({
                     </div>
                   ))
                 )}
+
+                {/* Progreso GAS — gráfico de evolución */}
+                {plan.objetivos.length > 0 && (
+                  <div className="flex flex-col gap-3">
+                    <h3
+                      className="text-xs font-semibold uppercase tracking-wide"
+                      style={{ color: "var(--color-ink-3)" }}
+                    >
+                      Progreso (GAS)
+                    </h3>
+                    <ProgresoChart
+                      objetivos={plan.objetivos}
+                      progresoPorObjetivo={plan.progresoPorObjetivo}
+                    />
+                  </div>
+                )}
+
+                {/* Exportar PDF */}
+                <PlanIntervencionPdfView planId={planId} patientId={patientId} />
               </>
             )}
           </div>
@@ -611,6 +682,7 @@ export function PlanIntervencionPanel({
           planId={planId}
           patientId={patientId}
           objetivo={objetivoEditando}
+          dominiosDisponibles={dominiosDisponibles}
           onGuardado={handleObjetivoGuardado}
           onClose={() => {
             setObjetivoEditorOpen(false);
