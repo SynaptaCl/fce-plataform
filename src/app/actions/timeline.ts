@@ -214,7 +214,7 @@ export async function getPatientTimeline(
     idClinica
       ? supabase
           .from("fce_notas_clinicas")
-          .select("id, id_encuentro, motivo_consulta, contenido, diagnostico, cie10_codigos, plan, proxima_sesion, firmado, firmado_at, firmado_por, created_by, created_at")
+          .select("id, id_encuentro, motivo_consulta, contenido, diagnostico, cie10_codigos, icd_codigos, secciones_estructuradas, plan, proxima_sesion, firmado, firmado_at, firmado_por, created_by, created_at")
           .eq("id_paciente", patientId)
           .eq("id_clinica", idClinica)
           .order("created_at", { ascending: false })

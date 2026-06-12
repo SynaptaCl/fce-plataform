@@ -69,6 +69,7 @@ export interface FichaClinicaData {
     contenido: string;
     diagnostico: string | null;
     icd_codigos: unknown;
+    icd_version: string | null;
     plan: string | null;
     secciones_estructuradas: unknown;
     firmado_at: string | null;
@@ -499,17 +500,24 @@ function buildNotasClinicas(notas: FichaClinicaData["notasClinicas"]): string {
       let body = "";
       body += field("Motivo", n.motivo_consulta ?? "");
       body += field("Contenido", n.contenido ?? "");
+      body += field("Diagnóstico", n.diagnostico ?? "");
       const icd = asArray<ICDCodeSnap>(n.icd_codigos)
         .map((c) => `${c.code ?? ""} ${c.title ?? ""}`.trim())
         .filter(Boolean);
-      const diagnostico = [n.diagnostico, icd.join("; ")].filter(Boolean).join(" — ICD-11: ");
-      body += field("Diagnóstico", diagnostico);
+      if (icd.length > 0) {
+        body += field(`Códigos ${n.icd_version ?? "ICD-11"}`, icd.join("; "));
+      }
       body += field("Plan", n.plan ?? "");
-      // Secciones estructuradas (P2): jsonb { seccion: { campo: valor } }
+      // Secciones estructuradas: P2 anida { seccion: { campo: valor } };
+      // los campos M10 (conductas_observadas, etc.) son strings planos en la raíz
       if (n.secciones_estructuradas && typeof n.secciones_estructuradas === "object") {
         for (const [seccion, campos] of Object.entries(
           n.secciones_estructuradas as Record<string, unknown>
         )) {
+          if (typeof campos === "string") {
+            if (campos.trim()) body += field(humanize(seccion), campos);
+            continue;
+          }
           const rendered = renderJsonbFields(campos);
           if (rendered) {
             body += `<div style="font-size:9px; font-weight:700; color:${INK_3}; text-transform:uppercase; margin:6px 0 3px;">${esc(humanize(seccion))}</div>${rendered}`;

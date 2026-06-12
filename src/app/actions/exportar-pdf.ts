@@ -95,11 +95,10 @@ export async function exportarFichaCompletaPdf(
       .eq("id_clinica", idClinica)
       .eq("firmado", true)
       .order("created_at", { ascending: true }),
-    // icd_codigos se omite: la migration ICD-11 de fce_notas_clinicas está pendiente en prod
     supabase
       .from("fce_notas_clinicas")
       .select(
-        "id, motivo_consulta, contenido, diagnostico, plan, secciones_estructuradas, firmado_at, created_at, encuentro:fce_encuentros(especialidad, started_at)"
+        "id, motivo_consulta, contenido, diagnostico, icd_codigos, icd_version, plan, secciones_estructuradas, firmado_at, created_at, encuentro:fce_encuentros(especialidad, started_at)"
       )
       .eq("id_paciente", idPaciente)
       .eq("id_clinica", idClinica)
@@ -210,9 +209,7 @@ export async function exportarFichaCompletaPdf(
     encuentros: rows<FichaClinicaData["encuentros"][number]>(encuentrosRes),
     signosVitales: rows<FichaClinicaData["signosVitales"][number]>(signosVitalesRes),
     notasSoap: rows<FichaClinicaData["notasSoap"][number]>(notasSoapRes),
-    notasClinicas: rows<Omit<FichaClinicaData["notasClinicas"][number], "icd_codigos">>(
-      notasClinicasRes
-    ).map((n) => ({ ...n, icd_codigos: null })),
+    notasClinicas: rows<FichaClinicaData["notasClinicas"][number]>(notasClinicasRes),
     evaluaciones: rows<FichaClinicaData["evaluaciones"][number]>(evaluacionesRes),
     instrumentos: rows<FichaClinicaData["instrumentos"][number]>(instrumentosRes),
     consentimientos: rows<FichaClinicaData["consentimientos"][number]>(consentimientosRes),

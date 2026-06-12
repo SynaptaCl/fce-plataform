@@ -2,7 +2,7 @@
 "use client";
 
 import { Badge } from "@/components/ui/Badge";
-import { Section, EntryFooter, EncuentroLink, formatDate } from "./_shared";
+import { Section, EntryFooter, EncuentroLink, KeyValueList, formatDate } from "./_shared";
 import type { TimelineEntry } from "@/app/actions/timeline";
 import { DiagnosticoChip } from '@/components/clinico/DiagnosticoChip';
 import type { ICDCodeSnap } from '@/lib/icd/types';
@@ -60,6 +60,27 @@ export function NotaClinicaExpandedCard({ entry, patientId }: Props) {
       {d.plan && (
         <Section label="Plan">{String(d.plan)}</Section>
       )}
+      {/* Secciones estructuradas: P2 anidadas { seccion: { campo: valor } } + campos M10 planos (string) */}
+      {d.secciones_estructuradas && typeof d.secciones_estructuradas === "object" &&
+        Object.entries(d.secciones_estructuradas as Record<string, unknown>).map(([seccion, campos]) => {
+          const label = seccion.replace(/_/g, " ");
+          if (typeof campos === "string") {
+            return campos.trim() ? (
+              <Section key={seccion} label={label}>{campos}</Section>
+            ) : null;
+          }
+          if (campos && typeof campos === "object" && !Array.isArray(campos)) {
+            return (
+              <div key={seccion}>
+                <p className="font-bold text-ink-3 uppercase tracking-wide text-[0.6rem] mb-1.5">
+                  {label}
+                </p>
+                <KeyValueList data={campos as Record<string, unknown>} />
+              </div>
+            );
+          }
+          return null;
+        })}
       {d.proxima_sesion && (
         <div className="flex items-center gap-1.5 text-xs text-ink-2">
           <span className="font-bold text-ink-3 uppercase tracking-wide text-[0.6rem]">

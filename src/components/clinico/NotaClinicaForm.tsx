@@ -20,6 +20,7 @@ import type { BorradorNota } from '@/lib/ia/copiloto-nota/types'
 import type { PlanIntervencion } from '@/types/plan-intervencion'
 import { getEspecialidadConfig } from '@/lib/modules/especialidad-config'
 import { SeccionEstructuradaRenderer } from '@/components/clinico/SeccionEstructuradaRenderer'
+import { calcularIMC as calcularIMCLib } from '@/lib/nutricion/antropometria'
 
 // ── Tipos internos ───────────────────────────────────────────────────────────
 
@@ -30,24 +31,45 @@ interface SeccionesEstructuradas {
   asistencia?: string;
 }
 
+// Campos M10 viven como strings PLANOS en la raíz del jsonb secciones_estructuradas.
+// Las secciones P2 viven como objetos anidados { [seccionId]: { [campoId]: valor } }.
+// Cada estado debe inicializarse SOLO con sus propias claves — si ambos copian el
+// jsonb completo, el merge del submit pisa ediciones con copias stale.
+const M10_KEYS = [
+  "conductas_observadas",
+  "participacion_cuidador",
+  "estrategias",
+  "asistencia",
+] as const;
+
+function extraerCamposM10(jsonb: Record<string, unknown> | null | undefined): SeccionesEstructuradas {
+  const out: Record<string, string> = {};
+  for (const key of M10_KEYS) {
+    const v = jsonb?.[key];
+    if (typeof v === "string") out[key] = v;
+  }
+  return out;
+}
+
+function extraerSeccionesP2(jsonb: Record<string, unknown> | null | undefined): ContenidoEstructurado {
+  const out: ContenidoEstructurado = {};
+  for (const [k, v] of Object.entries(jsonb ?? {})) {
+    if (v && typeof v === "object" && !Array.isArray(v)) {
+      out[k] = v as Record<string, string | string[]>;
+    }
+  }
+  return out;
+}
+
 // secciones_estructuradas: { [seccionId]: { [campoId]: string | string[] } }
 type ContenidoEstructurado = Record<string, Record<string, string | string[]>>;
 
 // ── IMC helpers ───────────────────────────────────────────────────────────────
 
 function calcularIMC(pesoKg: string, tallaCm: string): { imc: string; clasificacion: string } | null {
-  const peso = parseFloat(pesoKg);
-  const talla = parseFloat(tallaCm);
-  if (!peso || !talla || peso <= 0 || talla < 50 || talla > 250 || peso > 500) return null;
-  const imc = peso / Math.pow(talla / 100, 2);
-  let clasificacion = "";
-  if (imc < 18.5) clasificacion = "Bajo peso";
-  else if (imc < 25) clasificacion = "Normal";
-  else if (imc < 30) clasificacion = "Sobrepeso";
-  else if (imc < 35) clasificacion = "Obesidad I";
-  else if (imc < 40) clasificacion = "Obesidad II";
-  else clasificacion = "Obesidad III";
-  return { imc: imc.toFixed(1), clasificacion };
+  const resultado = calcularIMCLib(parseFloat(pesoKg), parseFloat(tallaCm));
+  if (!resultado) return null;
+  return { imc: resultado.imc.toFixed(1), clasificacion: resultado.clasificacion };
 }
 
 // ── Props ────────────────────────────────────────────────────────────────────
@@ -102,7 +124,7 @@ export function NotaClinicaForm({
   const [borradorActivo, setBorradorActivo] = useState<BorradorNota | null>(null)
 
   const [seccionesEstructuradas, setSeccionesEstructuradas] = useState<SeccionesEstructuradas>(
-    (notaExistente?.secciones_estructuradas as SeccionesEstructuradas) ?? {}
+    () => extraerCamposM10(notaExistente?.secciones_estructuradas)
   )
 
   // Secciones estructuradas por especialidad (P2-F2)
@@ -116,8 +138,7 @@ export function NotaClinicaForm({
 
   const [contenidoEstructurado, setContenidoEstructurado] = useState<ContenidoEstructurado>(
     () => {
-      const existing = notaExistente?.secciones_estructuradas as ContenidoEstructurado | null | undefined;
-      const base: ContenidoEstructurado = existing ?? {};
+      const base: ContenidoEstructurado = extraerSeccionesP2(notaExistente?.secciones_estructuradas);
       // Calcular IMC inicial si la especialidad lo requiere y ya hay peso/talla guardados
       if (espConfig?.tieneCalculoIMC) {
         const secContenido = base["contenido"] ?? {};
@@ -197,9 +218,11 @@ export function NotaClinicaForm({
         icd_codigos: icdCodigos,
         icd_version: 'ICD-11 2025-01',
       } : {}),
+      // Ambos estados se inicializan desde la nota existente, así que incluirlos
+      // siempre preserva datos previos aunque el módulo/especialidad esté inactivo
       secciones_estructuradas: {
-        ...(m10Activo ? seccionesEstructuradas : {}),
-        ...(seccionesEsp.length > 0 ? contenidoEstructurado : {}),
+        ...seccionesEstructuradas,
+        ...contenidoEstructurado,
       },
     });
 
