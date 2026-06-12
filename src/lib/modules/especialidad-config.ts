@@ -53,9 +53,10 @@ export interface EspecialidadConfig {
   tieneEscalaFuncional: boolean;
   tieneCopilotoIA: boolean;
   tieneResumenIA: boolean;
-  tieneCalculoIMC?: boolean;  // Si true, el form calcula IMC desde peso_kg/talla_cm en sección "contenido"
-  tienePresupuesto?: boolean;  // Si true, tab Presupuestos visible en hub docs
-  tieneInformes?: boolean;     // Si true, tab Informes visible en hub docs
+  tieneCalculoIMC?: boolean;       // Si true, el form calcula IMC desde peso_kg/talla_cm en sección "contenido"
+  tieneAntropometria?: boolean;    // Si true, AntropometriaPanel embebido en workspace (N1: solo Nutrición)
+  tienePresupuesto?: boolean;      // Si true, tab Presupuestos visible en hub docs
+  tieneInformes?: boolean;         // Si true, tab Informes visible en hub docs
   diagnostico?: DiagnosticoConfig;
   secciones: SeccionNota[];
   accionesRapidas: AccionRapida[];
@@ -273,6 +274,7 @@ export const ESPECIALIDAD_CONFIG: Record<string, EspecialidadConfig> = {
     tieneCopilotoIA: true,
     tieneResumenIA: false,
     tieneCalculoIMC: true,
+    tieneAntropometria: true,
     tienePresupuesto: true,
     tieneInformes: true,
     secciones: [

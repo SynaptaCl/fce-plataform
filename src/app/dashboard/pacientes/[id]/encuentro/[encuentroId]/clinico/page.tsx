@@ -16,6 +16,7 @@ import { PlanIntervencionLauncher } from "@/components/shared/PlanIntervencionLa
 import { getEspecialidadConfig } from "@/lib/modules/especialidad-config";
 import { getServicioContexto } from "@/lib/modules/servicio-config";
 import { getEncuentroContext } from "@/app/actions/encuentros";
+import { AntropometriaPanel } from "@/components/clinico/AntropometriaPanel";
 
 export default async function ClinicoPage({
   params,
@@ -121,6 +122,18 @@ export default async function ClinicoPage({
           primaryAction={!readOnly ? <FirmarHeaderButton /> : undefined}
         />
       </div>
+
+      {/* Panel de antropometría — solo para especialidades con tieneAntropometria */}
+      {espConfig.tieneAntropometria && (
+        <AntropometriaPanel
+          pacienteId={id}
+          idClinica={idClinica}
+          encuentroId={encuentroId}
+          sexoRegistral={patient.sexo_registral as "M" | "F" | "Otro" | null | undefined}
+          fechaNacimiento={patient.fecha_nacimiento}
+          readOnly={readOnly}
+        />
+      )}
 
       {/* Workspace */}
       <div className="rounded-xl border border-kp-border bg-surface-1">

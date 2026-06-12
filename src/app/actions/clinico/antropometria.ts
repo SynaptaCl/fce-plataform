@@ -1,0 +1,222 @@
+"use server";
+
+import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
+import { z } from "zod";
+import { createClient } from "@/lib/supabase/server";
+import { getProfesionalActivo } from "@/lib/fce/profesional";
+import { log } from "@/lib/logger";
+import { calcularIMC, clasificarCircunferenciaCintura } from "@/lib/nutricion/antropometria";
+import { calcularGrasaCorporal, calcularMasaMagra } from "@/lib/nutricion/pliegues";
+import type { ActionResult } from "@/lib/modules/guards";
+import type { AntropometriaRecord, AntropometriaInput } from "@/types/antropometria";
+
+// ── Schema Zod ───────────────────────────────────────────────────────────────
+
+const antropometriaSchema = z.object({
+  idPaciente:      z.string().uuid(),
+  idClinica:       z.string().uuid(),
+  idEncuentro:     z.string().uuid().optional(),
+  modo:            z.enum(["adulto", "pediatrico", "gestacional"]),
+  peso_kg:         z.number().min(0.5).max(400),
+  talla_cm:        z.number().min(20).max(260),
+  circ_cintura_cm: z.number().min(20).max(250).optional(),
+  circ_cadera_cm:  z.number().min(20).max(250).optional(),
+  pliegues: z.record(
+    z.enum(["biceps","triceps","subescapular","suprailiaco","pecho","abdomen","muslo","axilar_medio"]),
+    z.number().min(1).max(100),
+  ).optional(),
+  formula_grasa:   z.enum(["durnin_womersley","jackson_pollock_3","jackson_pollock_7","faulkner"]).optional(),
+  observaciones:   z.string().max(2000).optional(),
+  sexoRegistral:   z.enum(["M","F"]).optional(),
+  edadAnios:       z.number().min(1).max(120).optional(),
+});
+
+// ── Helper: sesión ───────────────────────────────────────────────────────────
+
+async function requireAuth() {
+  const supabase = await createClient();
+  const { data: { user }, error } = await supabase.auth.getUser();
+  if (error || !user) redirect("/login");
+  return { supabase, user };
+}
+
+// ── Helper: audit ────────────────────────────────────────────────────────────
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function logAudit(supabase: any, userId: string, accion: string, registroId: string, idClinica: string, idPaciente: string) {
+  try {
+    await supabase.from("logs_auditoria").insert({
+      actor_id: userId,
+      actor_tipo: "profesional",
+      accion,
+      tabla_afectada: "fce_antropometria",
+      registro_id: registroId,
+      id_clinica: idClinica,
+      id_paciente: idPaciente,
+    });
+  } catch { /* no bloquea el flujo */ }
+}
+
+// ── getAntropometriaByPaciente ────────────────────────────────────────────────
+
+export async function getAntropometriaByPaciente(
+  idPaciente: string,
+): Promise<ActionResult<AntropometriaRecord[]>> {
+  const { supabase, user } = await requireAuth();
+
+  const { data: adminRow } = await supabase
+    .from("admin_users")
+    .select("id_clinica")
+    .eq("auth_id", user.id)
+    .eq("activo", true)
+    .single();
+  const idClinica: string | null = adminRow?.id_clinica ?? null;
+  if (!idClinica) return { success: false, error: "Clínica no encontrada." };
+
+  const { data, error } = await supabase
+    .from("fce_antropometria")
+    .select("*")
+    .eq("id_paciente", idPaciente)
+    .eq("id_clinica", idClinica)
+    .order("registrado_at", { ascending: false })
+    .limit(50);
+
+  if (error) {
+    log("error", { action: "get_antropometria", id_clinica: idClinica, id_paciente: idPaciente, error });
+    return { success: false, error: error.message };
+  }
+
+  return { success: true, data: (data ?? []) as AntropometriaRecord[] };
+}
+
+// ── registrarAntropometria ────────────────────────────────────────────────────
+
+export async function registrarAntropometria(
+  input: AntropometriaInput,
+): Promise<ActionResult<AntropometriaRecord>> {
+  const { supabase, user } = await requireAuth();
+
+  // Validación Zod
+  const parsed = antropometriaSchema.safeParse(input);
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.issues[0]?.message ?? "Datos inválidos." };
+  }
+
+  const { data: adminRow } = await supabase
+    .from("admin_users")
+    .select("id_clinica")
+    .eq("auth_id", user.id)
+    .eq("activo", true)
+    .single();
+  const idClinica: string | null = adminRow?.id_clinica ?? null;
+  if (!idClinica) return { success: false, error: "Clínica no encontrada." };
+
+  // Verificar id_clinica coincide con el input (defense-in-depth)
+  if (idClinica !== input.idClinica) {
+    log("warn", { action: "antrop_cross_tenant_attempt", id_clinica: idClinica, detail: "id_clinica no coincide" });
+    return { success: false, error: "No autorizado." };
+  }
+
+  const profesional = await getProfesionalActivo(supabase, user.id, idClinica);
+  if (!profesional) return { success: false, error: "Profesional no encontrado." };
+
+  const { peso_kg, talla_cm, circ_cintura_cm, pliegues, formula_grasa, sexoRegistral, edadAnios, observaciones, modo } = parsed.data;
+
+  // Cálculos server-side
+  const resultIMC = calcularIMC(peso_kg, talla_cm);
+  const imc = resultIMC?.imc ?? null;
+  const clasificacion = resultIMC?.clasificacion ?? null;
+
+  let riesgo_cintura: string | null = null;
+  if (circ_cintura_cm) {
+    const sexoCalc = sexoRegistral === 'M' || sexoRegistral === 'F' ? sexoRegistral : undefined;
+    riesgo_cintura = clasificarCircunferenciaCintura(circ_cintura_cm, sexoCalc);
+  }
+
+  let perc_grasa: number | null = null;
+  let masa_magra_kg: number | null = null;
+  if (pliegues && formula_grasa && modo === 'adulto') {
+    const resultGrasa = calcularGrasaCorporal({
+      formula: formula_grasa,
+      pliegues,
+      sexo: sexoRegistral === 'M' || sexoRegistral === 'F' ? sexoRegistral : undefined,
+      edad: edadAnios,
+    });
+    if (resultGrasa) {
+      perc_grasa = resultGrasa.percGrasa;
+      masa_magra_kg = calcularMasaMagra(peso_kg, resultGrasa.percGrasa);
+    }
+  }
+
+  const payload = {
+    id_clinica:      idClinica,
+    id_paciente:     input.idPaciente,
+    id_encuentro:    input.idEncuentro ?? null,
+    modo,
+    peso_kg,
+    talla_cm,
+    imc,
+    clasificacion,
+    circ_cintura_cm:  circ_cintura_cm ?? null,
+    circ_cadera_cm:   parsed.data.circ_cadera_cm ?? null,
+    riesgo_cintura,
+    pliegues:         pliegues ?? null,
+    formula_grasa:    formula_grasa ?? null,
+    perc_grasa,
+    masa_magra_kg,
+    observaciones:    observaciones ?? null,
+    registrado_por:   profesional.id,
+  };
+
+  const { data, error } = await supabase
+    .from("fce_antropometria")
+    .insert(payload)
+    .select()
+    .single();
+
+  if (error) {
+    log("error", { action: "registrar_antropometria", id_clinica: idClinica, id_paciente: input.idPaciente, error });
+    return { success: false, error: error.message };
+  }
+
+  await logAudit(supabase, user.id, "registrar_antropometria", data.id, idClinica, input.idPaciente);
+  revalidatePath(`/dashboard/pacientes/${input.idPaciente}`);
+
+  return { success: true, data: data as AntropometriaRecord };
+}
+
+// ── eliminarAntropometria ─────────────────────────────────────────────────────
+
+export async function eliminarAntropometria(
+  id: string,
+  idPaciente: string,
+): Promise<ActionResult<void>> {
+  const { supabase, user } = await requireAuth();
+
+  const { data: adminRow } = await supabase
+    .from("admin_users")
+    .select("id_clinica")
+    .eq("auth_id", user.id)
+    .eq("activo", true)
+    .single();
+  const idClinica: string | null = adminRow?.id_clinica ?? null;
+  if (!idClinica) return { success: false, error: "Clínica no encontrada." };
+
+  const { error } = await supabase
+    .from("fce_antropometria")
+    .delete()
+    .eq("id", id)
+    .eq("id_clinica", idClinica)
+    .eq("id_paciente", idPaciente);
+
+  if (error) {
+    log("error", { action: "eliminar_antropometria", id_clinica: idClinica, id_paciente: idPaciente, error });
+    return { success: false, error: error.message };
+  }
+
+  await logAudit(supabase, user.id, "eliminar_antropometria", id, idClinica, idPaciente);
+  revalidatePath(`/dashboard/pacientes/${idPaciente}`);
+
+  return { success: true, data: undefined };
+}
