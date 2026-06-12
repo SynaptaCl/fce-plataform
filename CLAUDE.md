@@ -320,7 +320,9 @@ src/app/dashboard/pacientes/[id]/encuentro/[encuentroId]/
 src/app/actions/
   ├── patients.ts, anamnesis.ts, consentimiento.ts, auditoria.ts
   ├── encuentros.ts       → createEncuentro + getEncuentroContext (P1: resuelve nombre servicio)
-  ├── egresos.ts, timeline.ts, exportar-pdf.ts, resumen-ia.ts
+  ├── egresos.ts, timeline.ts, resumen-ia.ts
+  ├── exportar-pdf.ts     → exportarFichaCompletaPdf (ficha completa Decreto 41/Ley 20.584,
+  │                         audit `exportar_ficha_clinica`, solo se invoca on-click — sin auto-descarga)
   ├── prescripciones.ts, ordenes-examen.ts
   ├── presupuestos.ts     → getPresupuestos, crearPresupuesto, actualizarPresupuesto, firmarPresupuesto, eliminarPresupuesto
   ├── informes.ts         → getInformes, crearInforme, actualizarInforme, firmarInforme, eliminarInforme
@@ -369,7 +371,8 @@ src/components/
                    EncuentroLauncher, BodyMap, ScaleSlider, SummaryPanel,
                    FirmarHeaderButton, VitalSignsPanel, AnamnesisForm,
                    PatientForm, PatientList, ConsentManager, AuditTimeline,
-                   FhirPreview, PdfExportView, RedFlagsChecklist,
+                   FhirPreview, FichaCompletaExport (hub: descarga ficha completa on-click),
+                   RedFlagsChecklist,
                    EgresoForm, EgresoCard, EgresoLauncher, ReingresoBanner, EpicrisisPdfView,
                    Prescripcion* (PrescripcionLauncher, Form, List, DetalleModal,
                      FirmaPanel, MedicamentoSelector, MedicamentoCard, MedicamentoEditor,
@@ -394,6 +397,8 @@ src/lib/
   ├── prescripciones/ → pdf-renderer.ts, share-helpers.ts, snapshot.ts, validations.ts, plantillas.ts
   ├── ordenes-examen/ → pdf-renderer.ts, share-helpers.ts, validations.ts
   ├── egresos/        → pdf-renderer.ts (epicrisis), snapshot.ts
+  ├── ficha-clinica/  → pdf-renderer.ts (renderFichaCompletaPdf — ficha completa 13 secciones,
+  │                       escapeHtml + hex hardcoded; tipo FichaClinicaData)
   ├── ia/             → contexto-clinico.ts, prompt.ts, cache.ts
   │   ├── extraccion/ → demografico.ts, anamnesis.ts, signos-vitales.ts, medicacion.ts,
   │   │                  alertas.ts, evolucion.ts, examenes.ts, instrumentos.ts
@@ -505,6 +510,7 @@ Actualmente **ninguna clínica tiene fce-plataform en producción** — el repo 
 | O1 | Self-service onboarding: CLI templates (F2), validador pre go-live (F3), panel estado salud (F4), self-service director — profesionales + servicios (F5), E2E con Cenupsi como banco de pruebas técnico (F6) |
 | O1-plantillas | **synapta** `lib/servicios-plantillas.ts`: plantilla `multidisciplinaria_rehabilitacion` — 9 categorías, 39 servicios. `getPlantillasDisponibles()` retorna 2 plantillas (estética + rehabilitación). |
 | M11-M12 | Presupuestos (M11) e Informes Clínicos (M12): tipos, server actions, UI completa (Form/List/PdfView), hub de documentos con tabs, Copiloto IA para informes |
+| M11-M12 fix | Hub de documentos: eliminada auto-descarga del PDF al navegar; tabs gateados por módulos activos + tab Epicrisis (si egreso firmado); PDF de ficha clínica COMPLETA (13 secciones, Decreto 41/Ley 20.584) vía `exportarFichaCompletaPdf` + `lib/ficha-clinica/pdf-renderer.ts`; PdfExportView eliminado |
 
 ### Pendientes
 

@@ -2,8 +2,10 @@ import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { getPdfPatientData } from "@/app/actions/exportar-pdf";
-import { PdfExportView } from "@/components/shared/PdfExportView";
+import { getClinicaConfigFromSession } from "@/lib/modules/config";
+import { requirePresupuestos, requireInformes } from "@/lib/modules/guards";
+import { FichaCompletaExport } from "@/components/shared/FichaCompletaExport";
+import { EpicrisisPdfView } from "@/components/shared/EpicrisisPdfView";
 import { PresupuestoList } from "@/components/modules/PresupuestoList";
 import { InformeList } from "@/components/modules/InformeList";
 
@@ -11,16 +13,11 @@ export const metadata = { title: "Documentos — FCE" };
 
 // ── Tab definitions ────────────────────────────────────────────────────────────
 
-const TABS = [
-  { id: "ficha",        label: "Ficha Clínica" },
-  { id: "presupuestos", label: "Presupuestos" },
-  { id: "informes",     label: "Informes" },
-] as const;
+type TabId = "ficha" | "presupuestos" | "informes" | "epicrisis";
 
-type TabId = (typeof TABS)[number]["id"];
-
-function isTabId(value: string | undefined): value is TabId {
-  return TABS.some((t) => t.id === value);
+interface TabDef {
+  id: TabId;
+  label: string;
 }
 
 // ── Page ──────────────────────────────────────────────────────────────────────
@@ -35,64 +32,70 @@ export default async function ExportarPdfPage({
   const { id } = await params;
   const { tab } = await searchParams;
 
-  const activeTab: TabId = isTabId(tab) ? tab : "ficha";
+  const { config, userId, idClinica } = await getClinicaConfigFromSession();
+  if (!userId) redirect("/login");
+  if (!idClinica) notFound();
 
   const supabase = await createClient();
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser();
-  if (error || !user) redirect("/login");
 
-  // Resolve patient name for breadcrumb — needed for ficha tab and breadcrumb
-  // For non-ficha tabs we still need the name; fetch a lightweight query.
-  let fullName = "Paciente";
+  // Nombre del paciente (con guard de tenant) + último egreso firmado para tab Epicrisis
+  const [pacienteRes, egresoRes] = await Promise.all([
+    supabase
+      .from("pacientes")
+      .select("nombre, apellido_paterno, apellido_materno")
+      .eq("id", id)
+      .eq("id_clinica", idClinica)
+      .single(),
+    supabase
+      .from("fce_egresos")
+      .select("id")
+      .eq("id_paciente", id)
+      .eq("id_clinica", idClinica)
+      .eq("firmado", true)
+      .order("firmado_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+  ]);
 
-  if (activeTab === "ficha") {
-    const result = await getPdfPatientData(id);
-    if (!result.success) notFound();
+  if (!pacienteRes.data) notFound();
 
-    const generatedAt = new Date().toLocaleString("es-CL", {
-      timeZone: "America/Santiago",
-    });
-
-    const patient = result.data.patient;
-    fullName =
-      [patient.nombre, patient.apellido_paterno, patient.apellido_materno]
-        .filter(Boolean)
-        .join(" ") || "Paciente";
-
-    return (
-      <div>
-        <Breadcrumb id={id} fullName={fullName} />
-        <TabBar id={id} activeTab={activeTab} />
-        <PdfExportView data={result.data} generatedAt={generatedAt} />
-      </div>
-    );
-  }
-
-  // For presupuestos / informes tabs — fetch patient name only
-  const { data: patientRow } = await supabase
-    .from("pacientes")
-    .select("nombre, apellido_paterno, apellido_materno")
-    .eq("id", id)
-    .single();
-
-  if (!patientRow) notFound();
-
-  fullName =
-    [patientRow.nombre, patientRow.apellido_paterno, patientRow.apellido_materno]
+  const fullName =
+    [
+      pacienteRes.data.nombre,
+      pacienteRes.data.apellido_paterno,
+      pacienteRes.data.apellido_materno,
+    ]
       .filter(Boolean)
       .join(" ") || "Paciente";
+
+  const egresoFirmadoId: string | null = egresoRes.data?.id ?? null;
+
+  // Tabs visibles según módulos activos de la clínica
+  const tabs: TabDef[] = [
+    { id: "ficha", label: "Ficha Clínica" },
+    ...(requirePresupuestos(config).success
+      ? [{ id: "presupuestos" as const, label: "Presupuestos" }]
+      : []),
+    ...(requireInformes(config).success
+      ? [{ id: "informes" as const, label: "Informes" }]
+      : []),
+    ...(egresoFirmadoId ? [{ id: "epicrisis" as const, label: "Epicrisis" }] : []),
+  ];
+
+  const activeTab: TabId = tabs.some((t) => t.id === tab) ? (tab as TabId) : "ficha";
 
   return (
     <div>
       <Breadcrumb id={id} fullName={fullName} />
-      <TabBar id={id} activeTab={activeTab} />
+      <TabBar id={id} tabs={tabs} activeTab={activeTab} />
 
       <div className="max-w-[860px] mx-auto">
+        {activeTab === "ficha" && <FichaCompletaExport patientId={id} />}
         {activeTab === "presupuestos" && <PresupuestoList idPaciente={id} />}
         {activeTab === "informes" && <InformeList idPaciente={id} />}
+        {activeTab === "epicrisis" && egresoFirmadoId && (
+          <EpicrisisPdfView egresoId={egresoFirmadoId} patientId={id} />
+        )}
       </div>
     </div>
   );
@@ -102,8 +105,10 @@ export default async function ExportarPdfPage({
 
 function Breadcrumb({ id, fullName }: { id: string; fullName: string }) {
   return (
-    <div className="max-w-[860px] mx-auto mb-3 flex items-center gap-1.5 text-sm"
-      style={{ color: "var(--color-ink-3)" }}>
+    <div
+      className="max-w-[860px] mx-auto mb-3 flex items-center gap-1.5 text-sm"
+      style={{ color: "var(--color-ink-3)" }}
+    >
       <Link
         href={`/dashboard/pacientes/${id}`}
         className="flex items-center gap-1 transition-colors hover:opacity-80"
@@ -116,13 +121,21 @@ function Breadcrumb({ id, fullName }: { id: string; fullName: string }) {
   );
 }
 
-function TabBar({ id, activeTab }: { id: string; activeTab: TabId }) {
+function TabBar({
+  id,
+  tabs,
+  activeTab,
+}: {
+  id: string;
+  tabs: TabDef[];
+  activeTab: TabId;
+}) {
   return (
     <div
       className="max-w-[860px] mx-auto flex gap-0 mb-6 border-b"
       style={{ borderColor: "var(--color-kp-border)" }}
     >
-      {TABS.map((tab) => {
+      {tabs.map((tab) => {
         const isActive = activeTab === tab.id;
         return (
           <Link

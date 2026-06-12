@@ -2,102 +2,23 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { log } from "@/lib/logger";
+import type { ActionResult } from "@/lib/modules/guards";
 import type { Patient } from "@/types";
-import type { BrandingConfig } from "@/lib/modules/registry";
+import type { FichaClinicaData } from "@/lib/ficha-clinica/pdf-renderer";
 
-export interface PdfPatientData {
-  patient: Patient;
-  anamnesis: {
-    motivo_consulta: string | null;
-    antecedentes_medicos: unknown;
-    antecedentes_quirurgicos: unknown;
-    farmacologia: unknown;
-    alergias: unknown;
-    red_flags: Record<string, boolean> | null;
-    habitos: unknown;
-  } | null;
-  vitales: {
-    presion_arterial: string | null;
-    frecuencia_cardiaca: number | null;
-    spo2: number | null;
-    temperatura: number | null;
-    frecuencia_respiratoria: number | null;
-    recorded_at: string;
-  } | null;
-  evaluaciones: Array<{
-    id: string;
-    especialidad: string;
-    sub_area: string | null;
-    created_at: string;
-  }>;
-  soaps: Array<{
-    id: string;
-    subjetivo: string | null;
-    objetivo: string | null;
-    analisis_cif: unknown;
-    plan: string | null;
-    intervenciones: unknown;
-    tareas_domiciliarias: string | null;
-    proxima_sesion: string | null;
-    firmado: boolean;
-    firmado_at: string | null;
-    created_at: string;
-  }>;
-  consentimientos: Array<{
-    id: string;
-    tipo: string;
-    firmado: boolean;
-    firmado_at: string | null;
-    created_at: string;
-  }>;
-  notasClinicas: Array<{
-    id: string;
-    id_encuentro: string | null;
-    motivo_consulta: string | null;
-    contenido: string;
-    diagnostico: string | null;
-    plan: string | null;
-    firmado: boolean;
-    firmado_at: string | null;
-    created_at: string;
-  }>;
-  instrumentosAplicados: Array<{
-    id: string;
-    id_encuentro: string | null;
-    puntaje_total: number | null;
-    interpretacion: string | null;
-    notas: string | null;
-    aplicado_at: string;
-    instrumento: {
-      nombre: string;
-      descripcion: string | null;
-    } | null;
-  }>;
-  prescripcionesRecientes: Array<{
-    id: string;
-    folio_display: string;
-    tipo: "farmacologica" | "indicacion_general";
-    diagnostico_asociado: string | null;
-    prof_nombre_snapshot: string | null;
-    firmado_at: string;
-    medicamentos: unknown;
-  }>;
-  egresos: Array<{
-    id: string;
-    tipo_egreso: string;
-    diagnostico_egreso: string;
-    resumen_tratamiento: string;
-    indicaciones_post_egreso: string | null;
-    firmado: boolean;
-    firmado_at: string | null;
-  }>;
-  branding: BrandingConfig | null;
-  clinicName: string;
-}
-
-export async function getPdfPatientData(
-  patientId: string
-): Promise<{ success: true; data: PdfPatientData } | { success: false; error: string }> {
+/**
+ * Compila la ficha clínica electrónica completa del paciente (Decreto 41 / Ley 20.584):
+ * identificación, anamnesis, encuentros, signos vitales, evoluciones SOAP, notas clínicas,
+ * evaluaciones, instrumentos, consentimientos, prescripciones, órdenes de examen,
+ * plan de intervención y egreso.
+ *
+ * Se invoca solo cuando el usuario hace clic en "Descargar ficha completa (PDF)" —
+ * el audit log registra cada exportación.
+ */
+export async function exportarFichaCompletaPdf(
+  idPaciente: string
+): Promise<ActionResult<FichaClinicaData>> {
   const supabase = await createClient();
 
   const {
@@ -106,153 +27,208 @@ export async function getPdfPatientData(
   } = await supabase.auth.getUser();
   if (authError || !user) redirect("/login");
 
-  // Fetch admin primero para obtener idClinica antes de leer datos clínicos
   const adminRes = await supabase
-    .from("admin_users").select("id_clinica").eq("auth_id", user.id).maybeSingle();
+    .from("admin_users")
+    .select("id_clinica")
+    .eq("auth_id", user.id)
+    .eq("activo", true)
+    .maybeSingle();
   const idClinica = adminRes.data?.id_clinica ?? null;
-  if (!idClinica) return { success: false, error: "No se encontró la clínica asociada al usuario." };
+  if (!idClinica) {
+    return { success: false, error: "No se encontró la clínica asociada al usuario." };
+  }
 
-  // Fetch paciente con guard de tenant
-  const patientRes = await supabase
-    .from("pacientes").select("*").eq("id", patientId).eq("id_clinica", idClinica).single();
-
-  if (patientRes.error || !patientRes.data) {
+  // Paciente con guard de tenant — el resto de las queries hereda este guard
+  const pacienteRes = await supabase
+    .from("pacientes")
+    .select("*")
+    .eq("id", idPaciente)
+    .eq("id_clinica", idClinica)
+    .single();
+  if (pacienteRes.error || !pacienteRes.data) {
     return { success: false, error: "Paciente no encontrado" };
   }
 
-  // Fetch resto de datos en paralelo
-  const [anamnesisRes, vitalesRes, evaluacionesRes, soapsRes, consentimientosRes, clinicaRes, notasClinicasRes, instrumentosRes, prescripcionesRes, egresosRes] =
-    await Promise.all([
-      supabase
-        .from("fce_anamnesis")
-        .select(
-          "motivo_consulta, antecedentes_medicos, antecedentes_quirurgicos, farmacologia, alergias, red_flags, habitos"
-        )
-        .eq("id_paciente", patientId)
-        .maybeSingle(),
-      supabase
-        .from("fce_signos_vitales")
-        .select(
-          "presion_arterial, frecuencia_cardiaca, spo2, temperatura, frecuencia_respiratoria, recorded_at"
-        )
-        .eq("id_paciente", patientId)
-        .order("recorded_at", { ascending: false })
-        .limit(1)
-        .maybeSingle(),
-      supabase
-        .from("fce_evaluaciones")
-        .select("id, especialidad, sub_area, created_at")
-        .eq("id_paciente", patientId)
-        .order("created_at", { ascending: false })
-        .limit(5),
-      supabase
-        .from("fce_notas_soap")
-        .select(
-          "id, subjetivo, objetivo, analisis_cif, plan, intervenciones, tareas_domiciliarias, proxima_sesion, firmado, firmado_at, created_at"
-        )
-        .eq("id_paciente", patientId)
-        .order("created_at", { ascending: false })
-        .limit(3),
-      supabase
-        .from("fce_consentimientos")
-        .select("id, tipo, firmado, firmado_at, created_at")
-        .eq("id_paciente", patientId)
-        .order("created_at", { ascending: false }),
-      idClinica
-        ? supabase.from("clinicas").select("config, nombre").eq("id", idClinica).single()
-        : Promise.resolve({ data: null, error: null }),
-      idClinica
-        ? supabase
-            .from("fce_notas_clinicas")
-            .select("id, id_encuentro, motivo_consulta, contenido, diagnostico, plan, firmado, firmado_at, created_at")
-            .eq("id_paciente", patientId)
-            .eq("id_clinica", idClinica)
-            .eq("firmado", true)
-            .order("created_at", { ascending: false })
-        : Promise.resolve({ data: [] as Array<{
-            id: string;
-            id_encuentro: string | null;
-            motivo_consulta: string | null;
-            contenido: string;
-            diagnostico: string | null;
-            plan: string | null;
-            firmado: boolean;
-            firmado_at: string | null;
-            created_at: string;
-          }>, error: null }),
-      idClinica
-        ? supabase
-            .from("instrumentos_aplicados")
-            .select("id, id_encuentro, puntaje_total, interpretacion, notas, aplicado_at, instrumento:instrumentos_valoracion(nombre, descripcion)")
-            .eq("id_paciente", patientId)
-            .eq("id_clinica", idClinica)
-            .order("aplicado_at", { ascending: false })
-        : Promise.resolve({ data: [] as Array<{
-            id: string;
-            id_encuentro: string | null;
-            puntaje_total: number | null;
-            interpretacion: string | null;
-            notas: string | null;
-            aplicado_at: string;
-            instrumento: { nombre: string; descripcion: string | null } | null;
-          }>, error: null }),
-      idClinica
-        ? supabase
-            .from("fce_prescripciones")
-            .select("id, folio_display, tipo, diagnostico_asociado, prof_nombre_snapshot, firmado_at, medicamentos")
-            .eq("id_paciente", patientId)
-            .eq("id_clinica", idClinica)
-            .eq("firmado", true)
-            .order("firmado_at", { ascending: false })
-            .limit(5)
-        : Promise.resolve({ data: [], error: null }),
-      idClinica
-        ? supabase
-            .from("fce_egresos")
-            .select("id, tipo_egreso, diagnostico_egreso, resumen_tratamiento, indicaciones_post_egreso, firmado, firmado_at")
-            .eq("id_paciente", patientId)
-            .eq("id_clinica", idClinica)
-            .eq("firmado", true)
-            .order("firmado_at", { ascending: false })
-        : Promise.resolve({ data: [], error: null }),
-    ]);
+  const [
+    anamnesisRes,
+    encuentrosRes,
+    signosVitalesRes,
+    notasSoapRes,
+    notasClinicasRes,
+    evaluacionesRes,
+    instrumentosRes,
+    consentimientosRes,
+    prescripcionesRes,
+    ordenesExamenRes,
+    planesRes,
+    egresoRes,
+    clinicaRes,
+  ] = await Promise.all([
+    supabase
+      .from("fce_anamnesis")
+      .select(
+        "motivo_consulta, antecedentes_medicos, antecedentes_quirurgicos, farmacologia, alergias, red_flags, habitos"
+      )
+      .eq("id_paciente", idPaciente)
+      .eq("id_clinica", idClinica)
+      .maybeSingle(),
+    supabase
+      .from("fce_encuentros")
+      .select("id, especialidad, status, started_at, profesional:profesionales(nombre)")
+      .eq("id_paciente", idPaciente)
+      .eq("id_clinica", idClinica)
+      .order("started_at", { ascending: true }),
+    // fce_signos_vitales no tiene id_clinica directa — el paciente ya está tenant-guarded
+    supabase
+      .from("fce_signos_vitales")
+      .select(
+        "recorded_at, presion_arterial, frecuencia_cardiaca, spo2, temperatura, frecuencia_respiratoria"
+      )
+      .eq("id_paciente", idPaciente)
+      .order("recorded_at", { ascending: true }),
+    supabase
+      .from("fce_notas_soap")
+      .select(
+        "id, subjetivo, objetivo, analisis_cif, plan, intervenciones, tareas_domiciliarias, firmado_at, created_at, encuentro:fce_encuentros(especialidad, started_at)"
+      )
+      .eq("id_paciente", idPaciente)
+      .eq("id_clinica", idClinica)
+      .eq("firmado", true)
+      .order("created_at", { ascending: true }),
+    // icd_codigos se omite: la migration ICD-11 de fce_notas_clinicas está pendiente en prod
+    supabase
+      .from("fce_notas_clinicas")
+      .select(
+        "id, motivo_consulta, contenido, diagnostico, plan, secciones_estructuradas, firmado_at, created_at, encuentro:fce_encuentros(especialidad, started_at)"
+      )
+      .eq("id_paciente", idPaciente)
+      .eq("id_clinica", idClinica)
+      .eq("firmado", true)
+      .order("created_at", { ascending: true }),
+    supabase
+      .from("fce_evaluaciones")
+      .select("id, especialidad, sub_area, data, created_at")
+      .eq("id_paciente", idPaciente)
+      .eq("id_clinica", idClinica)
+      .order("created_at", { ascending: true }),
+    supabase
+      .from("instrumentos_aplicados")
+      .select(
+        "id, puntaje_total, interpretacion, notas, aplicado_at, instrumento:instrumentos_valoracion(nombre)"
+      )
+      .eq("id_paciente", idPaciente)
+      .eq("id_clinica", idClinica)
+      .order("aplicado_at", { ascending: true }),
+    supabase
+      .from("fce_consentimientos")
+      .select("id, tipo, firmado_at")
+      .eq("id_paciente", idPaciente)
+      .eq("id_clinica", idClinica)
+      .eq("firmado", true)
+      .order("firmado_at", { ascending: true }),
+    supabase
+      .from("fce_prescripciones")
+      .select(
+        "id, folio_display, tipo, medicamentos, indicaciones_generales, diagnostico_asociado, firmado_at, prof_nombre_snapshot"
+      )
+      .eq("id_paciente", idPaciente)
+      .eq("id_clinica", idClinica)
+      .eq("firmado", true)
+      .order("firmado_at", { ascending: true }),
+    supabase
+      .from("fce_ordenes_examen")
+      .select(
+        "id, folio_display, examenes, diagnostico_presuntivo, prioridad, firmado_at, prof_nombre_snapshot"
+      )
+      .eq("id_paciente", idPaciente)
+      .eq("id_clinica", idClinica)
+      .eq("firmado", true)
+      .order("firmado_at", { ascending: true }),
+    supabase
+      .from("fce_planes_intervencion")
+      .select(
+        "id, titulo, diagnostico, estado, objetivos:fce_plan_objetivos(dominio_label, descripcion, criterio_logro, nivel_actual, orden)"
+      )
+      .eq("id_paciente", idPaciente)
+      .eq("id_clinica", idClinica)
+      .order("created_at", { ascending: true }),
+    supabase
+      .from("fce_egresos")
+      .select(
+        "tipo_egreso, diagnostico_egreso, resumen_tratamiento, estado_al_egreso, indicaciones_post_egreso, derivacion_a, firmado_at"
+      )
+      .eq("id_paciente", idPaciente)
+      .eq("id_clinica", idClinica)
+      .eq("firmado", true)
+      .order("firmado_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
+    supabase.from("clinicas").select("nombre, config").eq("id", idClinica).single(),
+  ]);
 
-  // Registrar exportación en logs_auditoria
+  // Audit obligatorio en exportación de ficha clínica
   try {
     await supabase.from("logs_auditoria").insert({
       actor_id: user.id,
       actor_tipo: "profesional",
-      accion: "exportar_ficha",
+      accion: "exportar_ficha_clinica",
       tabla_afectada: "pacientes",
-      registro_id: patientId,
-      id_paciente: patientId,
-      ...(idClinica ? { id_clinica: idClinica } : {}),
+      registro_id: idPaciente,
+      id_paciente: idPaciente,
+      id_clinica: idClinica,
     });
-  } catch {
-    // No bloquear la generación del PDF
+  } catch (err) {
+    log("warn", { action: "exportar_ficha_clinica_audit_fail", id_clinica: idClinica, id_paciente: idPaciente, error: err });
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const clinicaData = clinicaRes.data as any;
-  const branding: BrandingConfig | null = clinicaData?.config?.branding ?? null;
-  const clinicName: string =
-    clinicaData?.nombre ?? branding?.clinic_short_name ?? "ESTABLECIMIENTO DE SALUD";
+  const clinicaRow = clinicaRes.data as any;
+  const branding = clinicaRow?.config?.branding ?? null;
+  const sucursal = clinicaRow?.config?.sucursales?.[0] ?? null;
 
-  return {
-    success: true,
-    data: {
-      patient: patientRes.data as Patient,
-      anamnesis: anamnesisRes.data ?? null,
-      vitales: vitalesRes.data ?? null,
-      evaluaciones: evaluacionesRes.data ?? [],
-      soaps: soapsRes.data ?? [],
-      consentimientos: consentimientosRes.data ?? [],
-      notasClinicas: (notasClinicasRes.data ?? []) as PdfPatientData["notasClinicas"],
-      instrumentosAplicados: (instrumentosRes.data ?? []) as PdfPatientData["instrumentosAplicados"],
-      prescripcionesRecientes: (prescripcionesRes.data ?? []) as PdfPatientData["prescripcionesRecientes"],
-      egresos: (egresosRes.data ?? []) as PdfPatientData["egresos"],
-      branding,
-      clinicName,
+  const generadoEl = new Date().toLocaleString("es-CL", {
+    timeZone: "America/Santiago",
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+
+  const rows = <T>(res: { data: unknown }): T[] => (res.data as T[] | null) ?? [];
+
+  const data: FichaClinicaData = {
+    generadoEl,
+    clinica: {
+      nombre: clinicaRow?.nombre ?? branding?.clinic_short_name ?? "Establecimiento de Salud",
+      logo_url: branding?.logo_url ?? null,
+      iniciales: branding?.clinic_initials ?? null,
+      direccion: typeof sucursal?.direccion === "string" ? sucursal.direccion : null,
     },
+    paciente: pacienteRes.data as Patient,
+    anamnesis: anamnesisRes.data ?? null,
+    encuentros: rows<FichaClinicaData["encuentros"][number]>(encuentrosRes),
+    signosVitales: rows<FichaClinicaData["signosVitales"][number]>(signosVitalesRes),
+    notasSoap: rows<FichaClinicaData["notasSoap"][number]>(notasSoapRes),
+    notasClinicas: rows<Omit<FichaClinicaData["notasClinicas"][number], "icd_codigos">>(
+      notasClinicasRes
+    ).map((n) => ({ ...n, icd_codigos: null })),
+    evaluaciones: rows<FichaClinicaData["evaluaciones"][number]>(evaluacionesRes),
+    instrumentos: rows<FichaClinicaData["instrumentos"][number]>(instrumentosRes),
+    consentimientos: rows<FichaClinicaData["consentimientos"][number]>(consentimientosRes),
+    prescripciones: rows<FichaClinicaData["prescripciones"][number]>(prescripcionesRes),
+    ordenesExamen: rows<FichaClinicaData["ordenesExamen"][number]>(ordenesExamenRes),
+    planesIntervencion: rows<FichaClinicaData["planesIntervencion"][number]>(planesRes).map(
+      (p) => ({
+        ...p,
+        objetivos: [...(p.objetivos ?? [])].sort(
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          (a: any, b: any) => (a.orden ?? 0) - (b.orden ?? 0)
+        ),
+      })
+    ),
+    egreso: (egresoRes.data as FichaClinicaData["egreso"]) ?? null,
   };
+
+  return { success: true, data };
 }
