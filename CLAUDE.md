@@ -1,6 +1,6 @@
 # CLAUDE.md — FCE Platform (fce-plataform)
 
-> Última actualización: 2026-06-10 (M11 Presupuestos + M12 Informes Clínicos)
+> Última actualización: 2026-06-12 (Nutri-N1/N2 Antropometría — tabla + z-score OMS + Atalah)
 > Este documento es la fuente de verdad para Claude Code. Leerlo antes de cualquier cambio.
 
 ---
@@ -148,9 +148,13 @@ El workspace dental vive en `/encuentro/[encuentroId]/dental/page.tsx` y usa `De
 
 Para columnas exactas consultar `docs/schema-real.md` o MCP Supabase.
 
-**Con `id_clinica`**: pacientes, fce_anamnesis, fce_encuentros, fce_consentimientos, clinicas_fce_config, instrumentos_aplicados, fce_notas_clinicas, fce_prescripciones, fce_ordenes_examen, fce_egresos, fce_planes_intervencion, fce_plan_objetivos, fce_plan_progreso, fce_notas_soap, fce_evaluaciones, fce_presupuestos, fce_presupuesto_items, fce_informes
+**Con `id_clinica`**: pacientes, fce_anamnesis, fce_encuentros, fce_consentimientos, clinicas_fce_config, instrumentos_aplicados, fce_notas_clinicas, fce_prescripciones, fce_ordenes_examen, fce_egresos, fce_planes_intervencion, fce_plan_objetivos, fce_plan_progreso, fce_notas_soap, fce_evaluaciones, fce_presupuestos, fce_presupuesto_items, fce_informes, fce_antropometria
 
 **`fce_informes`** tiene trigger `trg_block_update_signed_informe` — inmutabilidad post-firma (igual que SOAP, consentimientos, prescripciones). `fce_presupuestos` NO tiene trigger de inmutabilidad — el firmado bloquea via application layer, no DB trigger.
+
+**`fce_antropometria`** — tabla nutricional (Nutri-N1/N2, 2026-06-12). Modelo `clinico_general`, especialidad Nutrición. **Dato vivo, NO inmutable** — sin trigger de bloqueo post-firma. RLS: `id_clinica NOT NULL` + policy `get_clinica_ids_for_user()`. Columnas clave: `modo` (adulto|pediatrico|gestacional), `peso_kg`, `talla_cm`, `imc`, `clasificacion`, `zscore_imc`, `zscore_peso`, `zscore_talla`, `percentil_imc`, `circ_cintura_cm`, `circ_cadera_cm`, `riesgo_cintura`, `pliegues jsonb`, `formula_grasa`, `perc_grasa`, `masa_magra_kg`, `semana_gestacional`, `imc_pregestacional`, `rango_ganancia_min`, `rango_ganancia_max`, `observaciones`.
+
+**`fce_anamnesis` columnas gestacionales (Nutri-N2)**: `embarazo_activo boolean NOT NULL DEFAULT false`, `fur date`, `semana_gestacional_base int`, `fecha_eval_gestacional date`. Permitir null en las tres últimas — embarazo puede desactivarse.
 
 **Catálogos globales**: especialidades_catalogo, instrumentos_valoracion, medicamentos_catalogo, examenes_catalogo, plantillas_dominios
 
@@ -294,6 +298,27 @@ recharts no resuelve CSS vars. En `ProgresoChart` y cualquier chart:
 const LINE_COLORS = ["#00B0A8", "#006B6B", "#F5A623", "#E53935", "#43A047"];
 ```
 
+### Cálculos biológicos nutricionales — sexo_registral, degradación y pliegues
+
+```typescript
+// ✅ CORRECTO — curvas OMS y Atalah usan sexo biológico de nacimiento
+const sexo = paciente.sexo_registral; // 'M' | 'F' | null
+
+// Si falta sexo_registral o fecha_nacimiento → degradar a modo adulto IMC simple
+// NUNCA usar identidad_genero para cálculos biológicos (z-score, Atalah)
+// Los modos pediátrico y gestacional EXIGEN sexo_registral poblado
+
+// Pliegues cutáneos (% grasa corporal) — SOLO modo adulto
+// Las ecuaciones Durnin-Womersley / Jackson-Pollock / Faulkner NO están validadas
+// en población pediátrica ni en embarazadas. Ocultar la sección pliegues en ambos modos.
+```
+
+**Reglas permanentes:**
+- `sexo_registral` → único input válido para curvas OMS LMS y Atalah gestacional
+- `identidad_genero` → NUNCA se pasa a cálculos biológicos
+- Si `paciente.sexo_registral == null` o `paciente.fecha_nacimiento == null` en modo pediátrico/gestacional → degradar a adulto IMC simple y mostrar aviso al profesional
+- `% grasa por pliegues` → disponible SOLO en modo adulto (campo `formula_grasa` + `pliegues` en `fce_antropometria`)
+
 ### XSS en PdfViews — escapeHtml obligatorio
 ```typescript
 function escapeHtml(s: unknown): string {
@@ -387,6 +412,12 @@ src/lib/
   │                     servicio-config.ts (P1: SERVICIO_KEYWORDS + getServicioContexto)
   ├── nutricion/      → antropometria.ts (P2: calcularIMC, clasificarCircunferenciaCintura,
   │                       calcularAntropometria — funciones puras server-safe)
+  │                     pliegues.ts (Nutri-N1: Durnin-Womersley, JP3, JP7, Faulkner — SOLO adultos)
+  │                     zscore.ts (Nutri-N2: z-score LMS OMS, percentil, clasificación pediátrica)
+  │                     atalah.ts (Nutri-N2: curva Atalah gestacional, MINSAL Chile)
+  │                     oms-lms/ → bmi-boys-0-5.json, bmi-girls-0-5.json,
+  │                                bmi-boys-5-19.json, bmi-girls-5-19.json
+  │                                (_validation_status: PENDIENTE_CLINICA en todos)
   ├── fce/            → profesional.ts (getProfesionalActivo lee cookie P1, getProfesionalesDelUsuario)
   ├── icd/            → client.ts (OAuth2 WHO), types.ts, search.ts (buscarDiagnostico/buscarCIF), entity.ts
   ├── dental/         → fdi.ts (numeración FDI), periograma.ts, plan.ts
@@ -509,6 +540,8 @@ Actualmente **ninguna clínica tiene fce-plataform en producción** — el repo 
 | O1-plantillas | **synapta** `lib/servicios-plantillas.ts`: plantilla `multidisciplinaria_rehabilitacion` — 9 categorías, 39 servicios. `getPlantillasDisponibles()` retorna 2 plantillas (estética + rehabilitación). |
 | M11-M12 | Presupuestos (M11) e Informes Clínicos (M12): tipos, server actions, UI completa (Form/List/PdfView), hub de documentos con tabs, Copiloto IA para informes |
 | M11-M12 fix | Hub de documentos: eliminada auto-descarga del PDF al navegar; tabs gateados por módulos activos + tab Epicrisis (si egreso firmado); PDF de ficha clínica COMPLETA (13 secciones, Decreto 41/Ley 20.584) vía `exportarFichaCompletaPdf` + `lib/ficha-clinica/pdf-renderer.ts`; PdfExportView eliminado |
+| Nutri-N1 | Antropometría adulto: tabla `fce_antropometria`, server actions, panel UI, pliegues (Durnin-Womersley/JP/Faulkner), chart evolución. Tipos TS + validaciones Zod |
+| Nutri-N2 | Z-score OMS pediátrico + curva Atalah gestacional: `zscore.ts`, `atalah.ts`, 4 datasets LMS JSON (PENDIENTE_CLINICA), columnas gestacionales en `fce_anamnesis`, modo pediátrico/gestacional en panel |
 
 ### Pendientes
 
@@ -537,6 +570,7 @@ Actualmente **ninguna clínica tiene fce-plataform en producción** — el repo 
 | Add `id_clinica` a `fce_notas_soap` y `fce_evaluaciones` + RLS directo sin JOIN | 2026-06-06 |
 | **SQL O1 pendiente**: onboarding cenupsi — `20260604_onboard_cenupsi.sql` (activa 10 módulos + 5 especialidades) | 2026-06-04 |
 | **SQL P2 pendiente**: seed instrumentos nutricionales MNA/MUST/SGA — requiere validación clínica por nutricionista | 2026-06-02 |
+| `fce_antropometria` (tabla nueva Nutri-N1) + columnas gestacionales en `fce_anamnesis` (Nutri-N2): `20260612_01_fce_antropometria` + `20260612_02_fce_anamnesis_embarazo` — **aplicadas en producción** | 2026-06-12 |
 
 ### Deuda técnica
 
@@ -554,6 +588,9 @@ Actualmente **ninguna clínica tiene fce-plataform en producción** — el repo 
 | Umbrales circunferencia cintura en `antropometria.ts` son ATP-III/OMS caucásicos — calibrar para población latinoamericana con nutricionista | Media |
 | Seed MNA/MUST/SGA requiere validación clínica formal antes de activar en producción | Alta |
 | Sección "Contexto" de `TerapiaOcupacionalEval` sin campo `observaciones_contexto` — agregar si se reporta por la clínica | Baja |
+| Datasets OMS LMS (`oms-lms/*.json`) en `PENDIENTE_CLINICA` — verificar contra tablas mensuales WHO antes de activar modo pediátrico en producción | Alta |
+| Bandas Atalah en `atalah.ts` en `PENDIENTE_CLINICA` — verificar valores contra Atalah et al. 1997 original antes de activar modo gestacional en producción | Alta |
+| UI panel antropometría no implementada — panel, chart evolución y actions pendientes de frontend | Alta — Nutri-N1 |
 
 ---
 
@@ -850,16 +887,35 @@ Sub-áreas: `avd` (AVD básicas/instrumentales + nivel independencia) · `destre
 
 Guarda en `fce_evaluaciones.data` (jsonb, modelo rehab). No requiere tabla nueva. Estado de Terapia Ocupacional en `ESPECIALIDADES_REGISTRY`: `"beta"`.
 
-### Módulo nutrición — src/lib/nutricion/antropometria.ts
+### Módulo nutrición — src/lib/nutricion/
 
 ```typescript
+// Funciones puras, server-safe (sin imports React/Next.js)
+
 import { calcularIMC, clasificarCircunferenciaCintura, calcularAntropometria }
   from "@/lib/nutricion/antropometria";
-
-// Server-safe (sin imports React/Next.js). Funciones puras.
 // Umbrales cintura: F >80cm riesgo leve, >88cm riesgo alto; M >94cm / >102cm
 // ⚠️ Umbrales ATP-III/OMS caucásicos — pendiente calibración para población latinoamericana
+
+import { calcularGrasaCorporal, calcularMasaMagra } from "@/lib/nutricion/pliegues";
+// SOLO modo adulto — ecuaciones no validadas en niños/embarazadas
+
+import { calcularIndicadorPediatrico, getBMIDataset } from "@/lib/nutricion/zscore";
+// Datasets LMS: PENDIENTE_CLINICA — ver _validation_status en oms-lms/*.json
+// TODO: cambiar a VALIDADO_<fecha> tras revisión de NTA
+
+import { clasificarGestacional, getBandaLimites, calcularSemanaGestacional }
+  from "@/lib/nutricion/atalah";
+// Estándar MINSAL Chile (Atalah et al. 1997) — PENDIENTE_CLINICA
+// TODO: cambiar a VALIDADO_<fecha> tras revisión de NTA
 ```
+
+**Modos del panel:**
+- `adulto` — IMC, cintura, pliegues (% grasa), clasificación OMS adulto
+- `pediatrico` — z-score IMC/edad OMS (0–19 años) — requiere `pacientes.sexo_registral` y `fecha_nacimiento`
+- `gestacional` — curva Atalah, ganancia de peso recomendada — requiere `embarazo_activo=true` + `fur` en `fce_anamnesis`
+
+Si falta `sexo_registral` o `fecha_nacimiento`: degradar a modo adulto IMC simple. NUNCA lanzar error — degradar con aviso.
 
 ---
 

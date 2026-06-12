@@ -183,7 +183,10 @@
       "PowerShell(npx -y github:JuliusBrussee/caveman -- --dry-run --only claude 2>&1)",
       "PowerShell(npx -y github:JuliusBrussee/caveman -- --only claude --non-interactive 2>&1)",
       "Bash(Get-Content package.json)",
-      "Bash(Select-String \"sentry\")"
+      "Bash(Select-String \"sentry\")",
+      "PowerShell(Remove-Item *)",
+      "PowerShell(npm run *)",
+      "PowerShell(cd C:\\\\Users\\\\alexi\\\\fce-plataform && npx supabase gen types typescript --project-id vigyhfpwyxihrjiygfsa > src/lib/supabase/types.ts 2>&1; echo \"EXIT:$LASTEXITCODE\")"
     ]
   },
   "mcpServers": {

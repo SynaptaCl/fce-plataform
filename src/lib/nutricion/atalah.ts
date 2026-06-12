@@ -65,6 +65,7 @@ export const GANANCIA_TOTAL: Record<CategoriaPregestacional, { min: number; max:
 //
 // Fuente: Atalah et al. 1997, Tabla 2.
 // ⚠️ PENDIENTE_CLINICA: verificar valores contra publicación original.
+// TODO: cambiar a VALIDADO_<fecha> tras revisión de NTA cuando nutricionista confirme bandas Atalah
 
 interface BandaAtalah {
   semana: number;

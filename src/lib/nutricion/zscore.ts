@@ -20,6 +20,7 @@
  */
 
 // Datasets estáticos — ver archivos JSON con nota _validation_status
+// TODO: cambiar a VALIDADO_<fecha> tras revisión de NTA cuando nutricionista confirme datasets OMS LMS
 import bmiBoysO5   from './oms-lms/bmi-boys-0-5.json';
 import bmiGirlsO5  from './oms-lms/bmi-girls-0-5.json';
 import bmiBoysS19  from './oms-lms/bmi-boys-5-19.json';

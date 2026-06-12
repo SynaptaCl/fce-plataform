@@ -338,3 +338,63 @@ Ninguna desplegada actualmente.
 ### Cambios a tablas existentes (Sprint N1)
 - `fce_notas_clinicas`: columna `secciones_estructuradas jsonb DEFAULT NULL` (conductas_observadas, participacion_cuidador, estrategias, asistencia)
 - `instrumentos_valoracion`: `tipo_renderer` ahora acepta `'registro_externo'` (además de escala_simple y componente_custom)
+
+---
+
+## Tablas Sprint Nutri-N1 + Nutri-N2 — Antropometría Nutricional
+
+Migraciones aplicadas en producción el 2026-06-12:
+- `20260612_01_fce_antropometria`
+- `20260612_02_fce_anamnesis_embarazo`
+
+### `fce_antropometria` (NUEVA — Nutri-N1/N2)
+
+Tabla dedicada para registros antropométricos nutricionales. Modelo `clinico_general`, especialidad Nutrición. **Dato vivo, NO inmutable** — sin trigger de bloqueo post-firma.
+
+RLS: `id_clinica NOT NULL` + policy `get_clinica_ids_for_user()` (patrón post-2026-06-06).
+
+```
+id                uuid PK DEFAULT gen_random_uuid()
+id_clinica        uuid NOT NULL FK → clinicas(id)
+id_paciente       uuid NOT NULL FK → pacientes(id)
+id_encuentro      uuid nullable FK → fce_encuentros(id)
+modo              text NOT NULL DEFAULT 'adulto'  -- 'adulto' | 'pediatrico' | 'gestacional'
+peso_kg           numeric NOT NULL
+talla_cm          numeric NOT NULL
+imc               numeric nullable  -- calculado server-side
+clasificacion     text nullable     -- clasificación OMS adulto / z-score / Atalah
+zscore_imc        numeric nullable  -- pediátrico: z-score IMC/edad OMS
+zscore_peso       numeric nullable  -- pediátrico: z-score peso/edad OMS (si disponible)
+zscore_talla      numeric nullable  -- pediátrico: z-score talla/edad OMS (si disponible)
+percentil_imc     numeric nullable  -- pediátrico: percentil calculado desde z-score
+circ_cintura_cm   numeric nullable
+circ_cadera_cm    numeric nullable
+riesgo_cintura    text nullable     -- 'normal' | 'leve' | 'alto'
+pliegues          jsonb nullable    -- { biceps, triceps, subescapular, suprailiaco, ... } en mm
+formula_grasa     text nullable     -- 'durnin_womersley' | 'jackson_pollock_3' | 'jackson_pollock_7' | 'faulkner'
+perc_grasa        numeric nullable  -- % grasa corporal (SOLO modo adulto)
+masa_magra_kg     numeric nullable
+semana_gestacional int nullable     -- gestacional: calculado desde fur o ingresado manualmente
+imc_pregestacional numeric nullable -- gestacional: IMC antes del embarazo (semana < 12)
+rango_ganancia_min numeric nullable -- gestacional: rango ganancia total recomendado (Atalah)
+rango_ganancia_max numeric nullable
+observaciones     text nullable
+registrado_por    uuid NOT NULL FK → profesionales(id)
+registrado_at     timestamptz NOT NULL DEFAULT now()
+created_at        timestamptz NOT NULL DEFAULT now()
+```
+
+Índices: `(id_clinica, id_paciente, registrado_at DESC)` para timeline y chart.
+
+### Cambios a `fce_anamnesis` (Nutri-N2)
+
+4 columnas nuevas para contexto gestacional:
+
+```
+embarazo_activo        boolean NOT NULL DEFAULT false
+fur                    date nullable  -- fecha última regla
+semana_gestacional_base int nullable  -- semana gestacional capturada en evaluación
+fecha_eval_gestacional  date nullable -- fecha en que se calculó la semana gestacional
+```
+
+`semana_gestacional_base` + `fecha_eval_gestacional` permiten recalcular la semana actual sin re-preguntar el FUR en cada visita.
