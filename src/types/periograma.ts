@@ -1,3 +1,5 @@
+import type { ICDCodeSnap } from "./diagnostico";
+
 export interface PeriogramaPiezaDatos {
   pieza: number;
   sondaje: {
@@ -33,6 +35,8 @@ export interface Periograma {
   indice_sangrado: number | null;
   profundidad_media: number | null;
   sitios_patologicos: number | null;
+  /** Diagnóstico ICD-11 único (objeto, no array) — jsonb `{}` cuando no hay diagnóstico */
+  diagnostico_icd: ICDCodeSnap | Record<string, never> | null;
   notas: string | null;
   firmado: boolean;
   firmado_at: string | null;

@@ -331,8 +331,7 @@ src/app/actions/
   ├── profesionales.ts    → crearProfesional + actualizarProfesional (P1: valida especialidad vs DB)
   ├── perfil-selector.ts  → setPerfilActivo (P1: setea cookie id_profesional_activo)
   ├── rehab/    → soap.ts, evaluacion.ts, cif.ts
-  ├── clinico/  → nota-clinica.ts, nota-rapida.ts, instrumentos.ts,
-  │               catalogo-instrumentos.ts, diagnostico.ts,
+  ├── clinico/  → nota-clinica.ts, nota-rapida.ts, instrumentos.ts, diagnostico.ts,
   │               plan-intervencion.ts, plantillas-dominios.ts
   └── dental/   → odontograma.ts, periograma.ts, plan-tratamiento.ts, procedimientos.ts
 
@@ -343,8 +342,6 @@ src/components/
   │               BrandingInjector, ProfesionalSelector (P1: badge + dropdown N>1 perfiles)
   ├── modules/
   │   ├── ClinicalTimeline.tsx
-  │   ├── EvaluacionTimeline.tsx
-  │   ├── PatientNav.tsx
   │   ├── timeline/ → SoapExpandedCard, EvaluacionExpandedCard, NotaClinicaExpandedCard,
   │   │               PrescripcionExpandedCard, OrdenExamenExpandedCard,
   │   │               InstrumentoExpandedCard, ConsentimientoExpandedCard,
@@ -374,13 +371,14 @@ src/components/
                    FhirPreview, FichaCompletaExport (hub: descarga ficha completa on-click),
                    RedFlagsChecklist,
                    EgresoForm, EgresoCard, EgresoLauncher, ReingresoBanner, EpicrisisPdfView,
-                   Prescripcion* (PrescripcionLauncher, Form, List, DetalleModal,
+                   Prescripcion* (PrescripcionLauncher, Form, DetalleModal,
                      FirmaPanel, MedicamentoSelector, MedicamentoCard, MedicamentoEditor,
                      IndicacionGeneralEditor, RecetaPdfView),
-                   OrdenExamen* (Launcher, Form, List, DetalleModal,
+                   OrdenExamen* (Launcher, Form, DetalleModal,
                      FirmaPanel, ExamenSelector, ExamenCard, OrdenExamenPdfView),
                    PlanIntervencion* (PlanIntervencionLauncher, PlanIntervencionPanel,
-                     ObjetivoEditor, ProgresoRegistro, ProgresoChart, PlanIntervencionPdfView)
+                     ObjetivoEditor, ProgresoRegistro, ProgresoChart, PlanIntervencionPdfView —
+                     chart GAS, export PDF y selector de plantilla/condición integrados en el Panel)
 
 src/lib/
   ├── modules/        → registry.ts, config.ts, guards.ts (ActionResult aquí), modelos.ts, provider.tsx
@@ -530,7 +528,7 @@ Actualmente **ninguna clínica tiene fce-plataform en producción** — el repo 
 | M8 activo en Renata + Nuvident | 2026-04-24 |
 | `fce_egresos` + `pacientes.estado_clinico` + M9 activo en Renata | 2026-04-27 |
 | `fce_resumenes_ia` | 2026-04-30 |
-| Columnas ICD-11 en `fce_notas_clinicas` + `fce_periogramas` — **PENDIENTES de aplicar** | 2026-05-07 |
+| Columnas ICD-11 aplicadas: `fce_notas_clinicas` (`icd_codigos`, `icd_version`) y `fce_periograma` (`diagnostico_icd`) — ambas verificadas en prod | 2026-06-12 |
 | `fce_planes_intervencion`, `fce_plan_objetivos`, `fce_plan_progreso`, `plantillas_dominios` | 2026-05-31 |
 | Columna `secciones_estructuradas jsonb` en `fce_notas_clinicas` | 2026-05-31 |
 | Tipo `registro_externo` en `instrumentos_valoracion` | 2026-05-31 |
@@ -545,7 +543,6 @@ Actualmente **ninguna clínica tiene fce-plataform en producción** — el repo 
 | Item | Prioridad |
 |---|---|
 | ~~Migración RLS pendiente 20260601_01~~ — reemplazada por `20260606_02_fix_rls_tenant_isolation_5_policies.sql` (aplicada) | ~~Resuelta~~ |
-| Migrations ICD-11 pendientes (`fce_notas_clinicas` + `fce_periogramas`) — SQL en `supabase/migrations/20260506_01_icd_notas_clinicas.sql` y `20260506_02_icd_periograma.sql` | Alta |
 | Gestión `puede_prescribir` / `puede_indicar_examenes` en panel clínica | Media |
 | Modal de selección de perfil al primer ingreso (cuando N>1 perfiles, sin cookie) | Media |
 | Instrumentos con `validado: false` en seed (8 de 10) | Media |
@@ -700,8 +697,8 @@ interface ICDCodeSnap {
 }
 ```
 
-### Migrations ICD-11 pendientes
-Las columnas `diagnosticos_icd` en `fce_notas_clinicas` y `fce_periogramas` fueron generadas en R-ICD-1 pero **aún no se han aplicado en producción**. Ver `scripts/test-sprint-icd1.ts` para el SQL.
+### Migrations ICD-11
+Ambas migrations R-ICD-1 **ya están aplicadas en producción** (verificado vía PostgREST 2026-06-12): `fce_notas_clinicas` tiene `icd_codigos` + `icd_version` (20260506_01) y `fce_periograma` tiene `diagnostico_icd` (20260506_02). Ojo con los nombres: notas usa `icd_codigos` (array), periograma usa `diagnostico_icd` (objeto único). La tabla es `fce_periograma` singular — `fce_periogramas` NO existe.
 
 ---
 
@@ -768,7 +765,7 @@ type EstadoPlanIntervencion = "borrador" | "activo" | "en_revision" | "cerrado";
 ```
 plan-intervencion.ts:
   getPlanesIntervencion(patientId)
-  getPlanIntervencionDetalle(planId)
+  getPlanIntervencionDetalle(planId)   → incluye progresoPorObjetivo (historial completo, 1 query)
   crearPlanIntervencion(params)
   actualizarPlanIntervencion(planId, campos)
   upsertObjetivo(planId, objetivo)
@@ -782,6 +779,15 @@ plantillas-dominios.ts:
 ```
 
 Todas las escrituras: `assertModuleEnabled(config, 'M10_plan_intervencion')` + `logAudit`.
+
+**UI integrada en `PlanIntervencionPanel`** (2026-06-12): selector de condición base (plantillas de `plantillas_dominios` → dropdown de dominios en `ObjetivoEditor` via prop `dominiosDisponibles`), gráfico `ProgresoChart` (GAS, recharts) y export PDF (`PlanIntervencionPdfView`).
+
+### Shape de `secciones_estructuradas` (jsonb en fce_notas_clinicas) — CRÍTICO
+Conviven 2 formas en la misma columna:
+- **Campos M10** (neurodesarrollo): strings PLANOS en la raíz — `conductas_observadas`, `participacion_cuidador`, `estrategias`, `asistencia`
+- **Secciones P2**: objetos anidados — `{ [seccionId]: { [campoId]: valor } }`
+
+En `NotaClinicaForm` cada estado se inicializa SOLO con sus claves (`extraerCamposM10` / `extraerSeccionesP2`) — si ambos copian el jsonb completo, el merge del submit pisa ediciones con copias stale (bug corregido 2026-06-12). Todo consumidor del jsonb (pdf-renderer, timeline cards) debe manejar ambas formas.
 
 ### Instrumentos registro_externo
 
@@ -811,13 +817,14 @@ Ver `docs/plan-redisenio/sprints/N1-neurodesarrollo-activacion.md` para el SQL. 
 />
 ```
 
-**Almacenamiento**: las respuestas de las secciones estructuradas se guardan en la columna `secciones_estructuradas jsonb` de `fce_notas_clinicas`. Esta columna también almacena los campos M10 (neurodesarrollo). El submit fusiona ambos:
+**Almacenamiento**: las respuestas de las secciones estructuradas se guardan en la columna `secciones_estructuradas jsonb` de `fce_notas_clinicas`. Esta columna también almacena los campos M10 (neurodesarrollo). El submit fusiona ambos estados SIEMPRE (sin condicionar a m10Activo/seccionesEsp — cada estado se inicializa solo con sus claves desde la nota existente, así se preservan datos aunque el módulo esté inactivo):
 ```typescript
 secciones_estructuradas: {
-  ...(m10Activo ? camposM10 : {}),         // conductas_observadas, etc.
-  ...(seccionesEsp.length > 0 ? camposP2 : {}),  // motivo, contenido, plan, etc.
+  ...seccionesEstructuradas,   // M10: strings planos (conductas_observadas, etc.)
+  ...contenidoEstructurado,    // P2: { [seccionId]: { [campoId]: valor } }
 }
 ```
+Ver sección 19 — "Shape de `secciones_estructuradas`" para la regla de consumo.
 
 **Trigger de inmutabilidad**: `trg_block_update_signed_nota` (función `block_update_signed_nota_clinica`) bloquea UPDATE de `secciones_estructuradas` en notas firmadas. Ya estaba activo antes de P2.
 

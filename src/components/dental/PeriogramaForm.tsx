@@ -74,10 +74,10 @@ export function PeriogramaForm({
     () => initDatos(TODAS, periogramaExistente?.datos ?? []),
   );
   const [notas, setNotas]                 = useState(periogramaExistente?.notas ?? "");
-  const [diagnosticoIcd, setDiagnosticoIcd] = useState<ICDCodeSnap | null>(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (periogramaExistente as any)?.diagnostico_icd?.code ? (periogramaExistente as any).diagnostico_icd as ICDCodeSnap : null
-  );
+  const [diagnosticoIcd, setDiagnosticoIcd] = useState<ICDCodeSnap | null>(() => {
+    const dx = periogramaExistente?.diagnostico_icd;
+    return dx && "code" in dx ? (dx as ICDCodeSnap) : null;
+  });
   const [periogramaId, setPeriogramaId]   = useState<string | null>(periogramaExistente?.id ?? null);
   const [firmado, setFirmado]             = useState(periogramaExistente?.firmado ?? false);
   const [firmadoAt, setFirmadoAt]         = useState<string | null>(periogramaExistente?.firmado_at ?? null);
