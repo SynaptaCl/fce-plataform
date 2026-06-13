@@ -32,8 +32,6 @@ const SECCIONES_INCLUIDAS = [
 
 type Status = "idle" | "loading" | "rendering" | "done" | "error";
 
-const PDF_CONTAINER_ID = "ficha-completa-pdf-container";
-
 // ── Component ──────────────────────────────────────────────────────────────────
 
 export function FichaCompletaExport({ patientId }: FichaCompletaExportProps) {
@@ -84,20 +82,7 @@ export function FichaCompletaExport({ patientId }: FichaCompletaExportProps) {
               margin: [12, 10, 14, 10],
               filename,
               image: { type: "jpeg", quality: 0.97 },
-              html2canvas: {
-                scale: 2,
-                useCORS: true,
-                logging: false,
-                // El contenedor vive con opacity:0 para no verse en pantalla;
-                // html2canvas también capturaría esa opacidad → restaurarla en el clon
-                onclone: (doc) => {
-                  const clone = doc.getElementById(PDF_CONTAINER_ID);
-                  if (clone) {
-                    clone.style.opacity = "1";
-                    clone.style.zIndex = "auto";
-                  }
-                },
-              },
+              html2canvas: { scale: 2, useCORS: true, logging: false },
               jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
               pagebreak: { mode: ["avoid-all", "css", "legacy"] },
             })
@@ -127,23 +112,28 @@ export function FichaCompletaExport({ patientId }: FichaCompletaExportProps) {
 
   return (
     <>
-      {/* Contenedor oculto para html2pdf.js — debe quedar DENTRO del viewport
-          (html2canvas no captura elementos fuera de pantalla) pero invisible */}
+      {/* Contenedor para html2pdf.js. html2pdf CLONA el elemento pasado a .from()
+          con sus estilos inline y lo captura en un contenedor propio — por eso los
+          estilos de ocultamiento van en este wrapper externo y el elemento interno
+          (el que se clona) queda limpio. Nunca ocultar el elemento interno. */}
       {pdfHtml && (
         <div
-          id={PDF_CONTAINER_ID}
-          ref={containerRef}
+          aria-hidden="true"
           style={{
             position: "fixed",
             top: 0,
             left: 0,
-            width: "210mm",
             opacity: 0,
             zIndex: -1,
             pointerEvents: "none",
           }}
-          dangerouslySetInnerHTML={{ __html: pdfHtml }}
-        />
+        >
+          <div
+            ref={containerRef}
+            style={{ width: "210mm", background: "#FFFFFF" }}
+            dangerouslySetInnerHTML={{ __html: pdfHtml }}
+          />
+        </div>
       )}
 
       <div className="bg-surface-1 border border-kp-border rounded-xl p-5 space-y-4">
