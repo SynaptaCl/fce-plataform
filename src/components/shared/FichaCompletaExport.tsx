@@ -32,6 +32,8 @@ const SECCIONES_INCLUIDAS = [
 
 type Status = "idle" | "loading" | "rendering" | "done" | "error";
 
+const PDF_CONTAINER_ID = "ficha-completa-pdf-container";
+
 // ── Component ──────────────────────────────────────────────────────────────────
 
 export function FichaCompletaExport({ patientId }: FichaCompletaExportProps) {
@@ -63,37 +65,60 @@ export function FichaCompletaExport({ patientId }: FichaCompletaExportProps) {
     }
   }
 
-  // Cuando el HTML está montado en el contenedor oculto, generar el PDF
+  // Cuando el HTML está montado en el contenedor oculto, generar el PDF.
+  // rAF + setTimeout garantizan que el navegador pintó el contenedor antes de
+  // que html2canvas lo capture (sin esto, captura un frame vacío).
   useEffect(() => {
     if (status !== "rendering" || !pdfHtml || !containerRef.current) return;
     const element = containerRef.current;
     let cancelled = false;
-    (async () => {
-      try {
-        const html2pdf = (await import("html2pdf.js")).default;
-        await html2pdf()
-          .set({
-            margin: [12, 10, 14, 10],
-            filename,
-            image: { type: "jpeg", quality: 0.97 },
-            html2canvas: { scale: 2, useCORS: true, logging: false },
-            jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-            pagebreak: { mode: ["avoid-all", "css", "legacy"] },
-          })
-          .from(element)
-          .save();
-        if (!cancelled) setStatus("done");
-      } catch {
-        if (!cancelled) {
-          setError("Error al generar el PDF. Intenta de nuevo.");
-          setStatus("error");
+    let timer: ReturnType<typeof setTimeout> | undefined;
+
+    const rafId = requestAnimationFrame(() => {
+      timer = setTimeout(async () => {
+        if (cancelled) return;
+        try {
+          const html2pdf = (await import("html2pdf.js")).default;
+          await html2pdf()
+            .set({
+              margin: [12, 10, 14, 10],
+              filename,
+              image: { type: "jpeg", quality: 0.97 },
+              html2canvas: {
+                scale: 2,
+                useCORS: true,
+                logging: false,
+                // El contenedor vive con opacity:0 para no verse en pantalla;
+                // html2canvas también capturaría esa opacidad → restaurarla en el clon
+                onclone: (doc) => {
+                  const clone = doc.getElementById(PDF_CONTAINER_ID);
+                  if (clone) {
+                    clone.style.opacity = "1";
+                    clone.style.zIndex = "auto";
+                  }
+                },
+              },
+              jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+              pagebreak: { mode: ["avoid-all", "css", "legacy"] },
+            })
+            .from(element)
+            .save();
+          if (!cancelled) setStatus("done");
+        } catch {
+          if (!cancelled) {
+            setError("Error al generar el PDF. Intenta de nuevo.");
+            setStatus("error");
+          }
+        } finally {
+          if (!cancelled) setPdfHtml(null);
         }
-      } finally {
-        if (!cancelled) setPdfHtml(null);
-      }
-    })();
+      }, 300);
+    });
+
     return () => {
       cancelled = true;
+      cancelAnimationFrame(rafId);
+      if (timer) clearTimeout(timer);
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status, pdfHtml]);
@@ -102,11 +127,21 @@ export function FichaCompletaExport({ patientId }: FichaCompletaExportProps) {
 
   return (
     <>
-      {/* Contenedor oculto para html2pdf.js */}
+      {/* Contenedor oculto para html2pdf.js — debe quedar DENTRO del viewport
+          (html2canvas no captura elementos fuera de pantalla) pero invisible */}
       {pdfHtml && (
         <div
+          id={PDF_CONTAINER_ID}
           ref={containerRef}
-          style={{ position: "absolute", left: "-9999px", top: 0, width: "210mm" }}
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            width: "210mm",
+            opacity: 0,
+            zIndex: -1,
+            pointerEvents: "none",
+          }}
           dangerouslySetInnerHTML={{ __html: pdfHtml }}
         />
       )}

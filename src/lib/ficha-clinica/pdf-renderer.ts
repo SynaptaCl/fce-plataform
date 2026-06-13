@@ -248,9 +248,12 @@ function entryCard(headerLeft: string, headerRight: string, body: string): strin
   if (!body.trim()) return "";
   return `
     <div style="border:1px solid ${BORDER}; border-radius:6px; margin-bottom:10px; overflow:hidden; page-break-inside:avoid;">
-      <div style="background:${BG_HEAD}; padding:5px 10px; font-size:9px; font-weight:700; color:${INK_2}; display:flex; justify-content:space-between;">
-        <span>${headerLeft}</span><span style="color:#16A34A;">${headerRight}</span>
-      </div>
+      <table style="width:100%; border-collapse:collapse; background:${BG_HEAD};">
+        <tr>
+          <td style="padding:5px 10px; font-size:9px; font-weight:700; color:${INK_2};">${headerLeft}</td>
+          <td style="padding:5px 10px; font-size:9px; font-weight:700; color:#16A34A; text-align:right;">${headerRight}</td>
+        </tr>
+      </table>
       <div style="padding:8px 10px;">${body}</div>
     </div>`;
 }
@@ -325,10 +328,12 @@ function buildIdentificacion(p: Patient): string {
   const col = (items: Array<[string, string]>) => items.map(([l, v]) => field(l, v)).join("");
   return (
     sectionTitle("1. Identificación del Paciente (M1)") +
-    `<div style="display:grid; grid-template-columns:1fr 1fr; gap:0 24px;">
-      <div>${col(rows.slice(0, half))}</div>
-      <div>${col(rows.slice(half))}</div>
-    </div>`
+    `<table style="width:100%; border-collapse:collapse;">
+      <tr>
+        <td style="width:50%; vertical-align:top; padding-right:12px;">${col(rows.slice(0, half))}</td>
+        <td style="width:50%; vertical-align:top; padding-left:12px;">${col(rows.slice(half))}</td>
+      </tr>
+    </table>`
   );
 }
 
@@ -687,8 +692,8 @@ export function renderFichaCompletaPdf(data: FichaClinicaData): string {
   const { clinica, paciente, generadoEl } = data;
 
   const logoHtml = clinica.logo_url
-    ? `<img src="${esc(clinica.logo_url)}" style="height:44px; object-fit:contain; margin-right:14px;" />`
-    : `<div style="width:44px; height:44px; background:${TEAL}; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:16px; font-weight:700; color:#FFFFFF; margin-right:14px;">${esc(clinica.iniciales ?? "FC")}</div>`;
+    ? `<img src="${esc(clinica.logo_url)}" style="height:44px; object-fit:contain;" />`
+    : `<div style="width:44px; height:44px; background:${TEAL}; border-radius:8px; text-align:center; line-height:44px; font-size:16px; font-weight:700; color:#FFFFFF;">${esc(clinica.iniciales ?? "FC")}</div>`;
 
   const direccionHtml = clinica.direccion
     ? `<div style="font-size:11px; color:${INK_2}; margin-top:2px;">${esc(clinica.direccion)}</div>`
@@ -714,19 +719,19 @@ export function renderFichaCompletaPdf(data: FichaClinicaData): string {
 <div style="font-family: Arial, sans-serif; max-width:800px; margin:0 auto; padding:28px 32px; background:#FFFFFF; color:${INK};">
 
   <!-- HEADER -->
-  <div style="display:flex; align-items:center; justify-content:space-between; padding-bottom:14px; border-bottom:2px solid ${TEAL}; margin-bottom:18px;">
-    <div style="display:flex; align-items:center;">
-      ${logoHtml}
-      <div>
+  <table style="width:100%; border-collapse:collapse; border-bottom:2px solid ${TEAL}; margin-bottom:18px;">
+    <tr>
+      <td style="padding-bottom:14px; vertical-align:middle; width:58px;">${logoHtml}</td>
+      <td style="padding-bottom:14px; vertical-align:middle; padding-left:14px;">
         <div style="font-size:18px; font-weight:700; color:#0F172A;">${esc(clinica.nombre)}</div>
         ${direccionHtml}
-      </div>
-    </div>
-    <div style="text-align:right; font-size:9px; color:${INK_3};">
-      <div>Generado: ${esc(generadoEl)}</div>
-      <div style="margin-top:2px;">Decreto 41 MINSAL · Ley 20.584</div>
-    </div>
-  </div>
+      </td>
+      <td style="padding-bottom:14px; vertical-align:middle; text-align:right; font-size:9px; color:${INK_3};">
+        <div>Generado: ${esc(generadoEl)}</div>
+        <div style="margin-top:2px;">Decreto 41 MINSAL · Ley 20.584</div>
+      </td>
+    </tr>
+  </table>
 
   <!-- TITLE -->
   <div style="text-align:center; margin-bottom:18px;">
