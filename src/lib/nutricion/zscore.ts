@@ -147,16 +147,25 @@ export function calcularZScore(
   return z;
 }
 
-/** Clasificación OMS para z-score de IMC/edad. */
+/**
+ * Clasificación OMS para z-score de IMC/edad (6 categorías).
+ * Cortes: z≤-3 severa · z≤-2 desnutrición · z≤+1 normal · z≤+2 sobrepeso · z≤+3 obesidad · >+3 severa
+ */
 export function clasificarZScoreIMC(z: number): string {
-  if (z < -3) return "Desnutrición severa";
-  if (z < -2) return "Desnutrición";
-  if (z < -1) return "Riesgo bajo peso";
-  if (z < 1)  return "Normal";
-  if (z < 2)  return "Posible sobrepeso";
-  if (z < 3)  return "Sobrepeso";
-  return "Obesidad";
+  if (z <= -3) return "Desnutrición severa";
+  if (z <= -2) return "Desnutrición";
+  if (z <= 1)  return "Normal";
+  if (z <= 2)  return "Sobrepeso";
+  if (z <= 3)  return "Obesidad";
+  return "Obesidad severa";
 }
+
+/** True mientras al menos un dataset LMS no haya sido verificado clínicamente. */
+export const ZSCORE_PENDIENTE_CLINICA =
+  bmiBoysO5._validation_status.startsWith("PENDIENTE") ||
+  bmiGirlsO5._validation_status.startsWith("PENDIENTE") ||
+  bmiBoysS19._validation_status.startsWith("PENDIENTE") ||
+  bmiGirlsS19._validation_status.startsWith("PENDIENTE");
 
 /** Calcula z-score + percentil + clasificación. */
 export function calcularIndicadorPediatrico(

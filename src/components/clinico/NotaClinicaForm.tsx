@@ -2,14 +2,15 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { PenLine, Lock, CheckCircle2, X } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, stripHtml, textoPlanoAHtml } from "@/lib/utils";
 import { notaClinicaSchema, type NotaClinicaSchemaType } from "@/lib/validations";
 import { Button } from "@/components/ui/Button";
 import { Textarea } from "@/components/ui/Textarea";
 import { Input } from "@/components/ui/Input";
+import { RichTextEditor } from "@/components/shared/RichTextEditor";
 import { AlertBanner } from "@/components/ui/AlertBanner";
 import { upsertNotaClinica, signNotaClinica } from "@/app/actions/clinico/nota-clinica";
 import type { NotaClinica } from "@/types/nota-clinica";
@@ -186,6 +187,7 @@ export function NotaClinicaForm({
 
   const {
     register,
+    control,
     handleSubmit,
     getValues,
     setValue,
@@ -255,11 +257,13 @@ export function NotaClinicaForm({
   function handleInsertar(modo: 'agregar' | 'reemplazar') {
     if (!borradorActivo) return
     const actual = getValues("contenido")
+    // El copiloto devuelve texto plano — convertir a HTML rich-text
+    const borradorHtml = textoPlanoAHtml(borradorActivo.contenido)
     setValue(
       "contenido",
-      modo === 'reemplazar' || !actual.trim()
-        ? borradorActivo.contenido
-        : `${actual}\n\n---\n\n${borradorActivo.contenido}`
+      modo === 'reemplazar' || !stripHtml(actual).trim()
+        ? borradorHtml
+        : `${actual}<p><br></p>${borradorHtml}`
     )
     setBorradorActivo(null)
   }
@@ -319,19 +323,23 @@ export function NotaClinicaForm({
               <CopilotoNotaButton
                 encuentroId={encuentroId}
                 idClinica={idClinica}
-                getBullets={() => getValues("contenido")}
+                getBullets={() => stripHtml(getValues("contenido"))}
                 onBorradorReady={setBorradorActivo}
               />
             )}
           </div>
-          <Textarea
-            {...register("contenido")}
-            disabled={readOnly}
-            rows={10}
-            placeholder="Describa los hallazgos, la evolución del paciente, las intervenciones realizadas…"
-            className={cn(
-              "font-mono text-sm",
-              readOnly && "opacity-70 cursor-not-allowed"
+          <Controller
+            name="contenido"
+            control={control}
+            render={({ field }) => (
+              <RichTextEditor
+                value={field.value ?? ""}
+                onChange={field.onChange}
+                readOnly={readOnly}
+                placeholder="Describa los hallazgos, la evolución del paciente, las intervenciones realizadas…"
+                ariaLabel="Nota clínica"
+                minHeight={220}
+              />
             )}
           />
           {errors.contenido && (
@@ -343,7 +351,7 @@ export function NotaClinicaForm({
         {borradorActivo && !readOnly && (
           <CopilotoNotaPanel
             borrador={borradorActivo}
-            tieneContenido={getValues("contenido").trim().length > 0}
+            tieneContenido={stripHtml(getValues("contenido")).trim().length > 0}
             onInsertar={handleInsertar}
             onDescartar={() => setBorradorActivo(null)}
           />
@@ -597,12 +605,19 @@ export function NotaClinicaForm({
           <label className="text-sm font-medium text-ink-2">
             Plan <span className="text-ink-3 font-normal">(opcional)</span>
           </label>
-          <Textarea
-            {...register("plan")}
-            disabled={readOnly}
-            rows={4}
-            placeholder="Plan de tratamiento, indicaciones, derivaciones…"
-            className={cn(readOnly && "opacity-70 cursor-not-allowed")}
+          <Controller
+            name="plan"
+            control={control}
+            render={({ field }) => (
+              <RichTextEditor
+                value={field.value ?? ""}
+                onChange={field.onChange}
+                readOnly={readOnly}
+                placeholder="Plan de tratamiento, indicaciones, derivaciones…"
+                ariaLabel="Plan"
+                minHeight={120}
+              />
+            )}
           />
           {errors.plan && (
             <p className="text-xs text-red-600">{errors.plan.message}</p>

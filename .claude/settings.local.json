@@ -186,7 +186,15 @@
       "Bash(Select-String \"sentry\")",
       "PowerShell(Remove-Item *)",
       "PowerShell(npm run *)",
-      "PowerShell(cd C:\\\\Users\\\\alexi\\\\fce-plataform && npx supabase gen types typescript --project-id vigyhfpwyxihrjiygfsa > src/lib/supabase/types.ts 2>&1; echo \"EXIT:$LASTEXITCODE\")"
+      "PowerShell(cd C:\\\\Users\\\\alexi\\\\fce-plataform && npx supabase gen types typescript --project-id vigyhfpwyxihrjiygfsa > src/lib/supabase/types.ts 2>&1; echo \"EXIT:$LASTEXITCODE\")",
+      "mcp__plugin_playwright_playwright__browser_navigate",
+      "mcp__plugin_playwright_playwright__browser_evaluate",
+      "mcp__plugin_playwright_playwright__browser_close",
+      "PowerShell(git push *)",
+      "PowerShell(npm install *)",
+      "PowerShell(npx eslint src/lib/sanitize.ts src/lib/utils.ts src/components/shared/RichTextEditor.tsx src/app/actions/rehab/soap.ts src/app/actions/clinico/nota-clinica.ts src/app/actions/clinico/nota-rapida.ts src/components/clinico/SeccionEstructuradaRenderer.tsx src/components/rehab/SoapForm.tsx src/components/clinico/NotaClinicaForm.tsx src/components/clinico/QuickNoteModal.tsx src/components/modules/timeline/_shared.tsx src/components/modules/timeline/SoapExpandedCard.tsx src/components/modules/timeline/NotaClinicaExpandedCard.tsx src/lib/ficha-clinica/pdf-renderer.ts src/lib/ia/extraccion/evolucion.ts 2>&1 | Select-Object -Last 20)",
+      "PowerShell(npm uninstall *)",
+      "PowerShell(npx eslint src/lib/validations.ts src/app/actions/clinico/nota-rapida.ts src/lib/utils.ts 2>&1 | Select-Object -Last 15; Write-Output \"EXIT:$LASTEXITCODE\")"
     ]
   },
   "mcpServers": {

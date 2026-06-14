@@ -1,5 +1,11 @@
 import { z } from "zod";
 import { validateRut } from "./run-validator";
+import { stripHtml } from "./utils";
+
+// Longitud sobre TEXTO PLANO. Los campos rich-text guardan HTML; validar el crudo
+// penaliza al profesional que aplica formato (tags suman overhead) y no refleja el
+// contenido real. Usar en min/max de campos editados con RichTextEditor.
+const richTextLen = (val: string): number => stripHtml(val).length;
 
 // ── Patient ──
 
@@ -56,15 +62,15 @@ export const vitalSignsSchema = z.object({
 // ── SOAP ──
 
 export const soapSchema = z.object({
-  subjetivo: z.string().min(1, "El campo Subjetivo es obligatorio"),
-  objetivo: z.string().min(1, "El campo Objetivo es obligatorio"),
+  subjetivo: z.string().refine((v) => richTextLen(v) >= 1, "El campo Subjetivo es obligatorio"),
+  objetivo: z.string().refine((v) => richTextLen(v) >= 1, "El campo Objetivo es obligatorio"),
   analisis_cif: z.object({
     funciones: z.array(z.any()),
     actividades: z.array(z.any()),
     participacion: z.array(z.any()),
     contexto: z.array(z.any()),
   }),
-  plan: z.string().min(1, "El campo Plan es obligatorio"),
+  plan: z.string().refine((v) => richTextLen(v) >= 1, "El campo Plan es obligatorio"),
   intervenciones: z.array(z.object({
     tipo: z.string(),
     descripcion: z.string(),
@@ -143,10 +149,12 @@ export const masoContraindicacionesSchema = z.object({
 
 export const notaClinicaSchema = z.object({
   motivo_consulta: z.string().max(500).optional().or(z.literal("")),
-  contenido: z.string().min(10, "La nota debe tener al menos 10 caracteres").max(10000),
+  contenido: z.string()
+    .refine((v) => richTextLen(v) >= 10, "La nota debe tener al menos 10 caracteres")
+    .refine((v) => richTextLen(v) <= 10000, "La nota no puede superar los 10000 caracteres"),
   diagnostico: z.string().max(1000).optional().or(z.literal("")),
   cie10_codigos: z.array(z.string()).optional(),
-  plan: z.string().max(5000).optional().or(z.literal("")),
+  plan: z.string().refine((v) => richTextLen(v) <= 5000, "El plan no puede superar los 5000 caracteres").optional().or(z.literal("")),
   proxima_sesion: z.string().max(500).optional().or(z.literal("")),
 });
 

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { soapSchema } from "@/lib/validations";
+import { sanitizeRichText } from "@/lib/sanitize";
 import type { ActionResult } from "@/app/actions/patients";
 import { getIdClinica } from "@/app/actions/patients";
 import type { SoapNote } from "@/types";
@@ -139,6 +140,14 @@ export async function upsertSoapNote(
 
   const soapData = {
     ...parsed.data,
+    // Campos narrativos rich-text — sanitizar HTML antes de persistir.
+    // analisis_cif e intervenciones son jsonb estructurado: pasan tal cual.
+    subjetivo: sanitizeRichText(parsed.data.subjetivo),
+    objetivo: sanitizeRichText(parsed.data.objetivo),
+    plan: sanitizeRichText(parsed.data.plan),
+    tareas_domiciliarias: parsed.data.tareas_domiciliarias
+      ? sanitizeRichText(parsed.data.tareas_domiciliarias)
+      : parsed.data.tareas_domiciliarias,
     proxima_sesion: parsed.data.proxima_sesion || null,
   };
 

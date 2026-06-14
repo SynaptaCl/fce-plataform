@@ -2,7 +2,7 @@
 "use client";
 
 import { getModeloDeEspecialidad, getRutaEncuentro } from "@/lib/modules/modelos";
-import { Section, CifSection, EntryFooter, EncuentroLink, formatDate } from "./_shared";
+import { CifSection, EntryFooter, EncuentroLink, RichTextSection, formatDate } from "./_shared";
 import type { TimelineEntry } from "@/app/actions/timeline";
 import type { CifAssessment } from "@/types/cif";
 import type { Intervention } from "@/types/soap";
@@ -28,14 +28,14 @@ export function SoapExpandedCard({ entry, patientId }: Props) {
   return (
     <div className="space-y-3">
       {d.subjetivo && (
-        <Section label="S — Subjetivo">{String(d.subjetivo)}</Section>
+        <RichTextSection label="S — Subjetivo" value={String(d.subjetivo)} />
       )}
       {d.objetivo && (
-        <Section label="O — Objetivo">{String(d.objetivo)}</Section>
+        <RichTextSection label="O — Objetivo" value={String(d.objetivo)} />
       )}
       {cif && <CifSection cif={cif} />}
       {d.plan && (
-        <Section label="P — Plan">{String(d.plan)}</Section>
+        <RichTextSection label="P — Plan" value={String(d.plan)} />
       )}
       {intervenciones.length > 0 && (
         <div>
@@ -56,7 +56,7 @@ export function SoapExpandedCard({ entry, patientId }: Props) {
         </div>
       )}
       {d.tareas_domiciliarias && (
-        <Section label="Tareas domiciliarias">{String(d.tareas_domiciliarias)}</Section>
+        <RichTextSection label="Tareas domiciliarias" value={String(d.tareas_domiciliarias)} />
       )}
       <div className="flex items-center gap-1.5 text-xs text-ink-2">
         <span className="font-bold text-ink-3 uppercase tracking-wide text-[0.6rem]">

@@ -2,7 +2,11 @@
 
 import { CheckCircle2 } from "lucide-react";
 
-export function FirmarHeaderButton() {
+interface Props {
+  bloqueadoPorValidacion?: boolean;
+}
+
+export function FirmarHeaderButton({ bloqueadoPorValidacion = false }: Props) {
   function handleClick() {
     const el = document.getElementById("signature-section");
     if (el) {
@@ -10,14 +14,30 @@ export function FirmarHeaderButton() {
     }
   }
 
+  if (bloqueadoPorValidacion) {
+    return (
+      <div
+        title="Datos pediátricos/gestacionales pendientes de validación clínica. El nutricionista debe verificar los datasets OMS/Atalah antes de poder firmar."
+        className="cursor-not-allowed"
+      >
+        <button
+          disabled
+          aria-disabled="true"
+          className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold opacity-40 pointer-events-none"
+          style={{ background: "var(--color-kp-accent)", color: "#fff" }}
+        >
+          <CheckCircle2 className="w-4 h-4" />
+          Firmar y cerrar
+        </button>
+      </div>
+    );
+  }
+
   return (
     <button
       onClick={handleClick}
       className="flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold transition-colors"
-      style={{
-        background: "var(--color-kp-accent)",
-        color: "#fff",
-      }}
+      style={{ background: "var(--color-kp-accent)", color: "#fff" }}
     >
       <CheckCircle2 className="w-4 h-4" />
       Firmar y cerrar

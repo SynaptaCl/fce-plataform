@@ -4,8 +4,9 @@ import { useState } from "react";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
-import { Textarea } from "@/components/ui/Textarea";
 import { AlertBanner } from "@/components/ui/AlertBanner";
+import { RichTextEditor } from "@/components/shared/RichTextEditor";
+import { stripHtml } from "@/lib/utils";
 import { createQuickNote } from "@/app/actions/clinico/nota-rapida";
 
 interface QuickNoteModalProps {
@@ -29,8 +30,8 @@ export function QuickNoteModal({ patientId, onClose, onSaved }: QuickNoteModalPr
     setFieldError(null);
     setServerError(null);
 
-    const trimmed = contenido.trim();
-    if (trimmed.length < MIN_CONTENIDO) {
+    const textoPlano = stripHtml(contenido).trim();
+    if (textoPlano.length < MIN_CONTENIDO) {
       setFieldError(`La nota debe tener al menos ${MIN_CONTENIDO} caracteres.`);
       return;
     }
@@ -40,7 +41,7 @@ export function QuickNoteModal({ patientId, onClose, onSaved }: QuickNoteModalPr
       const result = await createQuickNote(
         patientId,
         motivo.trim() || null,
-        trimmed
+        contenido
       );
       if (!result.success) {
         setServerError(result.error);
@@ -92,19 +93,20 @@ export function QuickNoteModal({ patientId, onClose, onSaved }: QuickNoteModalPr
           />
 
           <div className="space-y-1">
-            <Textarea
-              label="Nota"
-              placeholder="Escriba la nota clínica..."
+            <label className="block text-sm font-medium text-ink-1">Nota</label>
+            <RichTextEditor
               value={contenido}
-              onChange={(e) => setContenido(e.target.value)}
-              maxLength={MAX_CONTENIDO}
-              required
-              disabled={loading}
-              className="min-h-[180px]"
-              error={fieldError ?? undefined}
+              onChange={setContenido}
+              placeholder="Escriba la nota clínica..."
+              readOnly={loading}
+              ariaLabel="Nota clínica rápida"
+              minHeight={180}
             />
+            {fieldError && (
+              <p className="text-xs text-red-600">{fieldError}</p>
+            )}
             <p className="text-xs text-ink-3 text-right">
-              {contenido.length} / {MAX_CONTENIDO}
+              {stripHtml(contenido).length} / {MAX_CONTENIDO}
             </p>
           </div>
         </div>

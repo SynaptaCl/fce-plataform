@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { patientSchema, type PatientSchemaType } from "@/lib/validations";
-import { formatRut } from "@/lib/run-validator";
+import { formatRut, cleanRut } from "@/lib/run-validator";
 import type { Patient, PacienteClinico, CitaAgenda } from "@/types";
 
 // ── Tipos de respuesta ─────────────────────────────────────────────────────
@@ -158,6 +158,25 @@ export async function getPatientById(
   return { success: true, data: data as Patient };
 }
 
+// ── Helper: normaliza RUT a 3 formatos para búsqueda multi-formato ────────
+
+function rutVariants(rut: string): string[] {
+  const clean = cleanRut(rut);                              // "274680938"
+  const formatted = formatRut(rut);                         // "27.468.093-8"
+  const sinPuntos = `${clean.slice(0, -1)}-${clean.slice(-1)}`; // "27468093-8"
+  return [...new Set([formatted, sinPuntos, clean])];
+}
+
+// ── Helper: mensaje amigable para violaciones UNIQUE ──────────────────────
+
+function mensajeDuplicado(error: { message?: string; details?: string | null }): string {
+  const haystack = `${error.message ?? ""} ${error.details ?? ""}`.toLowerCase();
+  if (haystack.includes("rut"))   return "Ya existe una ficha con este RUN.";
+  if (haystack.includes("email")) return "Ya existe una ficha con este correo electrónico.";
+  // Caso cross-tenant o constraint desconocido — exponer el detalle para diagnóstico
+  return `Dato duplicado: ${error.message ?? "constraint violation"}`;
+}
+
 // ── createPatient ──────────────────────────────────────────────────────────
 
 export async function createPatient(
@@ -173,6 +192,20 @@ export async function createPatient(
   const idClinica = await getIdClinica(supabase, user.id);
   if (!idClinica) return { success: false, error: "No se encontró la clínica asociada al usuario." };
 
+  // Pre-check: buscar RUT en cualquier formato dentro de la clínica antes del INSERT.
+  // Cubre: "27.468.093-8", "27468093-8", "274680938" (con o sin puntos/guión).
+  if (parsed.data.rut) {
+    const variants = rutVariants(parsed.data.rut);
+    const { data: dup } = await supabase
+      .from("pacientes")
+      .select("id")
+      .eq("id_clinica", idClinica)
+      .or(variants.map((v) => `rut.eq.${v}`).join(","))
+      .limit(1)
+      .maybeSingle();
+    if (dup) return { success: false, error: "Ya existe una ficha con este RUN en esta clínica." };
+  }
+
   // Normalizar RUT al formato canónico XX.XXX.XXX-K antes de persistir
   const payload = { ...parsed.data, rut: formatRut(parsed.data.rut), id_clinica: idClinica };
 
@@ -184,7 +217,7 @@ export async function createPatient(
 
   if (error) {
     if (error.code === "23505") {
-      return { success: false, error: "Ya existe una ficha con este RUN." };
+      return { success: false, error: mensajeDuplicado(error) };
     }
     return { success: false, error: error.message };
   }
@@ -225,7 +258,7 @@ export async function updatePatient(
 
   if (error) {
     if (error.code === "23505") {
-      return { success: false, error: "Ya existe una ficha con este RUN." };
+      return { success: false, error: mensajeDuplicado(error) };
     }
     return { success: false, error: error.message };
   }

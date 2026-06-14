@@ -17,7 +17,8 @@
     "onboard:clinica": "tsx scripts/onboard-clinica.ts",
     "test:sprint-o1-f5": "tsx scripts/test-sprint-o1-f5.ts",
     "test:sprint-n1-nutricion": "tsx scripts/test-sprint-n1-nutricion.ts",
-    "test:sprint-n2-nutricion": "tsx scripts/test-sprint-n2-nutricion.ts"
+    "test:sprint-n2-nutricion": "tsx scripts/test-sprint-n2-nutricion.ts",
+    "test:sprint-rte": "tsx scripts/test-sprint-rte.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.92.0",
@@ -25,9 +26,12 @@
     "@sentry/nextjs": "^10.56.0",
     "@supabase/ssr": "^0.10.2",
     "@supabase/supabase-js": "^2.103.0",
+    "@tiptap/react": "^3.26.1",
+    "@tiptap/starter-kit": "^3.26.1",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
     "html2pdf.js": "^0.14.0",
+    "isomorphic-dompurify": "^3.16.0",
     "lucide-react": "^1.8.0",
     "motion": "^12.38.0",
     "next": "^16.2.6",
@@ -40,6 +44,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@types/dompurify": "^3.0.5",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",

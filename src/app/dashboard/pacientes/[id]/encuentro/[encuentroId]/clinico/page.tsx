@@ -17,6 +17,8 @@ import { getEspecialidadConfig } from "@/lib/modules/especialidad-config";
 import { getServicioContexto } from "@/lib/modules/servicio-config";
 import { getEncuentroContext } from "@/app/actions/encuentros";
 import { AntropometriaPanel } from "@/components/clinico/AntropometriaPanel";
+import { ZSCORE_PENDIENTE_CLINICA } from "@/lib/nutricion/zscore";
+import { ATALAH_PENDIENTE_CLINICA } from "@/lib/nutricion/atalah";
 
 export default async function ClinicoPage({
   params,
@@ -42,7 +44,7 @@ export default async function ClinicoPage({
   const config = idClinica ? await getClinicaConfig(idClinica, supabase) : null;
   const m10Activo = config?.modulosActivos.includes("M10_plan_intervencion") ?? false;
 
-  const [patientResult, encuentroRes, notaResult, profesional, ctxResult] = await Promise.all([
+  const [patientResult, encuentroRes, notaResult, profesional, ctxResult, antropModoRes] = await Promise.all([
     getPatientById(id),
     supabase
       .from("fce_encuentros")
@@ -53,6 +55,12 @@ export default async function ClinicoPage({
     getNotaClinica(encuentroId),
     getProfesionalActivo(supabase, user.id, idClinica ?? undefined),
     getEncuentroContext(encuentroId),
+    supabase
+      .from("fce_antropometria")
+      .select("modo")
+      .eq("id_encuentro", encuentroId)
+      .in("modo", ["pediatrico", "gestacional"])
+      .limit(1),
   ]);
 
   const planesResult = m10Activo ? await getPlanesIntervencion(id) : null;
@@ -75,6 +83,11 @@ export default async function ClinicoPage({
   // Permisos: admin/director/superadmin pueden ver siempre; profesional solo si es su encuentro
   const isAdmin = ["admin", "director", "superadmin"].includes(rol);
   const isProfesional = rol === "profesional";
+
+  // Firma bloqueada si el encuentro tiene antropometría pediátrica/gestacional con datasets no validados
+  const firmaBloquedaPorValidacion =
+    (antropModoRes.data?.length ?? 0) > 0 &&
+    (ZSCORE_PENDIENTE_CLINICA || ATALAH_PENDIENTE_CLINICA);
 
   // Solo mostrar formulario si el encuentro está en progreso o es readOnly (finalizado)
   const encuentroFinalizado = encuentro.status === "finalizado";
@@ -119,7 +132,7 @@ export default async function ClinicoPage({
           hasConsent={false}
           patientId={id}
           statusBadge={statusBadge}
-          primaryAction={!readOnly ? <FirmarHeaderButton /> : undefined}
+          primaryAction={!readOnly ? <FirmarHeaderButton bloqueadoPorValidacion={firmaBloquedaPorValidacion} /> : undefined}
         />
       </div>
 

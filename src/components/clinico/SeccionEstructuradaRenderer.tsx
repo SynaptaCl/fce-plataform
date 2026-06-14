@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { Input } from "@/components/ui/Input";
-import { Textarea } from "@/components/ui/Textarea";
+import { RichTextEditor } from "@/components/shared/RichTextEditor";
+import { isRichTextHtml } from "@/lib/sanitize";
 import type { SeccionNota, CampoNota } from "@/lib/modules/especialidad-config";
 
 // ── Props ─────────────────────────────────────────────────────────────────────
@@ -63,6 +64,17 @@ function CampoRenderer({ campo, valor, onChange, readOnly }: CampoRendererProps)
       );
     }
     if (!valorStr) return null;
+    // texto_largo puede contener HTML rich-text — renderizar como tal
+    if (campo.tipo === "texto_largo" && isRichTextHtml(valorStr)) {
+      return (
+        <div
+          className="rte-display"
+          style={{ color: "var(--color-ink-1)" }}
+          // Contenido sanitizado server-side en nota-clinica.ts antes de guardar
+          dangerouslySetInnerHTML={{ __html: valorStr }}
+        />
+      );
+    }
     return (
       <p className="text-sm whitespace-pre-wrap" style={{ color: "var(--color-ink-1)" }}>
         {valorStr}
@@ -74,13 +86,13 @@ function CampoRenderer({ campo, valor, onChange, readOnly }: CampoRendererProps)
   switch (campo.tipo) {
     case "texto_largo":
       return (
-        <Textarea
+        <RichTextEditor
           value={valorStr}
-          onChange={(e) => onChange(e.target.value)}
-          disabled={isReadOnly}
-          rows={3}
+          onChange={(html) => onChange(html)}
           placeholder={campo.placeholder}
-          style={isReadOnly ? { opacity: 0.7, cursor: "not-allowed" } : undefined}
+          readOnly={isReadOnly}
+          ariaLabel={campo.label}
+          minHeight={120}
         />
       );
 

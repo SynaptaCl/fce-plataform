@@ -5,10 +5,37 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { notaClinicaSchema } from "@/lib/validations";
 import { getProfesionalActivo } from "@/lib/fce/profesional";
+import { sanitizeRichText } from "@/lib/sanitize";
 import type { ActionResult } from "@/app/actions/patients";
 import type { NotaClinica } from "@/types/nota-clinica";
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
+
+/**
+ * Sanitiza recursivamente los strings de secciones_estructuradas.
+ * Conviven 2 formas: M10 (strings planos en raíz) y P2 ({ [campoId]: valor }).
+ * Sanitizar texto no-HTML es no-op, así que es seguro aplicar a todos los strings.
+ */
+function sanitizeSeccionesEstructuradas(
+  secciones: Record<string, unknown> | null | undefined
+): Record<string, unknown> | null {
+  if (!secciones || typeof secciones !== "object") return null;
+  const out: Record<string, unknown> = {};
+  for (const [seccionId, contenidoSeccion] of Object.entries(secciones)) {
+    if (typeof contenidoSeccion === "string") {
+      out[seccionId] = sanitizeRichText(contenidoSeccion);
+    } else if (contenidoSeccion && typeof contenidoSeccion === "object" && !Array.isArray(contenidoSeccion)) {
+      const sub: Record<string, unknown> = {};
+      for (const [campoId, valor] of Object.entries(contenidoSeccion as Record<string, unknown>)) {
+        sub[campoId] = typeof valor === "string" ? sanitizeRichText(valor) : valor;
+      }
+      out[seccionId] = sub;
+    } else {
+      out[seccionId] = contenidoSeccion;
+    }
+  }
+  return out;
+}
 
 async function requireAuth() {
   const supabase = await createClient();
@@ -88,13 +115,13 @@ export async function upsertNotaClinica(
   const { motivo_consulta, contenido, diagnostico, cie10_codigos, plan, proxima_sesion } = parsed.data;
   const seccionesEstructuradas = (formData.secciones_estructuradas as Record<string, Record<string, unknown>> | null | undefined) ?? null;
   const cleanedData = {
-    motivo_consulta: motivo_consulta || null,
-    contenido,
-    diagnostico: diagnostico || null,
+    motivo_consulta: motivo_consulta || null, // texto plano — no sanitizar
+    contenido: sanitizeRichText(contenido),   // rich-text
+    diagnostico: diagnostico || null,         // texto plano
     cie10_codigos: cie10_codigos && cie10_codigos.length > 0 ? cie10_codigos : null,
-    plan: plan || null,
-    proxima_sesion: proxima_sesion || null,
-    secciones_estructuradas: seccionesEstructuradas,
+    plan: plan ? sanitizeRichText(plan) : null, // rich-text
+    proxima_sesion: proxima_sesion || null,   // texto plano
+    secciones_estructuradas: sanitizeSeccionesEstructuradas(seccionesEstructuradas),
   };
 
   // Check if nota already exists for this encuentro

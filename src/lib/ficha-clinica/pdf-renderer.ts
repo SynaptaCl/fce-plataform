@@ -15,6 +15,7 @@ import type { NivelGAS, EstadoPlanIntervencion } from "@/types/plan-intervencion
 import type { TipoEgreso } from "@/types/egreso";
 import { TIPOS_EGRESO } from "@/types/egreso";
 import { calculateAge } from "@/lib/utils";
+import { isRichTextHtml } from "@/lib/sanitize";
 
 // ── Tipos de data compilada ───────────────────────────────────────────────────
 
@@ -221,6 +222,23 @@ function field(label: string, value: string): string {
     </div>`;
 }
 
+/**
+ * Campo de texto clínico potencialmente rich-text.
+ * - HTML rich-text: insertar directo (ya sanitizado server-side al guardar — NO re-escapar).
+ * - Texto plano legacy: delegar a field() que escapa y preserva saltos.
+ */
+function richField(label: string, value: string | null | undefined): string {
+  if (!value) return "";
+  if (isRichTextHtml(value)) {
+    return `
+    <div style="margin-bottom:4px;">
+      <span style="font-size:9px; color:${INK_3}; font-weight:700; text-transform:uppercase; letter-spacing:0.5px;">${esc(label)}: </span>
+      <div class="rte-pdf" style="font-size:11px; color:${INK}; margin-top:2px;">${value}</div>
+    </div>`;
+  }
+  return field(label, value);
+}
+
 function table(headers: string[], rows: string[][]): string {
   if (rows.length === 0) return "";
   const head = headers
@@ -279,7 +297,7 @@ function renderJsonbFields(data: unknown): string {
       if (nested) out += field(label, nested);
     } else {
       const s = str(v);
-      if (s) out += field(label, s);
+      if (s) out += richField(label, s);
     }
   }
   return out;
@@ -478,17 +496,17 @@ function buildSoaps(soaps: FichaClinicaData["notasSoap"]): string {
   const cards = soaps
     .map((s) => {
       let body = "";
-      body += field("S — Subjetivo", s.subjetivo ?? "");
-      body += field("O — Objetivo", s.objetivo ?? "");
+      body += richField("S — Subjetivo", s.subjetivo);
+      body += richField("O — Objetivo", s.objetivo);
       body += renderCif(s.analisis_cif);
-      body += field("P — Plan", s.plan ?? "");
+      body += richField("P — Plan", s.plan);
       const intervenciones = asArray<Intervention>(s.intervenciones)
         .map((i) =>
           [i.tipo, i.descripcion, i.dosificacion].filter(Boolean).map(String).join(" — ")
         )
         .filter(Boolean);
       if (intervenciones.length > 0) body += field("Intervenciones", intervenciones.join("; "));
-      body += field("Tareas domiciliarias", s.tareas_domiciliarias ?? "");
+      body += richField("Tareas domiciliarias", s.tareas_domiciliarias);
       const fecha = fmtDate(s.encuentro?.started_at ?? s.created_at);
       const esp = s.encuentro?.especialidad ? ` · ${esc(s.encuentro.especialidad)}` : "";
       return entryCard(`SOAP — ${fecha}${esp}`, `✓ Firmada ${fmtDate(s.firmado_at)}`, body);
@@ -504,7 +522,7 @@ function buildNotasClinicas(notas: FichaClinicaData["notasClinicas"]): string {
     .map((n) => {
       let body = "";
       body += field("Motivo", n.motivo_consulta ?? "");
-      body += field("Contenido", n.contenido ?? "");
+      body += richField("Contenido", n.contenido);
       body += field("Diagnóstico", n.diagnostico ?? "");
       const icd = asArray<ICDCodeSnap>(n.icd_codigos)
         .map((c) => `${c.code ?? ""} ${c.title ?? ""}`.trim())
@@ -512,7 +530,7 @@ function buildNotasClinicas(notas: FichaClinicaData["notasClinicas"]): string {
       if (icd.length > 0) {
         body += field(`Códigos ${n.icd_version ?? "ICD-11"}`, icd.join("; "));
       }
-      body += field("Plan", n.plan ?? "");
+      body += richField("Plan", n.plan);
       // Secciones estructuradas: P2 anida { seccion: { campo: valor } };
       // los campos M10 (conductas_observadas, etc.) son strings planos en la raíz
       if (n.secciones_estructuradas && typeof n.secciones_estructuradas === "object") {
@@ -520,7 +538,7 @@ function buildNotasClinicas(notas: FichaClinicaData["notasClinicas"]): string {
           n.secciones_estructuradas as Record<string, unknown>
         )) {
           if (typeof campos === "string") {
-            if (campos.trim()) body += field(humanize(seccion), campos);
+            if (campos.trim()) body += richField(humanize(seccion), campos);
             continue;
           }
           const rendered = renderJsonbFields(campos);
@@ -717,6 +735,19 @@ export function renderFichaCompletaPdf(data: FichaClinicaData): string {
 
   return `
 <div style="font-family: Arial, sans-serif; max-width:800px; margin:0 auto; padding:28px 32px; background:#FFFFFF; color:${INK};">
+
+  <style>
+    .rte-pdf p { margin: 0 0 4px 0; }
+    .rte-pdf h2 { font-size: 13pt; font-weight: 600; margin: 6px 0 3px; }
+    .rte-pdf h3 { font-size: 12pt; font-weight: 600; margin: 5px 0 3px; }
+    .rte-pdf ul, .rte-pdf ol { padding-left: 20px; margin: 4px 0; }
+    .rte-pdf ul { list-style: disc; }
+    .rte-pdf ol { list-style: decimal; }
+    .rte-pdf li { margin: 2px 0; }
+    .rte-pdf blockquote { border-left: 2px solid #006B6B; padding-left: 8px; color: #475569; margin: 4px 0; }
+    .rte-pdf strong { font-weight: 600; }
+    .rte-pdf u { text-decoration: underline; }
+  </style>
 
   <!-- HEADER -->
   <table style="width:100%; border-collapse:collapse; border-bottom:2px solid ${TEAL}; margin-bottom:18px;">

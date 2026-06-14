@@ -6,16 +6,20 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getProfesionalActivo } from "@/lib/fce/profesional";
 import { getIdClinica } from "@/app/actions/patients";
+import { sanitizeRichText } from "@/lib/sanitize";
+import { stripHtml } from "@/lib/utils";
 import type { ActionResult } from "@/app/actions/patients";
 import { log } from "@/lib/logger";
 
 // ── Validation ────────────────────────────────────────────────────────────────
+// contenido es HTML rich-text — validar longitud sobre el TEXTO PLANO, no el crudo,
+// para no penalizar el formato (negrita, listas, párrafos suman overhead de tags).
 
 const quickNoteSchema = z.object({
   contenido: z
     .string()
-    .min(10, "La nota debe tener al menos 10 caracteres.")
-    .max(5000, "La nota no puede superar los 5000 caracteres."),
+    .refine((v) => stripHtml(v).length >= 10, "La nota debe tener al menos 10 caracteres.")
+    .refine((v) => stripHtml(v).length <= 5000, "La nota no puede superar los 5000 caracteres."),
   motivo: z.string().max(200, "El motivo no puede superar los 200 caracteres.").nullable().optional(),
 });
 
@@ -102,7 +106,7 @@ export async function createQuickNote(
       id_paciente: patientId,
       id_encuentro: encuentroId,
       motivo_consulta: parsed.data.motivo || null,
-      contenido: parsed.data.contenido,
+      contenido: sanitizeRichText(parsed.data.contenido),
       firmado: true,
       firmado_at: ahora,
       firmado_por: profesional.id,

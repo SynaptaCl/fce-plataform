@@ -1,8 +1,9 @@
 "use client";
 
-import { useState, useEffect, useTransition, useCallback, useMemo } from "react";
+import { useState, useEffect, useTransition, useCallback } from "react";
 import { Scale, TrendingUp, Plus, ChevronDown, ChevronUp, Trash2, Loader2, Baby, HeartPulse } from "lucide-react";
-import { differenceInYears, differenceInMonths, parseISO } from "date-fns";
+import { parseISO } from "date-fns";
+import { calcularEdad } from "@/lib/nutricion/edad";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import { AlertBanner } from "@/components/ui/AlertBanner";
@@ -59,21 +60,13 @@ function formatFecha(iso: string): string {
   }
 }
 
-function calcEdad(fechaNacimiento: string): number {
-  return differenceInYears(new Date(), parseISO(fechaNacimiento));
-}
-function calcEdadMeses(fechaNacimiento: string): number {
-  return differenceInMonths(new Date(), parseISO(fechaNacimiento));
-}
-
 const ZSCORE_COLORS: Record<string, string> = {
   "Desnutrición severa": "#991B1B",
   "Desnutrición":        "#EF4444",
-  "Riesgo bajo peso":    "#F59E0B",
   "Normal":              "#22C55E",
-  "Posible sobrepeso":   "#F97316",
-  "Sobrepeso":           "#F97316",
-  "Obesidad":            "#DC2626",
+  "Sobrepeso":           "#F59E0B",
+  "Obesidad":            "#EF4444",
+  "Obesidad severa":     "#991B1B",
 };
 
 export function AntropometriaPanel({
@@ -96,7 +89,15 @@ export function AntropometriaPanel({
     setLoadingHistoria(false);
   }, [pacienteId]);
 
-  useEffect(() => { cargarHistoria(); }, [cargarHistoria]);
+  useEffect(() => {
+    let active = true;
+    getAntropometriaByPaciente(pacienteId).then((result) => {
+      if (!active) return;
+      if (result.success) setHistoria(result.data);
+      setLoadingHistoria(false);
+    });
+    return () => { active = false; };
+  }, [pacienteId]);
 
   // ── Form ───────────────────────────────────────────────────────────────────
   const [showForm, setShowForm] = useState(false);
@@ -112,10 +113,10 @@ export function AntropometriaPanel({
   const [observaciones, setObservaciones] = useState("");
 
   // ── Detección de modo ──────────────────────────────────────────────────────
-  const edadPaciente = fechaNacimiento ? calcEdad(fechaNacimiento) : null;
-  const edadMesesPaciente = fechaNacimiento ? calcEdadMeses(fechaNacimiento) : null;
+  // Fuente única de verdad para edad — usada también para z-score y snapshot server-side
+  const edadActual = fechaNacimiento ? calcularEdad(parseISO(fechaNacimiento), new Date()) : null;
   const puedeSerPediatrico =
-    edadPaciente !== null && edadPaciente < 19 &&
+    edadActual !== null && edadActual.años < 19 &&
     (sexoRegistral === "M" || sexoRegistral === "F");
 
   const [embarazoActivo, setEmbarazoActivo] = useState(false);
@@ -144,7 +145,7 @@ export function AntropometriaPanel({
   const [edadManual, setEdadManual] = useState("");
   const [pliegues, setPliegues] = useState<Partial<Record<SitioPliegue, string>>>({});
 
-  const edad = fechaNacimiento ? calcEdad(fechaNacimiento) : (parseInt(edadManual) || undefined);
+  const edad = edadActual?.años ?? (parseInt(edadManual) || undefined);
   const needsEdadInput = !fechaNacimiento && FORMULAS_PLIEGUES[formula].requiereEdad;
   const needsSexoInput = !sexoRegistral || sexoRegistral === "Otro";
   const sitiosRequeridos = getSitiosRequeridos(formula, sexoFormula);
@@ -183,21 +184,30 @@ export function AntropometriaPanel({
     previewGrasa && peso > 0 ? calcularMasaMagra(peso, previewGrasa.percGrasa) : null;
 
   // ── Preview z-score pediátrico ─────────────────────────────────────────────
-  const previewZScore = useMemo(() => {
-    if (modoDetectado !== "pediatrico") return null;
-    if (!previewIMC || !sexoRegistral || sexoRegistral === "Otro") return null;
-    if (edadMesesPaciente === null) return null;
-    const sx = sexoRegistral as "M" | "F";
-    return calcularIndicadorPediatrico(previewIMC.imc, edadMesesPaciente, getBMIDataset(sx, edadMesesPaciente));
-  }, [modoDetectado, previewIMC, sexoRegistral, edadMesesPaciente]);
+  const mesesActualZScore = edadActual?.mesesTotal ?? null;
+  const previewZScore =
+    modoDetectado === "pediatrico" &&
+    previewIMC !== null &&
+    sexoRegistral &&
+    sexoRegistral !== "Otro" &&
+    mesesActualZScore !== null
+      ? calcularIndicadorPediatrico(
+          previewIMC.imc,
+          mesesActualZScore,
+          getBMIDataset(sexoRegistral as "M" | "F", mesesActualZScore),
+        )
+      : null;
 
   // ── Preview Atalah gestacional ─────────────────────────────────────────────
-  const previewAtalah = useMemo(() => {
-    if (modoDetectado !== "gestacional") return null;
-    const imcPre = parseFloat(imcPregestacionalInput);
-    if (!previewIMC || isNaN(imcPre) || semanaCalculada === undefined || isNaN(semanaCalculada)) return null;
-    return clasificarGestacional(imcPre, previewIMC.imc, semanaCalculada);
-  }, [modoDetectado, previewIMC, imcPregestacionalInput, semanaCalculada]);
+  const imcPreAtalah = parseFloat(imcPregestacionalInput);
+  const previewAtalah =
+    modoDetectado === "gestacional" &&
+    previewIMC !== null &&
+    !isNaN(imcPreAtalah) &&
+    semanaCalculada !== undefined &&
+    !isNaN(semanaCalculada)
+      ? clasificarGestacional(imcPreAtalah, previewIMC.imc, semanaCalculada)
+      : null;
 
   // ── Resetear form ──────────────────────────────────────────────────────────
   function resetForm() {
@@ -250,7 +260,8 @@ export function AntropometriaPanel({
         observaciones: observaciones.trim() || undefined,
         sexoRegistral: sexoFormula,
         edadAnios: edadNum,
-        edadMeses: edadMesesPaciente ?? undefined,
+        edadMeses: modoDetectado === 'pediatrico' ? (edadActual?.mesesTotal ?? undefined) : undefined,
+        fechaNacimiento: fechaNacimiento ?? undefined,
         fur: furInput || undefined,
         semanaGestacional: semanaCalculada,
         imcPregestacional: !isNaN(imcPreNum) ? imcPreNum : undefined,
@@ -443,14 +454,14 @@ export function AntropometriaPanel({
           )}
 
           {/* Modo pediátrico: info de edad */}
-          {modoDetectado === "pediatrico" && fechaNacimiento && (
+          {modoDetectado === "pediatrico" && fechaNacimiento && edadActual && (
             <div
               className="flex items-center gap-2 px-3 py-2 rounded-lg"
               style={{ background: "#EFF6FF", border: "1px solid #BFDBFE" }}
             >
               <Baby size={14} style={{ color: "#2563EB" }} />
               <span className="text-xs" style={{ color: "#1E40AF" }}>
-                Paciente pediátrico — {edadPaciente} años ({edadMesesPaciente} meses)
+                Paciente pediátrico — {edadActual.label}
               </span>
             </div>
           )}
@@ -495,19 +506,24 @@ export function AntropometriaPanel({
               <span className="text-sm font-bold" style={{ color: "var(--color-ink-1)" }}>
                 {previewIMC.imc.toFixed(1)}
               </span>
-              <span
-                className="text-xs font-medium px-2 py-0.5 rounded-full"
-                style={{
-                  background: `${IMC_CLASIFICACION_COLOR[previewIMC.clasificacion] ?? "#94A3B8"}22`,
-                  color: IMC_CLASIFICACION_COLOR[previewIMC.clasificacion] ?? "#94A3B8",
-                }}
-              >
-                {previewIMC.clasificacion}
-              </span>
-              {previewIMC.riesgoCardiometabolico && (
-                <span className="text-xs" style={{ color: "var(--color-kp-warning)" }}>
-                  · {previewIMC.riesgoCardiometabolico}
-                </span>
+              {/* Clasificación adulto solo en modo adulto — pediátrico y gestacional usan z-score / Atalah */}
+              {modoDetectado === "adulto" && (
+                <>
+                  <span
+                    className="text-xs font-medium px-2 py-0.5 rounded-full"
+                    style={{
+                      background: `${IMC_CLASIFICACION_COLOR[previewIMC.clasificacion] ?? "#94A3B8"}22`,
+                      color: IMC_CLASIFICACION_COLOR[previewIMC.clasificacion] ?? "#94A3B8",
+                    }}
+                  >
+                    {previewIMC.clasificacion}
+                  </span>
+                  {previewIMC.riesgoCardiometabolico && (
+                    <span className="text-xs" style={{ color: "var(--color-kp-warning)" }}>
+                      · {previewIMC.riesgoCardiometabolico}
+                    </span>
+                  )}
+                </>
               )}
             </div>
           )}
@@ -806,7 +822,7 @@ export function AntropometriaPanel({
                     <span className="text-sm font-semibold" style={{ color: "var(--color-ink-1)" }}>
                       {r.peso_kg} kg · {r.talla_cm} cm
                     </span>
-                    {r.imc != null && (
+                    {r.imc != null && r.modo === "adulto" && (
                       <span
                         className="text-xs font-medium px-2 py-0.5 rounded-full"
                         style={{
@@ -815,6 +831,30 @@ export function AntropometriaPanel({
                         }}
                       >
                         IMC {r.imc.toFixed(1)} · {r.clasificacion}
+                      </span>
+                    )}
+                    {r.imc != null && r.modo === "pediatrico" && (
+                      <>
+                        <span className="text-xs font-medium" style={{ color: "var(--color-ink-2)" }}>
+                          IMC {r.imc.toFixed(1)}
+                        </span>
+                        {r.zscore_imc != null && (
+                          <span
+                            className="text-xs font-medium px-2 py-0.5 rounded-full"
+                            style={{
+                              background: `${ZSCORE_COLORS[r.clasificacion ?? ""] ?? "#94A3B8"}22`,
+                              color: ZSCORE_COLORS[r.clasificacion ?? ""] ?? "#94A3B8",
+                            }}
+                          >
+                            Z {r.zscore_imc > 0 ? "+" : ""}{r.zscore_imc.toFixed(2)} · {r.clasificacion}
+                          </span>
+                        )}
+                      </>
+                    )}
+                    {r.imc != null && r.modo === "gestacional" && (
+                      <span className="text-xs font-medium" style={{ color: "var(--color-ink-2)" }}>
+                        IMC {r.imc.toFixed(1)}
+                        {r.clasificacion ? ` · ${r.clasificacion}` : ""}
                       </span>
                     )}
                     {r.perc_grasa != null && (
@@ -827,6 +867,12 @@ export function AntropometriaPanel({
                     <span className="text-xs" style={{ color: "var(--color-ink-3)" }}>
                       {formatFecha(r.registrado_at)}
                     </span>
+                    {r.modo === "pediatrico" && fechaNacimiento && (
+                      <span className="text-xs" style={{ color: "var(--color-ink-3)" }}>
+                        {calcularEdad(parseISO(fechaNacimiento), parseISO(r.registrado_at)).label}{" "}
+                        (al registro)
+                      </span>
+                    )}
                     {r.circ_cintura_cm && (
                       <span className="text-xs" style={{ color: "var(--color-ink-3)" }}>
                         Cintura: {r.circ_cintura_cm} cm

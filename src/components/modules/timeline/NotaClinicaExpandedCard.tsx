@@ -2,7 +2,7 @@
 "use client";
 
 import { Badge } from "@/components/ui/Badge";
-import { Section, EntryFooter, EncuentroLink, KeyValueList, formatDate } from "./_shared";
+import { Section, EntryFooter, EncuentroLink, KeyValueList, RichTextSection, formatDate } from "./_shared";
 import type { TimelineEntry } from "@/app/actions/timeline";
 import { DiagnosticoChip } from '@/components/clinico/DiagnosticoChip';
 import type { ICDCodeSnap } from '@/lib/icd/types';
@@ -26,7 +26,7 @@ export function NotaClinicaExpandedCard({ entry, patientId }: Props) {
         <Section label="Motivo de consulta">{String(d.motivo_consulta)}</Section>
       )}
       {d.contenido && (
-        <Section label="Contenido">{String(d.contenido)}</Section>
+        <RichTextSection label="Contenido" value={String(d.contenido)} />
       )}
       {d.diagnostico && !(Array.isArray(d.icd_codigos) && (d.icd_codigos as ICDCodeSnap[]).length > 0) && (
         <Section label="Diagnóstico">{String(d.diagnostico)}</Section>
@@ -58,7 +58,7 @@ export function NotaClinicaExpandedCard({ entry, patientId }: Props) {
         </div>
       )}
       {d.plan && (
-        <Section label="Plan">{String(d.plan)}</Section>
+        <RichTextSection label="Plan" value={String(d.plan)} />
       )}
       {/* Secciones estructuradas: P2 anidadas { seccion: { campo: valor } } + campos M10 planos (string) */}
       {d.secciones_estructuradas && typeof d.secciones_estructuradas === "object" &&
@@ -66,7 +66,7 @@ export function NotaClinicaExpandedCard({ entry, patientId }: Props) {
           const label = seccion.replace(/_/g, " ");
           if (typeof campos === "string") {
             return campos.trim() ? (
-              <Section key={seccion} label={label}>{campos}</Section>
+              <RichTextSection key={seccion} label={label} value={campos} />
             ) : null;
           }
           if (campos && typeof campos === "object" && !Array.isArray(campos)) {

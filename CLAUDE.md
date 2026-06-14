@@ -1,6 +1,6 @@
 # CLAUDE.md — FCE Platform (fce-plataform)
 
-> Última actualización: 2026-06-12 (Nutri-N1/N2 Antropometría — tabla + z-score OMS + Atalah)
+> Última actualización: 2026-06-13 (Sprint RTE — Rich Text Editor transversal en notas clínicas)
 > Este documento es la fuente de verdad para Claude Code. Leerlo antes de cualquier cambio.
 
 ---
@@ -326,7 +326,25 @@ function escapeHtml(s: unknown): string {
     .replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#39;");
 }
 // Usar en buildPdfHtml() de PlanIntervencionPdfView y similares
+// escapeHtml también vive en lib/utils.ts (reutilizable desde client/server)
 ```
+
+### Rich text clínico — sanitize + stripHtml (sprint RTE)
+Campos narrativos (SOAP `subjetivo`/`objetivo`/`plan`/`tareas_domiciliarias`, nota clínica `contenido`/`plan`, secciones `texto_largo`) usan `RichTextEditor` (Tiptap v3) y guardan **HTML** en columnas `text`/`jsonb` existentes (sin migration).
+```typescript
+import { sanitizeRichText, isRichTextHtml } from "@/lib/sanitize";
+import { stripHtml, textoPlanoAHtml } from "@/lib/utils";
+
+// Server actions de escritura: SIEMPRE sanitizar ANTES de INSERT/UPDATE
+contenido: sanitizeRichText(input.contenido)   // whitelist estricta, sin atributos
+// Campos planos (motivo_consulta, diagnostico, proxima_sesion): NO sanitizar
+
+// Consumidores que renderizan: detectar HTML vs legacy texto plano
+isRichTextHtml(value)  // → dangerouslySetInnerHTML (ya sanitizado al guardar) o pre-wrap
+// IA (Resumen/Copiloto): stripHtml(value) antes de pasar al modelo
+// Copiloto devuelve texto plano → textoPlanoAHtml() al insertar/reemplazar
+```
+**Whitelist**: `p, br, strong, em, u, ul, ol, li, h2, h3, blockquote` · **cero atributos** (sin style/class/id/data-*). StarterKit v3 ya incluye underline — NO agregar `@tiptap/extension-underline` por separado (duplica el nombre y rompe el editor). `dangerouslySetInnerHTML` es seguro porque el sanitize vive en el path de escritura, no en el render.
 
 ---
 
@@ -390,6 +408,7 @@ src/components/
   │               PlanTratamientoPanel, PlanTratamientoItemForm,
   │               ProcedimientoPicker, DiagnosticoSearch (wrapper dental ICD-11)
   └── shared/   → ActionBar (chips navegación paciente),
+                   RichTextEditor (Tiptap v3 — editor compartido notas clínicas, sprint RTE),
                    EncuentroLauncher, BodyMap, ScaleSlider, SummaryPanel,
                    FirmarHeaderButton, VitalSignsPanel, AnamnesisForm,
                    PatientForm, PatientList, ConsentManager, AuditTimeline,
@@ -433,8 +452,10 @@ src/lib/
   │   │                  alertas.ts, evolucion.ts, examenes.ts, instrumentos.ts
   │   └── copiloto-nota/ → types.ts, prompt.ts, parser.ts
   ├── supabase/       → client.ts, server.ts, service.ts (service_role), types.ts
-  └── (raíz)         → audit.ts, constants.ts, fhir-mapper.ts, utils.ts, validations.ts,
-                        run-validator.ts
+  └── (raíz)         → audit.ts, constants.ts, fhir-mapper.ts, validations.ts, run-validator.ts,
+                        sanitize.ts (sprint RTE: sanitizeRichText + isRichTextHtml),
+                        utils.ts (cn, formatRut/CLP/Date, calculateAge,
+                          escapeHtml/stripHtml/textoPlanoAHtml — sprint RTE)
 
 src/types/
   → patient.ts, encounter.ts, soap.ts, nota-clinica.ts, anamnesis.ts, consent.ts,
@@ -476,6 +497,7 @@ npx tsx scripts/test-sprint-p2-f1.ts  # P2-F1: códigos instrumentos en config (
 npx tsx scripts/test-sprint-p2-f2.ts  # P2-F2: secciones estructuradas + IMC (65 checks)
 npx tsx scripts/test-sprint-p2-f3.ts  # P2-F3: TerapiaOcupacionalEval + registry (10 checks)
 npx tsx scripts/test-sprint-p2-f4.ts  # P2-F4: seed nutricional + antropometría (43 checks)
+npm run test:sprint-rte               # RTE: sanitize/stripHtml/textoPlanoAHtml (41 checks)
 ```
 
 Otros scripts en package.json: `test:sprint-1`, `test:sprint-3`, `test:profesional`, `test:sprint-r9`, `test:sprint-r10`, `test:sprint-r11`.
@@ -542,6 +564,7 @@ Actualmente **ninguna clínica tiene fce-plataform en producción** — el repo 
 | M11-M12 fix | Hub de documentos: eliminada auto-descarga del PDF al navegar; tabs gateados por módulos activos + tab Epicrisis (si egreso firmado); PDF de ficha clínica COMPLETA (13 secciones, Decreto 41/Ley 20.584) vía `exportarFichaCompletaPdf` + `lib/ficha-clinica/pdf-renderer.ts`; PdfExportView eliminado |
 | Nutri-N1 | Antropometría adulto: tabla `fce_antropometria`, server actions, panel UI, pliegues (Durnin-Womersley/JP/Faulkner), chart evolución. Tipos TS + validaciones Zod |
 | Nutri-N2 | Z-score OMS pediátrico + curva Atalah gestacional: `zscore.ts`, `atalah.ts`, 4 datasets LMS JSON (PENDIENTE_CLINICA), columnas gestacionales en `fce_anamnesis`, modo pediátrico/gestacional en panel |
+| RTE | Rich Text Editor transversal: `RichTextEditor` (Tiptap v3) + `lib/sanitize.ts` (sanitizeRichText/isRichTextHtml) + helpers `stripHtml`/`textoPlanoAHtml`/`escapeHtml` en `utils.ts`. Campos narrativos SOAP (S/O/P/tareas) + nota clínica (contenido/plan) + secciones `texto_largo` guardan HTML sanitizado server-side (sin migration). Render HTML-aware en Timeline + PDF ficha completa; IA recibe texto plano. Test `test:sprint-rte` (41 checks) |
 
 ### Pendientes
 

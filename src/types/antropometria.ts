@@ -25,6 +25,8 @@ export interface AntropometriaRecord {
   perc_grasa?: number | null;
   masa_magra_kg?: number | null;
 
+  edad_meses_registro?: number | null;
+
   zscore_imc?: number | null;
   zscore_peso?: number | null;
   zscore_talla?: number | null;
@@ -60,7 +62,8 @@ export interface AntropometriaInput {
   // sexo del paciente (para cálculo de pliegues, cintura y z-score pediátrico)
   sexoRegistral?: 'M' | 'F';
   edadAnios?: number;
-  edadMeses?: number;   // requerido para z-score pediátrico
+  edadMeses?: number;       // requerido para z-score pediátrico
+  fechaNacimiento?: string; // ISO date — para snapshot server-side de edad_meses_registro
 
   // Gestacional (N2)
   fur?: string;                  // ISO date "YYYY-MM-DD"

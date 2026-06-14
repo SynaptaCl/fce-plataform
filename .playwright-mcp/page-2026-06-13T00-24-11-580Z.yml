@@ -1,0 +1,23 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]: running…
+  - generic [ref=e4]:
+    - table [ref=e5]:
+      - rowgroup [ref=e6]:
+        - row "FC Clínica de Prueba" [ref=e7]:
+          - cell "FC" [ref=e8]:
+            - generic [ref=e9]: FC
+          - cell "Clínica de Prueba" [ref=e10]:
+            - generic [ref=e11]: Clínica de Prueba
+    - heading "FICHA CLÍNICA ELECTRÓNICA" [level=1] [ref=e12]
+    - table [ref=e13]:
+      - rowgroup [ref=e14]:
+        - row "Campo Valor" [ref=e15]:
+          - columnheader "Campo" [ref=e16]
+          - columnheader "Valor" [ref=e17]
+      - rowgroup [ref=e18]:
+        - row "Nombre Paciente Demo" [ref=e19]:
+          - cell "Nombre" [ref=e20]
+          - cell "Paciente Demo" [ref=e21]
+        - row "RUT 11.111.111-1" [ref=e22]:
+          - cell "RUT" [ref=e23]
+          - cell "11.111.111-1" [ref=e24]

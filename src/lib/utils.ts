@@ -40,3 +40,57 @@ export function calculateAge(birthDate: Date | string | null | undefined): numbe
   }
   return age;
 }
+
+/**
+ * Escapa caracteres HTML especiales. Usado para construir HTML desde texto plano
+ * (ej: convertir output de IA en párrafos sin abrir vectores XSS).
+ */
+export function escapeHtml(value: unknown): string {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+/**
+ * Extrae texto plano de HTML rich-text. Usado para:
+ * - Input a modelos IA (Resumen, Copiloto)
+ * - Previews en cards del Timeline
+ * - Búsquedas y exports planos
+ *
+ * Maneja texto plano legacy sin tocar.
+ */
+export function stripHtml(value: string | null | undefined): string {
+  if (!value) return "";
+  // Si no tiene tags, devolver tal cual (texto legacy)
+  if (!/<[^>]+>/.test(value)) return value;
+  return value
+    .replace(/<\/(p|h2|h3|li|blockquote)>/gi, "\n")
+    .replace(/<br\s*\/?>/gi, "\n")
+    .replace(/<[^>]+>/g, "")
+    .replace(/\n{3,}/g, "\n\n")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .trim();
+}
+
+/**
+ * Convierte texto plano (ej: output del copiloto IA) en HTML rich-text simple.
+ * Cada bloque separado por línea en blanco se vuelve un <p>; los saltos simples
+ * se vuelven <br>. El texto se escapa para evitar inyección.
+ */
+export function textoPlanoAHtml(texto: string | null | undefined): string {
+  if (!texto) return "";
+  return texto
+    .split(/\n\n+/)
+    .map((parrafo) => parrafo.trim())
+    .filter(Boolean)
+    .map((parrafo) => `<p>${escapeHtml(parrafo).replace(/\n/g, "<br>")}</p>`)
+    .join("");
+}

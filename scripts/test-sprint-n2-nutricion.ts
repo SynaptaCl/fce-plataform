@@ -12,6 +12,8 @@ import {
   clasificarIMCPregestacional, clasificarGestacional,
   calcularSemanaGestacional, getBandaLimites, GANANCIA_TOTAL,
 } from "../src/lib/nutricion/atalah";
+import { calcularEdad } from "../src/lib/nutricion/edad";
+import { parseISO } from "date-fns";
 
 // ── Utils ─────────────────────────────────────────────────────────────────────
 
@@ -34,6 +36,63 @@ function near(a: number, b: number, tol = 0.05): boolean {
 
 function section(name: string) {
   console.log(`\n── ${name} ────────────────────────────────────────────`);
+}
+
+// ── 0. calcularEdad — snapshot de edad ───────────────────────────────────────
+
+section("calcularEdad — snapshot de edad");
+
+{
+  // Caso clínico: paciente 64 meses el 2026-06-12
+  // parseISO crea medianoche LOCAL (no UTC) — evita artefactos DST con addMonths
+  const nac = parseISO("2021-02-11");
+  const ref = parseISO("2026-06-12");
+  const e = calcularEdad(nac, ref);
+  ok("mesesTotal=64 (paciente 64m, caso clínico Renata)", e.mesesTotal === 64, `mesesTotal=${e.mesesTotal}`);
+  ok("label='5 años, 4 meses y 1 día'", e.label === "5 años, 4 meses y 1 día", `label='${e.label}'`);
+  ok("componentes: años=5 meses=4 dias=1", e.años === 5 && e.meses === 4 && e.dias === 1,
+    `${e.años}a ${e.meses}m ${e.dias}d`);
+}
+
+{
+  // Verificar snapshot: ref histórica da 64m aunque "hoy" sea posterior
+  const nac = parseISO("2021-02-11");
+  const refHistorica = parseISO("2026-06-12");
+  const hoy = new Date(); // puede ser más tarde que 2026-06-12
+  const eHistorico = calcularEdad(nac, refHistorica);
+  const eHoy = calcularEdad(nac, hoy);
+  ok("snapshot: ref histórica siempre retorna 64m", eHistorico.mesesTotal === 64,
+    `mesesHistorico=${eHistorico.mesesTotal}`);
+  ok("snapshot: hoy da ≥64m (el tiempo pasa)", eHoy.mesesTotal >= 64,
+    `mesesHoy=${eHoy.mesesTotal}`);
+}
+
+{
+  // Recién nacido: mismo día nac/ref
+  const nac = parseISO("2026-06-12");
+  const ref = parseISO("2026-06-12");
+  const e = calcularEdad(nac, ref);
+  ok("mismo día → mesesTotal=0", e.mesesTotal === 0, `mesesTotal=${e.mesesTotal}`);
+  ok("mismo día → label='0 días'", e.label === "0 días", `label='${e.label}'`);
+}
+
+{
+  // Pluralización singular: 1 año, 1 mes y 1 día
+  const nac = parseISO("2025-05-11");
+  const ref = parseISO("2026-06-12");
+  const e = calcularEdad(nac, ref);
+  ok("pluralización singular: '1 año, 1 mes y 1 día'",
+    e.label === "1 año, 1 mes y 1 día", `label='${e.label}'`);
+  ok("mesesTotal=13", e.mesesTotal === 13, `mesesTotal=${e.mesesTotal}`);
+}
+
+{
+  // Omisión de ceros: exactamente 5 años
+  const nac = parseISO("2021-06-12");
+  const ref = parseISO("2026-06-12");
+  const e = calcularEdad(nac, ref);
+  ok("omisión de ceros → '5 años' (sin meses ni días)", e.label === "5 años", `label='${e.label}'`);
+  ok("mesesTotal=60", e.mesesTotal === 60, `mesesTotal=${e.mesesTotal}`);
 }
 
 // ── 1. Z-score LMS: valores conocidos ────────────────────────────────────────
@@ -116,27 +175,33 @@ section("calcularIndicadorPediatrico");
       ok("clasificación Normal cuando z≈0", res.clasificacion === "Normal", `${res.clasificacion}`);
     }
 
-    // Valor extremo alto → clasificación Obesidad
+    // Valor extremo alto → clasificación Obesidad o Obesidad severa
     const resHigh = calcularIndicadorPediatrico(22, ageMths, dataset);
     ok("IMC=22 en niño 4 años → z > 2", resHigh !== null && resHigh.z > 2, `z=${resHigh?.z.toFixed(2)}`);
-    ok("IMC=22 en niño 4 años → clasificación sobrepeso/obesidad",
-      resHigh !== null && ["Sobrepeso", "Obesidad", "Posible sobrepeso"].includes(resHigh.clasificacion),
+    ok("IMC=22 en niño 4 años → clasificación Obesidad o Obesidad severa",
+      resHigh !== null && ["Sobrepeso", "Obesidad", "Obesidad severa"].includes(resHigh.clasificacion),
       resHigh?.clasificacion
     );
   }
 }
 
-// clasificarZScoreIMC — 7 categorías
-section("clasificarZScoreIMC — categorías OMS");
+// clasificarZScoreIMC — 6 categorías OMS IMC/edad
+section("clasificarZScoreIMC — categorías OMS corregidas");
 
 const CASOS_Z: [number, string][] = [
   [-3.5, "Desnutrición severa"],
+  [-3.0, "Desnutrición severa"],  // z=-3 en límite → severa
   [-2.5, "Desnutrición"],
-  [-1.5, "Riesgo bajo peso"],
+  [-2.0, "Desnutrición"],          // z=-2 en límite → desnutrición
+  [-1.5, "Normal"],
   [0,    "Normal"],
-  [1.5,  "Posible sobrepeso"],
-  [2.5,  "Sobrepeso"],
-  [3.5,  "Obesidad"],
+  [1.0,  "Normal"],               // z=+1 en límite → normal
+  [1.5,  "Sobrepeso"],
+  [2.0,  "Sobrepeso"],            // z=+2 en límite → sobrepeso
+  [2.3,  "Obesidad"],             // caso clínico: paciente 64m, z=+2.30
+  [2.5,  "Obesidad"],
+  [3.0,  "Obesidad"],             // z=+3 en límite → obesidad
+  [3.5,  "Obesidad severa"],
 ];
 for (const [z, expectedClasif] of CASOS_Z) {
   ok(`z=${z} → ${expectedClasif}`, clasificarZScoreIMC(z) === expectedClasif, clasificarZScoreIMC(z));

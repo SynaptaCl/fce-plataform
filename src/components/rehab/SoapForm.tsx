@@ -1,17 +1,17 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm, useWatch, Controller, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { Plus, Trash2, PenLine, Lock, CheckCircle2 } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, stripHtml, textoPlanoAHtml } from "@/lib/utils";
 import { soapSchema } from "@/lib/validations";
 import { Button } from "@/components/ui/Button";
-import { Textarea } from "@/components/ui/Textarea";
 import { Input } from "@/components/ui/Input";
 import { AlertBanner } from "@/components/ui/AlertBanner";
+import { RichTextEditor } from "@/components/shared/RichTextEditor";
 import { CifMapper } from "./CifMapper";
 import { upsertSoapNote, signSoapNote } from "@/app/actions/rehab/soap";
 import type { SoapNote, CifAssessment } from "@/types";
@@ -129,9 +129,6 @@ export function SoapForm({
   const readOnly = readOnlyProp || signed;
 
   const [expandingSection, setExpandingSection] = useState<'S' | 'O' | 'P' | null>(null)
-  const sRef = useRef<HTMLTextAreaElement>(null)
-  const oRef = useRef<HTMLTextAreaElement>(null)
-  const pRef = useRef<HTMLTextAreaElement>(null)
 
   const {
     register,
@@ -164,9 +161,6 @@ export function SoapForm({
 
   const intervencionesFields = useFieldArray({ control, name: "intervenciones" });
 
-  const { ref: sRhfRef, ...sReg } = register('subjetivo')
-  const { ref: oRhfRef, ...oReg } = register('objetivo')
-  const { ref: pRhfRef, ...pReg } = register('plan')
   const [watchedS, watchedO, watchedP] = useWatch({
     control,
     name: ['subjetivo', 'objetivo', 'plan'],
@@ -206,21 +200,8 @@ export function SoapForm({
     field: 'subjetivo' | 'objetivo' | 'plan',
     expanded: string
   ) {
-    const refMap = { subjetivo: sRef, objetivo: oRef, plan: pRef }
-    const el = refMap[field].current
-    let handled = false
-    if (el) {
-      el.focus()
-      el.select()
-      try {
-        handled = document.execCommand('insertText', false, expanded)
-      } catch {
-        // some browsers throw in certain contexts
-      }
-    }
-    if (!handled) {
-      setValue(field, expanded, { shouldDirty: true, shouldTouch: true })
-    }
+    // El copiloto devuelve texto plano — convertir a HTML rich-text
+    setValue(field, textoPlanoAHtml(expanded), { shouldDirty: true, shouldTouch: true })
   }
 
   return (
@@ -255,7 +236,7 @@ export function SoapForm({
           subtitle="Relato del paciente — síntomas, dolor, contexto biopsicosocial"
           headerAction={!readOnly && (
             <AiExpandButton
-              text={watchedS ?? ''}
+              text={stripHtml(watchedS ?? '')}
               section="S"
               encuentroId={encuentroId}
               idClinica={idClinica}
@@ -265,18 +246,23 @@ export function SoapForm({
             />
           )}
         >
-          <Textarea
-            placeholder="Paciente refiere… EVA X/10… desde hace…"
-            required
-            rows={4}
-            readOnly={readOnly || expandingSection === 'S'}
-            error={errors.subjetivo?.message}
-            ref={(el: HTMLTextAreaElement | null) => {
-              if (typeof sRhfRef === 'function') sRhfRef(el)
-              sRef.current = el
-            }}
-            {...sReg}
+          <Controller
+            name="subjetivo"
+            control={control}
+            render={({ field }) => (
+              <RichTextEditor
+                value={field.value ?? ""}
+                onChange={field.onChange}
+                placeholder="Paciente refiere… EVA X/10… desde hace…"
+                readOnly={readOnly || expandingSection === 'S'}
+                ariaLabel="Subjetivo"
+                minHeight={120}
+              />
+            )}
           />
+          {errors.subjetivo?.message && (
+            <p className="text-xs text-red-600 mt-1">{errors.subjetivo.message}</p>
+          )}
         </QuadrantCard>
 
         {/* O — Objetivo */}
@@ -286,7 +272,7 @@ export function SoapForm({
           subtitle="Hallazgos clínicos observables y medibles"
           headerAction={!readOnly && (
             <AiExpandButton
-              text={watchedO ?? ''}
+              text={stripHtml(watchedO ?? '')}
               section="O"
               encuentroId={encuentroId}
               idClinica={idClinica}
@@ -301,18 +287,23 @@ export function SoapForm({
               💡 Evaluación disponible: {objetivoHint}
             </p>
           )}
-          <Textarea
-            placeholder="Signos vitales… ROM… fuerza Daniels… pruebas especiales…"
-            required
-            rows={4}
-            readOnly={readOnly || expandingSection === 'O'}
-            error={errors.objetivo?.message}
-            ref={(el: HTMLTextAreaElement | null) => {
-              if (typeof oRhfRef === 'function') oRhfRef(el)
-              oRef.current = el
-            }}
-            {...oReg}
+          <Controller
+            name="objetivo"
+            control={control}
+            render={({ field }) => (
+              <RichTextEditor
+                value={field.value ?? ""}
+                onChange={field.onChange}
+                placeholder="Signos vitales… ROM… fuerza Daniels… pruebas especiales…"
+                readOnly={readOnly || expandingSection === 'O'}
+                ariaLabel="Objetivo"
+                minHeight={120}
+              />
+            )}
           />
+          {errors.objetivo?.message && (
+            <p className="text-xs text-red-600 mt-1">{errors.objetivo.message}</p>
+          )}
         </QuadrantCard>
 
         {/* A — Análisis CIF */}
@@ -338,7 +329,7 @@ export function SoapForm({
           subtitle="Intervenciones, objetivos terapéuticos y tareas"
           headerAction={!readOnly && (
             <AiExpandButton
-              text={watchedP ?? ''}
+              text={stripHtml(watchedP ?? '')}
               section="P"
               encuentroId={encuentroId}
               idClinica={idClinica}
@@ -349,19 +340,26 @@ export function SoapForm({
           )}
         >
           <div className="space-y-4">
-            <Textarea
-              label="Plan terapéutico"
-              placeholder="Objetivos a corto/mediano plazo, técnicas a utilizar…"
-              required
-              rows={3}
-              readOnly={readOnly || expandingSection === 'P'}
-              error={errors.plan?.message}
-              ref={(el: HTMLTextAreaElement | null) => {
-                if (typeof pRhfRef === 'function') pRhfRef(el)
-                pRef.current = el
-              }}
-              {...pReg}
-            />
+            <div className="space-y-1.5">
+              <label className="block text-sm font-medium text-ink-1">Plan terapéutico</label>
+              <Controller
+                name="plan"
+                control={control}
+                render={({ field }) => (
+                  <RichTextEditor
+                    value={field.value ?? ""}
+                    onChange={field.onChange}
+                    placeholder="Objetivos a corto/mediano plazo, técnicas a utilizar…"
+                    readOnly={readOnly || expandingSection === 'P'}
+                    ariaLabel="Plan terapéutico"
+                    minHeight={120}
+                  />
+                )}
+              />
+              {errors.plan?.message && (
+                <p className="text-xs text-red-600 mt-1">{errors.plan.message}</p>
+              )}
+            </div>
 
             {/* Intervenciones */}
             <div className="space-y-2">
@@ -396,8 +394,23 @@ export function SoapForm({
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <Textarea label="Tareas domiciliarias" placeholder="Ejercicios, cuidados en casa…"
-                rows={2} readOnly={readOnly} {...register("tareas_domiciliarias")} />
+              <div className="space-y-1.5">
+                <label className="block text-sm font-medium text-ink-1">Tareas domiciliarias</label>
+                <Controller
+                  name="tareas_domiciliarias"
+                  control={control}
+                  render={({ field }) => (
+                    <RichTextEditor
+                      value={field.value ?? ""}
+                      onChange={field.onChange}
+                      placeholder="Ejercicios, cuidados en casa…"
+                      readOnly={readOnly}
+                      ariaLabel="Tareas domiciliarias"
+                      minHeight={100}
+                    />
+                  )}
+                />
+              </div>
               <Input label="Próxima sesión" type="date"
                 readOnly={readOnly} {...register("proxima_sesion")} />
             </div>

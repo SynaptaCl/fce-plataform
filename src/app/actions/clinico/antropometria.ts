@@ -8,8 +8,10 @@ import { getProfesionalActivo } from "@/lib/fce/profesional";
 import { log } from "@/lib/logger";
 import { calcularIMC, clasificarCircunferenciaCintura } from "@/lib/nutricion/antropometria";
 import { calcularGrasaCorporal, calcularMasaMagra } from "@/lib/nutricion/pliegues";
-import { getBMIDataset, getLMS, calcularZScore, calcularIndicadorPediatrico } from "@/lib/nutricion/zscore";
+import { getBMIDataset, calcularIndicadorPediatrico } from "@/lib/nutricion/zscore";
 import { clasificarGestacional } from "@/lib/nutricion/atalah";
+import { calcularEdad } from "@/lib/nutricion/edad";
+import { parseISO } from "date-fns";
 import type { ActionResult } from "@/lib/modules/guards";
 import type { AntropometriaRecord, AntropometriaInput } from "@/types/antropometria";
 
@@ -32,8 +34,9 @@ const antropometriaSchema = z.object({
   observaciones:   z.string().max(2000).optional(),
   sexoRegistral:   z.enum(["M","F"]).optional(),
   edadAnios:       z.number().min(1).max(120).optional(),
-  edadMeses:       z.number().min(0).max(228).optional(),
-  fur:             z.string().optional(),
+  edadMeses:        z.number().min(0).max(228).optional(),
+  fechaNacimiento:  z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  fur:              z.string().optional(),
   semanaGestacional: z.number().min(4).max(42).optional(),
   imcPregestacional: z.number().min(10).max(80).optional(),
 });
@@ -130,8 +133,14 @@ export async function registrarAntropometria(
   const {
     peso_kg, talla_cm, circ_cintura_cm, pliegues, formula_grasa,
     sexoRegistral, edadAnios, edadMeses, observaciones, modo,
-    fur, semanaGestacional, imcPregestacional,
+    semanaGestacional, imcPregestacional, fechaNacimiento,
   } = parsed.data;
+
+  // Snapshot de edad al momento del registro — fuente única de verdad para z-score
+  // parseISO crea medianoche LOCAL (no UTC) para strings YYYY-MM-DD → evita artefactos DST
+  const edadSnapshot = fechaNacimiento
+    ? calcularEdad(parseISO(fechaNacimiento), new Date())
+    : null;
 
   // Cálculos server-side
   const resultIMC = calcularIMC(peso_kg, talla_cm);
@@ -177,7 +186,7 @@ export async function registrarAntropometria(
 
   // ── Atalah gestacional ───────────────────────────────────────────────────────
   let clasificacion_gestacional: string | null = null;
-  let semana_final: number | null = semanaGestacional ?? null;
+  const semana_final: number | null = semanaGestacional ?? null;
   let rango_min: number | null = null;
   let rango_max: number | null = null;
   if (modo === 'gestacional' && imc !== null && imcPregestacional != null) {
@@ -207,6 +216,7 @@ export async function registrarAntropometria(
     formula_grasa:    formula_grasa ?? null,
     perc_grasa,
     masa_magra_kg,
+    edad_meses_registro: edadSnapshot?.mesesTotal ?? null,
     zscore_imc,
     percentil_imc,
     semana_gestacional:     semana_final,

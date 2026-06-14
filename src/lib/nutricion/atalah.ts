@@ -67,6 +67,9 @@ export const GANANCIA_TOTAL: Record<CategoriaPregestacional, { min: number; max:
 // ⚠️ PENDIENTE_CLINICA: verificar valores contra publicación original.
 // TODO: cambiar a VALIDADO_<fecha> tras revisión de NTA cuando nutricionista confirme bandas Atalah
 
+/** True mientras las bandas Atalah no hayan sido verificadas contra la publicación original. */
+export const ATALAH_PENDIENTE_CLINICA = true;
+
 interface BandaAtalah {
   semana: number;
   inferior: number; // P10 — límite bajo del rango normal

@@ -7,6 +7,7 @@ import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import type { CifAssessment, CifItem } from "@/types/cif";
 import { CIF_QUANTIFIER_LABELS } from "@/types/cif";
+import { isRichTextHtml } from "@/lib/sanitize";
 
 // ── Text helpers ──────────────────────────────────────────────────────────────
 
@@ -28,6 +29,28 @@ export function Section({ label, children }: { label: string; children: React.Re
     <div>
       <p className="font-bold text-ink-3 uppercase tracking-wide text-[0.6rem] mb-0.5">{label}</p>
       <p className="leading-relaxed text-ink-2 whitespace-pre-wrap text-xs">{children}</p>
+    </div>
+  );
+}
+
+/**
+ * Sección de texto clínico que detecta HTML rich-text (sanitizado al guardar)
+ * y lo renderiza con formato; el texto plano legacy se muestra con pre-wrap.
+ */
+export function RichTextSection({ label, value }: { label: string; value: string | null | undefined }) {
+  if (!value) return null;
+  return (
+    <div>
+      <p className="font-bold text-ink-3 uppercase tracking-wide text-[0.6rem] mb-0.5">{label}</p>
+      {isRichTextHtml(value) ? (
+        <div
+          className="rte-display text-ink-2 text-xs"
+          // Contenido sanitizado server-side antes de persistir (sanitizeRichText)
+          dangerouslySetInnerHTML={{ __html: value }}
+        />
+      ) : (
+        <p className="leading-relaxed text-ink-2 whitespace-pre-wrap text-xs">{value}</p>
+      )}
     </div>
   );
 }
