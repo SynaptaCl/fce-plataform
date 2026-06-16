@@ -1,9 +1,9 @@
 "use server";
 
-import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { requireAuth, requireContext } from "@/lib/auth";
+import { logAudit } from "@/lib/audit";
 import { z } from "zod";
-import { createClient } from "@/lib/supabase/server";
 import { getProfesionalActivo } from "@/lib/fce/profesional";
 import { log } from "@/lib/logger";
 import { calcularIMC, clasificarCircunferenciaCintura } from "@/lib/nutricion/antropometria";
@@ -40,32 +40,6 @@ const antropometriaSchema = z.object({
   semanaGestacional: z.number().min(4).max(42).optional(),
   imcPregestacional: z.number().min(10).max(80).optional(),
 });
-
-// ── Helper: sesión ───────────────────────────────────────────────────────────
-
-async function requireAuth() {
-  const supabase = await createClient();
-  const { data: { user }, error } = await supabase.auth.getUser();
-  if (error || !user) redirect("/login");
-  return { supabase, user };
-}
-
-// ── Helper: audit ────────────────────────────────────────────────────────────
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function logAudit(supabase: any, userId: string, accion: string, registroId: string, idClinica: string, idPaciente: string) {
-  try {
-    await supabase.from("logs_auditoria").insert({
-      actor_id: userId,
-      actor_tipo: "profesional",
-      accion,
-      tabla_afectada: "fce_antropometria",
-      registro_id: registroId,
-      id_clinica: idClinica,
-      id_paciente: idPaciente,
-    });
-  } catch { /* no bloquea el flujo */ }
-}
 
 // ── getAntropometriaByPaciente ────────────────────────────────────────────────
 
@@ -104,22 +78,13 @@ export async function getAntropometriaByPaciente(
 export async function registrarAntropometria(
   input: AntropometriaInput,
 ): Promise<ActionResult<AntropometriaRecord>> {
-  const { supabase, user } = await requireAuth();
-
   // Validación Zod
   const parsed = antropometriaSchema.safeParse(input);
   if (!parsed.success) {
     return { success: false, error: parsed.error.issues[0]?.message ?? "Datos inválidos." };
   }
 
-  const { data: adminRow } = await supabase
-    .from("admin_users")
-    .select("id_clinica")
-    .eq("auth_id", user.id)
-    .eq("activo", true)
-    .single();
-  const idClinica: string | null = adminRow?.id_clinica ?? null;
-  if (!idClinica) return { success: false, error: "Clínica no encontrada." };
+  const { supabase, user, idClinica } = await requireContext();
 
   // Verificar id_clinica coincide con el input (defense-in-depth)
   if (idClinica !== input.idClinica) {
@@ -241,7 +206,16 @@ export async function registrarAntropometria(
     return { success: false, error: error.message };
   }
 
-  await logAudit(supabase, user.id, "registrar_antropometria", data.id, idClinica, input.idPaciente);
+  await logAudit({
+    supabase,
+    actorId: user.id,
+    accion: "registrar_antropometria",
+    tipoEvento: "create",
+    tablaAfectada: "fce_antropometria",
+    registroId: data.id,
+    idClinica: idClinica!,
+    idPaciente: input.idPaciente,
+  });
   revalidatePath(`/dashboard/pacientes/${input.idPaciente}`);
 
   return { success: true, data: data as AntropometriaRecord };
@@ -253,16 +227,7 @@ export async function eliminarAntropometria(
   id: string,
   idPaciente: string,
 ): Promise<ActionResult<void>> {
-  const { supabase, user } = await requireAuth();
-
-  const { data: adminRow } = await supabase
-    .from("admin_users")
-    .select("id_clinica")
-    .eq("auth_id", user.id)
-    .eq("activo", true)
-    .single();
-  const idClinica: string | null = adminRow?.id_clinica ?? null;
-  if (!idClinica) return { success: false, error: "Clínica no encontrada." };
+  const { supabase, user, idClinica } = await requireContext();
 
   const { error } = await supabase
     .from("fce_antropometria")
@@ -276,7 +241,16 @@ export async function eliminarAntropometria(
     return { success: false, error: error.message };
   }
 
-  await logAudit(supabase, user.id, "eliminar_antropometria", id, idClinica, idPaciente);
+  await logAudit({
+    supabase,
+    actorId: user.id,
+    accion: "eliminar_antropometria",
+    tipoEvento: "delete",
+    tablaAfectada: "fce_antropometria",
+    registroId: id,
+    idClinica: idClinica!,
+    idPaciente: idPaciente,
+  });
   revalidatePath(`/dashboard/pacientes/${idPaciente}`);
 
   return { success: true, data: undefined };

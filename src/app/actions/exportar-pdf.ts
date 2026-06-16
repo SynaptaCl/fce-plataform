@@ -2,10 +2,10 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { log } from "@/lib/logger";
+import { logAudit } from "@/lib/audit";
 import type { ActionResult } from "@/lib/modules/guards";
 import type { Patient } from "@/types";
-import type { FichaClinicaData } from "@/lib/ficha-clinica/pdf-renderer";
+import type { FichaClinicaData, AdendaPdfRow } from "@/lib/ficha-clinica/pdf-renderer";
 
 /**
  * Compila la ficha clínica electrónica completa del paciente (Decreto 41 / Ley 20.584):
@@ -63,6 +63,7 @@ export async function exportarFichaCompletaPdf(
     planesRes,
     egresoRes,
     clinicaRes,
+    adendasRes,
   ] = await Promise.all([
     supabase
       .from("fce_anamnesis")
@@ -163,21 +164,52 @@ export async function exportarFichaCompletaPdf(
       .limit(1)
       .maybeSingle(),
     supabase.from("clinicas").select("nombre, config").eq("id", idClinica).single(),
+    supabase
+      .from("fce_adendas")
+      .select("id_documento, tipo_adenda, motivo, contenido, override_director, override_motivo, created_at, created_by")
+      .eq("id_paciente", idPaciente)
+      .eq("id_clinica", idClinica)
+      .order("created_at", { ascending: true }),
   ]);
 
   // Audit obligatorio en exportación de ficha clínica
-  try {
-    await supabase.from("logs_auditoria").insert({
-      actor_id: user.id,
-      actor_tipo: "profesional",
-      accion: "exportar_ficha_clinica",
-      tabla_afectada: "pacientes",
-      registro_id: idPaciente,
-      id_paciente: idPaciente,
-      id_clinica: idClinica,
-    });
-  } catch (err) {
-    log("warn", { action: "exportar_ficha_clinica_audit_fail", id_clinica: idClinica, id_paciente: idPaciente, error: err });
+  await logAudit({
+    supabase,
+    actorId: user.id,
+    accion: "exportar_ficha_clinica",
+    tipoEvento: "export_pdf",
+    tablaAfectada: "pacientes",
+    registroId: idPaciente,
+    idClinica: idClinica,
+    idPaciente: idPaciente,
+  });
+
+  // ── Construir mapa de adendas por id_documento ────────────────────────────
+  const adendasRaw = adendasRes.data ?? [];
+  const adendasMap: Record<string, AdendaPdfRow[]> = {};
+
+  if (adendasRaw.length > 0) {
+    const uniqueCreatedBy = [...new Set(adendasRaw.map((a) => a.created_by as string))];
+    const { data: profs } = await supabase
+      .from("profesionales")
+      .select("id, nombre")
+      .in("id", uniqueCreatedBy);
+    const profMap = new Map<string, string>(
+      (profs ?? []).map((p) => [p.id as string, p.nombre as string])
+    );
+    for (const a of adendasRaw) {
+      const docId = a.id_documento as string;
+      if (!adendasMap[docId]) adendasMap[docId] = [];
+      adendasMap[docId].push({
+        tipo_adenda: a.tipo_adenda as string,
+        motivo: a.motivo as string,
+        contenido: a.contenido as string,
+        override_director: a.override_director as boolean,
+        override_motivo: (a.override_motivo as string | null) ?? null,
+        created_at: a.created_at as string,
+        autorNombre: profMap.get(a.created_by as string) ?? "Profesional",
+      });
+    }
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -225,6 +257,7 @@ export async function exportarFichaCompletaPdf(
       })
     ),
     egreso: (egresoRes.data as FichaClinicaData["egreso"]) ?? null,
+    adendas: adendasMap,
   };
 
   return { success: true, data };

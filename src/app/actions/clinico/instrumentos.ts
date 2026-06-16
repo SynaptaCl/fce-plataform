@@ -1,44 +1,12 @@
 "use server";
 
-import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { requireAuth, requireContext } from "@/lib/auth";
+import { logAudit } from "@/lib/audit";
 import { getIdClinica } from "@/app/actions/patients";
 import { calcularPuntaje } from "@/lib/instrumentos/calcular";
 import { interpretarPuntaje } from "@/lib/instrumentos/interpretar";
 import type { ActionResult } from "@/app/actions/patients";
 import type { InstrumentoSchema, InstrumentoAplicado } from "@/types/instrumento";
-
-// ── Helpers ──────────────────────────────────────────────────────────────────
-
-async function requireAuth() {
-  const supabase = await createClient();
-  const { data: { user }, error } = await supabase.auth.getUser();
-  if (error || !user) redirect("/login");
-  return { supabase, user };
-}
-
-async function logAudit(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  supabase: any,
-  userId: string,
-  accion: string,
-  tablaAfectada: string,
-  registroId: string,
-  idClinica?: string | null,
-  idPaciente?: string | null,
-) {
-  try {
-    await supabase.from("logs_auditoria").insert({
-      actor_id: userId,
-      actor_tipo: "profesional",
-      accion,
-      tabla_afectada: tablaAfectada,
-      registro_id: registroId,
-      ...(idClinica ? { id_clinica: idClinica } : {}),
-      ...(idPaciente ? { id_paciente: idPaciente } : {}),
-    });
-  } catch { /* no bloquea */ }
-}
 
 // ── getCatalogoInstrumentos ───────────────────────────────────────────────────
 
@@ -90,10 +58,7 @@ export async function aplicarInstrumento(params: {
 }): Promise<ActionResult<{ id: string }>> {
   const { encuentroId, patientId, instrumentoId, respuestas, notas, mostrarEnTimeline } = params;
 
-  const { supabase, user } = await requireAuth();
-
-  const idClinica = await getIdClinica(supabase, user.id);
-  if (!idClinica) return { success: false, error: "No se pudo determinar la clínica del usuario." };
+  const { supabase, user, idClinica } = await requireContext();
 
   // Fetch del instrumento para obtener schema_items e interpretacion
   const { data: instrumento, error: instrError } = await supabase
@@ -137,7 +102,16 @@ export async function aplicarInstrumento(params: {
       return { success: false, error: insertError?.message ?? "Error al guardar el instrumento." };
     }
 
-    await logAudit(supabase, user.id, "aplicar_instrumento", "instrumentos_aplicados", inserted.id, idClinica, patientId);
+    await logAudit({
+      supabase,
+      actorId: user.id,
+      accion: "aplicar_instrumento",
+      tipoEvento: "create",
+      tablaAfectada: "instrumentos_aplicados",
+      registroId: inserted.id,
+      idClinica: idClinica,
+      idPaciente: patientId,
+    });
     return { success: true, data: { id: inserted.id } };
   }
 
@@ -175,15 +149,16 @@ export async function aplicarInstrumento(params: {
     return { success: false, error: insertError?.message ?? "Error al guardar el instrumento." };
   }
 
-  await logAudit(
+  await logAudit({
     supabase,
-    user.id,
-    "aplicar_instrumento",
-    "instrumentos_aplicados",
-    inserted.id,
-    idClinica,
-    patientId,
-  );
+    actorId: user.id,
+    accion: "aplicar_instrumento",
+    tipoEvento: "create",
+    tablaAfectada: "instrumentos_aplicados",
+    registroId: inserted.id,
+    idClinica: idClinica,
+    idPaciente: patientId,
+  });
 
   return { success: true, data: { id: inserted.id } };
 }
@@ -193,7 +168,7 @@ export async function aplicarInstrumento(params: {
 export async function eliminarInstrumentoAplicado(
   id: string,
 ): Promise<ActionResult> {
-  const { supabase, user } = await requireAuth();
+  const { supabase, user } = await requireContext();
 
   // Fetch del registro para obtener id_encuentro e id_paciente
   const { data: registro, error: fetchError } = await supabase
@@ -228,15 +203,16 @@ export async function eliminarInstrumentoAplicado(
 
   if (deleteError) return { success: false, error: deleteError.message };
 
-  await logAudit(
+  await logAudit({
     supabase,
-    user.id,
-    "eliminar_instrumento_aplicado",
-    "instrumentos_aplicados",
-    id,
-    registro.id_clinica ?? null,
-    registro.id_paciente ?? null,
-  );
+    actorId: user.id,
+    accion: "eliminar_instrumento",
+    tipoEvento: "delete",
+    tablaAfectada: "instrumentos_aplicados",
+    registroId: id,
+    idClinica: registro.id_clinica ?? "",
+    idPaciente: registro.id_paciente ?? null,
+  });
 
   return { success: true, data: undefined };
 }

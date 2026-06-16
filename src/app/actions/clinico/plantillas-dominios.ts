@@ -1,21 +1,8 @@
 "use server";
 
-import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { requireAuth } from "@/lib/auth";
 import type { ActionResult } from "@/lib/modules/guards";
 import type { PlantillaDominio } from "@/types/plantilla-dominio";
-
-// ── Helper: sesión activa ──────────────────────────────────────────────────
-
-async function requireAuth() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser();
-  if (error || !user) redirect("/login");
-  return { supabase, user };
-}
 
 // ── getPlantillasDominios ──────────────────────────────────────────────────
 

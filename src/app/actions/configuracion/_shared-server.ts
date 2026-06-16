@@ -2,8 +2,8 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import type { SupabaseClient } from "@supabase/supabase-js";
 import { ROLES_QUE_CONFIGURAN } from "@/lib/modules/registry";
+import { logAudit } from "@/lib/audit";
 
 export async function requireConfigAdmin() {
   const supabase = await createClient();
@@ -24,22 +24,4 @@ export async function requireConfigAdmin() {
   return { supabase, user, idClinica: admin.id_clinica as string };
 }
 
-export async function logAuditConfig(
-  supabase: SupabaseClient,
-  actorId: string,
-  accion: string,
-  tablaAfectada: string,
-  registroId: string,
-  idClinica?: string | null
-): Promise<void> {
-  try {
-    await supabase.from("logs_auditoria").insert({
-      actor_id: actorId,
-      actor_tipo: "admin",
-      accion,
-      tabla_afectada: tablaAfectada,
-      registro_id: registroId,
-      ...(idClinica ? { id_clinica: idClinica } : {}),
-    });
-  } catch { /* no bloquea */ }
-}
+export { logAudit };

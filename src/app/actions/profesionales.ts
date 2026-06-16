@@ -1,30 +1,8 @@
 "use server";
 
-import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
-import { getIdClinica } from "@/app/actions/patients";
+import { requireContext } from "@/lib/auth";
+import { logAudit } from "@/lib/audit";
 import type { ActionResult } from "@/app/actions/patients";
-
-async function requireAuth() {
-  const supabase = await createClient();
-  const { data: { user }, error } = await supabase.auth.getUser();
-  if (error || !user) redirect("/login");
-  return { supabase, user };
-}
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function logAudit(supabase: any, userId: string, accion: string, tablaAfectada: string, registroId: string, idClinica?: string | null) {
-  try {
-    await supabase.from("logs_auditoria").insert({
-      actor_id: userId,
-      actor_tipo: "admin",
-      accion,
-      tabla_afectada: tablaAfectada,
-      registro_id: registroId,
-      ...(idClinica ? { id_clinica: idClinica } : {}),
-    });
-  } catch { /* no bloquea */ }
-}
 
 /**
  * Valida que la especialidad existe en especialidades_catalogo.
@@ -66,10 +44,17 @@ export interface ProfesionalInput {
 export async function crearProfesional(
   input: ProfesionalInput & { auth_id: string }
 ): Promise<ActionResult<{ id: string }>> {
-  const { supabase, user } = await requireAuth();
-
-  const idClinica = await getIdClinica(supabase, user.id);
-  if (!idClinica) return { success: false, error: "No se encontró la clínica asociada al usuario." };
+  let supabase: Awaited<ReturnType<typeof requireContext>>["supabase"];
+  let user: Awaited<ReturnType<typeof requireContext>>["user"];
+  let idClinica: string;
+  try {
+    const ctx = await requireContext();
+    supabase = ctx.supabase;
+    user = ctx.user;
+    idClinica = ctx.idClinica;
+  } catch {
+    return { success: false, error: "No se encontró la clínica asociada al usuario." };
+  }
 
   const errorEsp = await validarEspecialidad(supabase, input.especialidad);
   if (errorEsp) return { success: false, error: errorEsp };
@@ -90,7 +75,15 @@ export async function crearProfesional(
 
   if (error) return { success: false, error: error.message };
 
-  await logAudit(supabase, user.id, "crear_profesional", "profesionales", data.id, idClinica);
+  await logAudit({
+    supabase,
+    actorId: user.id,
+    accion: "crear_profesional",
+    tipoEvento: "create",
+    tablaAfectada: "profesionales",
+    registroId: data.id,
+    idClinica: idClinica,
+  });
   return { success: true, data: { id: data.id as string } };
 }
 
@@ -100,10 +93,17 @@ export async function actualizarProfesional(
   profesionalId: string,
   input: Partial<ProfesionalInput>
 ): Promise<ActionResult<void>> {
-  const { supabase, user } = await requireAuth();
-
-  const idClinica = await getIdClinica(supabase, user.id);
-  if (!idClinica) return { success: false, error: "No se encontró la clínica asociada al usuario." };
+  let supabase: Awaited<ReturnType<typeof requireContext>>["supabase"];
+  let user: Awaited<ReturnType<typeof requireContext>>["user"];
+  let idClinica: string;
+  try {
+    const ctx = await requireContext();
+    supabase = ctx.supabase;
+    user = ctx.user;
+    idClinica = ctx.idClinica;
+  } catch {
+    return { success: false, error: "No se encontró la clínica asociada al usuario." };
+  }
 
   if (input.especialidad !== undefined) {
     const errorEsp = await validarEspecialidad(supabase, input.especialidad);
@@ -118,6 +118,14 @@ export async function actualizarProfesional(
 
   if (error) return { success: false, error: error.message };
 
-  await logAudit(supabase, user.id, "actualizar_profesional", "profesionales", profesionalId, idClinica);
+  await logAudit({
+    supabase,
+    actorId: user.id,
+    accion: "actualizar_profesional",
+    tipoEvento: "update",
+    tablaAfectada: "profesionales",
+    registroId: profesionalId,
+    idClinica: idClinica,
+  });
   return { success: true, data: undefined };
 }

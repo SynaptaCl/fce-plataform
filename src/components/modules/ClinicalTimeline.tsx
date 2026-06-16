@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import {
@@ -34,6 +35,9 @@ import { OrdenExamenExpandedCard } from "./timeline/OrdenExamenExpandedCard";
 import { OrdenExamenDetalleModal } from "@/components/shared/OrdenExamenDetalleModal";
 import { EgresoCard } from "@/components/shared/EgresoCard";
 import { PlanIntervencionExpandedCard } from "./timeline/PlanIntervencionExpandedCard";
+import { AdendaExpandedCard } from "./timeline/AdendaExpandedCard";
+import { AdendaModal } from "@/components/shared/AdendaModal";
+import type { AdendaTarget } from "@/types/adenda";
 import type { Patient } from "@/types/patient";
 import type { ClinicaConfig } from "@/lib/modules/config";
 
@@ -47,6 +51,7 @@ interface ClinicalTimelineProps {
   especialidadesActivas: string[];
   paciente?: Patient;
   clinica?: ClinicaConfig;
+  rolActual?: string;
 }
 
 type ViewMode = "todos" | "solo_notas";
@@ -162,6 +167,14 @@ const TYPE_CONFIG: Record<
     iconBg: "var(--color-kp-accent-lt, #D5F5F4)",
     iconColor: "var(--color-kp-primary, #006B6B)",
   },
+  adenda: {
+    label: "Adenda",
+    icon: FileText,
+    badgeVariant: "warning" as BadgeVariant,
+    borderColor: "var(--color-ink-2, #475569)",
+    iconBg: "var(--color-surface-0, #F1F5F9)",
+    iconColor: "var(--color-ink-2, #475569)",
+  },
 };
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -218,15 +231,17 @@ function EntryContent({
   patientId,
   onVerReceta,
   onVerOrden,
+  onAgregarAdenda,
 }: {
   entry: TimelineEntry;
   patientId: string;
   onVerReceta?: (id: string) => void;
   onVerOrden?: (id: string) => void;
+  onAgregarAdenda?: (target: AdendaTarget) => void;
 }) {
   switch (entry.type) {
     case "soap":
-      return <SoapExpandedCard entry={entry} patientId={patientId} />;
+      return <SoapExpandedCard entry={entry} patientId={patientId} onAgregarAdenda={onAgregarAdenda} />;
     case "evaluacion":
       return <EvaluacionExpandedCard entry={entry} patientId={patientId} />;
     case "signos_vitales":
@@ -234,7 +249,7 @@ function EntryContent({
     case "consentimiento":
       return <ConsentimientoExpandedCard entry={entry} patientId={patientId} />;
     case "nota_clinica":
-      return <NotaClinicaExpandedCard entry={entry} patientId={patientId} />;
+      return <NotaClinicaExpandedCard entry={entry} patientId={patientId} onAgregarAdenda={onAgregarAdenda} />;
     case "instrumento":
       return <InstrumentoExpandedCard entry={entry} patientId={patientId} />;
     case "prescripcion":
@@ -257,6 +272,8 @@ function EntryContent({
       return <EgresoCard entry={entry} patientId={patientId} />;
     case "plan_intervencion":
       return <PlanIntervencionExpandedCard entry={entry} patientId={patientId} />;
+    case "adenda":
+      return <AdendaExpandedCard entry={entry} patientId={patientId} />;
   }
 }
 
@@ -319,6 +336,7 @@ function TimelineCard({
   patientId,
   onVerReceta,
   onVerOrden,
+  onAgregarAdenda,
 }: {
   entry: TimelineEntry;
   expanded: boolean;
@@ -327,6 +345,7 @@ function TimelineCard({
   patientId: string;
   onVerReceta?: (id: string) => void;
   onVerOrden?: (id: string) => void;
+  onAgregarAdenda?: (target: AdendaTarget) => void;
 }) {
   const cfg = TYPE_CONFIG[entry.type];
   const TypeIcon = cfg.icon;
@@ -501,6 +520,7 @@ function TimelineCard({
               patientId={patientId}
               onVerReceta={onVerReceta}
               onVerOrden={onVerOrden}
+              onAgregarAdenda={onAgregarAdenda}
             />
           </div>
           {/* Signed footer bar — only for signed firma-capable types */}
@@ -525,7 +545,9 @@ export function ClinicalTimeline({
   especialidadesActivas,
   paciente,
   clinica,
+  rolActual = "",
 }: ClinicalTimelineProps) {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<string>("todos");
   const [viewMode, setViewMode] = useState<ViewMode>("todos");
   // Inicializar con los entries principales expandidos
@@ -534,6 +556,7 @@ export function ClinicalTimeline({
   );
   const [modalPrescripcionId, setModalPrescripcionId] = useState<string | null>(null);
   const [modalOrdenId, setModalOrdenId] = useState<string | null>(null);
+  const [adendaTarget, setAdendaTarget] = useState<AdendaTarget | null>(null);
 
   // Construir tabs dinámicamente desde config de la clínica
   const filterTabs = useMemo(() => {
@@ -707,6 +730,7 @@ export function ClinicalTimeline({
               patientId={patientId}
               onVerReceta={paciente && clinica ? setModalPrescripcionId : undefined}
               onVerOrden={paciente && clinica ? setModalOrdenId : undefined}
+              onAgregarAdenda={setAdendaTarget}
             />
           ))
         )}
@@ -726,6 +750,20 @@ export function ClinicalTimeline({
           paciente={paciente}
           clinica={clinica}
           onClose={() => setModalOrdenId(null)}
+        />
+      )}
+      {adendaTarget && (
+        <AdendaModal
+          open={true}
+          onClose={() => setAdendaTarget(null)}
+          target={adendaTarget}
+          idPaciente={patientId}
+          profesionalIdActual={currentUserId}
+          rolActual={rolActual}
+          onSuccess={() => {
+            setAdendaTarget(null);
+            router.refresh();
+          }}
         />
       )}
     </div>

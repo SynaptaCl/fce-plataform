@@ -1,53 +1,14 @@
 "use server";
 
-import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { createClient } from "@/lib/supabase/server";
+import { requireAuth, requireContext } from "@/lib/auth";
+import { logAudit } from "@/lib/audit";
 import { getProfesionalActivo } from "@/lib/fce/profesional";
 import { getClinicaConfig } from "@/lib/modules/config";
 import { assertModuleEnabled } from "@/lib/modules/guards";
 import type { ActionResult } from "@/lib/modules/guards";
 import { log } from "@/lib/logger";
 import type { Presupuesto, PresupuestoItem, PresupuestoFormData } from "@/types/presupuesto";
-
-// ── Helper: sesión activa ──────────────────────────────────────────────────
-
-async function requireAuth() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser();
-  if (error || !user) redirect("/login");
-  return { supabase, user };
-}
-
-// ── Helper: audit log ──────────────────────────────────────────────────────
-
-async function logAudit(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  supabase: any,
-  userId: string,
-  accion: string,
-  tablaAfectada: string,
-  registroId: string,
-  idClinica?: string | null,
-  idPaciente?: string | null
-) {
-  try {
-    await supabase.from("logs_auditoria").insert({
-      actor_id: userId,
-      actor_tipo: "profesional",
-      accion,
-      tabla_afectada: tablaAfectada,
-      registro_id: registroId,
-      ...(idClinica ? { id_clinica: idClinica } : {}),
-      ...(idPaciente ? { id_paciente: idPaciente } : {}),
-    });
-  } catch {
-    // El audit log no debe romper el flujo principal
-  }
-}
 
 // ── getPresupuestos ────────────────────────────────────────────────────────
 
@@ -154,16 +115,17 @@ export async function crearPresupuesto(
   data: PresupuestoFormData,
   idEncuentro?: string
 ): Promise<ActionResult<Presupuesto>> {
-  const { supabase, user } = await requireAuth();
-
-  const { data: adminRow } = await supabase
-    .from("admin_users")
-    .select("id_clinica")
-    .eq("auth_id", user.id)
-    .eq("activo", true)
-    .single();
-  const idClinica: string | null = adminRow?.id_clinica ?? null;
-  if (!idClinica) return { success: false, error: "No se encontró la clínica asociada al usuario." };
+  let supabase: Awaited<ReturnType<typeof requireContext>>["supabase"];
+  let user: Awaited<ReturnType<typeof requireContext>>["user"];
+  let idClinica: string;
+  try {
+    const ctx = await requireContext();
+    supabase = ctx.supabase;
+    user = ctx.user;
+    idClinica = ctx.idClinica;
+  } catch {
+    return { success: false, error: "No se encontró la clínica asociada al usuario." };
+  }
 
   const config = await getClinicaConfig(idClinica, supabase);
   const moduleGuard = assertModuleEnabled(config, "M11_presupuestos");
@@ -216,15 +178,16 @@ export async function crearPresupuesto(
     items = insertedItems ?? [];
   }
 
-  await logAudit(
+  await logAudit({
     supabase,
-    user.id,
-    "presupuesto_creado",
-    "fce_presupuestos",
-    presupuesto.id,
-    idClinica,
-    idPaciente
-  );
+    actorId: user.id,
+    accion: "crear_presupuesto",
+    tipoEvento: "create",
+    tablaAfectada: "fce_presupuestos",
+    registroId: presupuesto.id,
+    idClinica: idClinica!,
+    idPaciente: idPaciente,
+  });
 
   revalidatePath(`/dashboard/pacientes/${idPaciente}`);
 
@@ -240,16 +203,17 @@ export async function actualizarPresupuesto(
   id: string,
   data: PresupuestoFormData
 ): Promise<ActionResult<Presupuesto>> {
-  const { supabase, user } = await requireAuth();
-
-  const { data: adminRow } = await supabase
-    .from("admin_users")
-    .select("id_clinica")
-    .eq("auth_id", user.id)
-    .eq("activo", true)
-    .single();
-  const idClinica: string | null = adminRow?.id_clinica ?? null;
-  if (!idClinica) return { success: false, error: "No se encontró la clínica asociada al usuario." };
+  let supabase: Awaited<ReturnType<typeof requireContext>>["supabase"];
+  let user: Awaited<ReturnType<typeof requireContext>>["user"];
+  let idClinica: string;
+  try {
+    const ctx = await requireContext();
+    supabase = ctx.supabase;
+    user = ctx.user;
+    idClinica = ctx.idClinica;
+  } catch {
+    return { success: false, error: "No se encontró la clínica asociada al usuario." };
+  }
 
   // Fetch to check ownership and mutability
   const { data: existing, error: fetchError } = await supabase
@@ -311,15 +275,16 @@ export async function actualizarPresupuesto(
     items = insertedItems ?? [];
   }
 
-  await logAudit(
+  await logAudit({
     supabase,
-    user.id,
-    "presupuesto_actualizado",
-    "fce_presupuestos",
-    id,
-    idClinica,
-    existing.id_paciente
-  );
+    actorId: user.id,
+    accion: "actualizar_presupuesto",
+    tipoEvento: "update",
+    tablaAfectada: "fce_presupuestos",
+    registroId: id,
+    idClinica: idClinica!,
+    idPaciente: existing.id_paciente,
+  });
 
   revalidatePath(`/dashboard/pacientes/${existing.id_paciente}`);
 
@@ -334,16 +299,17 @@ export async function actualizarPresupuesto(
 export async function firmarPresupuesto(
   id: string
 ): Promise<ActionResult<Presupuesto>> {
-  const { supabase, user } = await requireAuth();
-
-  const { data: adminRow } = await supabase
-    .from("admin_users")
-    .select("id_clinica")
-    .eq("auth_id", user.id)
-    .eq("activo", true)
-    .single();
-  const idClinica: string | null = adminRow?.id_clinica ?? null;
-  if (!idClinica) return { success: false, error: "No se encontró la clínica asociada al usuario." };
+  let supabase: Awaited<ReturnType<typeof requireContext>>["supabase"];
+  let user: Awaited<ReturnType<typeof requireContext>>["user"];
+  let idClinica: string;
+  try {
+    const ctx = await requireContext();
+    supabase = ctx.supabase;
+    user = ctx.user;
+    idClinica = ctx.idClinica;
+  } catch {
+    return { success: false, error: "No se encontró la clínica asociada al usuario." };
+  }
 
   const config = await getClinicaConfig(idClinica, supabase);
   const moduleGuard = assertModuleEnabled(config, "M11_presupuestos");
@@ -388,15 +354,16 @@ export async function firmarPresupuesto(
     .eq("id_presupuesto", id)
     .order("orden", { ascending: true });
 
-  await logAudit(
+  await logAudit({
     supabase,
-    user.id,
-    "presupuesto_firmado",
-    "fce_presupuestos",
-    id,
-    idClinica,
-    existing.id_paciente
-  );
+    actorId: user.id,
+    accion: "firmar_presupuesto",
+    tipoEvento: "sign",
+    tablaAfectada: "fce_presupuestos",
+    registroId: id,
+    idClinica: idClinica!,
+    idPaciente: existing.id_paciente,
+  });
 
   revalidatePath(`/dashboard/pacientes/${existing.id_paciente}`);
 
@@ -411,16 +378,17 @@ export async function firmarPresupuesto(
 export async function eliminarPresupuesto(
   id: string
 ): Promise<ActionResult> {
-  const { supabase, user } = await requireAuth();
-
-  const { data: adminRow } = await supabase
-    .from("admin_users")
-    .select("id_clinica")
-    .eq("auth_id", user.id)
-    .eq("activo", true)
-    .single();
-  const idClinica: string | null = adminRow?.id_clinica ?? null;
-  if (!idClinica) return { success: false, error: "No se encontró la clínica asociada al usuario." };
+  let supabase: Awaited<ReturnType<typeof requireContext>>["supabase"];
+  let user: Awaited<ReturnType<typeof requireContext>>["user"];
+  let idClinica: string;
+  try {
+    const ctx = await requireContext();
+    supabase = ctx.supabase;
+    user = ctx.user;
+    idClinica = ctx.idClinica;
+  } catch {
+    return { success: false, error: "No se encontró la clínica asociada al usuario." };
+  }
 
   const { data: existing, error: fetchError } = await supabase
     .from("fce_presupuestos")
@@ -447,15 +415,16 @@ export async function eliminarPresupuesto(
     return { success: false, error: "No se pudo eliminar el presupuesto." };
   }
 
-  await logAudit(
+  await logAudit({
     supabase,
-    user.id,
-    "presupuesto_eliminado",
-    "fce_presupuestos",
-    id,
-    idClinica,
-    existing.id_paciente
-  );
+    actorId: user.id,
+    accion: "eliminar_presupuesto",
+    tipoEvento: "delete",
+    tablaAfectada: "fce_presupuestos",
+    registroId: id,
+    idClinica: idClinica!,
+    idPaciente: existing.id_paciente,
+  });
 
   revalidatePath(`/dashboard/pacientes/${existing.id_paciente}`);
 

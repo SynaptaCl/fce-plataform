@@ -1,8 +1,8 @@
 "use server";
 
-import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { createClient } from "@/lib/supabase/server";
+import { requireAuth, requireContext } from "@/lib/auth";
+import { logAudit } from "@/lib/audit";
 import { getProfesionalActivo } from "@/lib/fce/profesional";
 import { getClinicaConfig } from "@/lib/modules/config";
 import { assertModuleEnabled, assertPuedeFirmar } from "@/lib/modules/guards";
@@ -12,45 +12,6 @@ import type { ActionResult } from "@/lib/modules/guards";
 import type { Rol } from "@/lib/modules/registry";
 import { log } from "@/lib/logger";
 import type { OrdenExamen, ExamenCatalogo, ExamenIndicado } from "@/types/orden-examen";
-
-// ── Helper: sesión activa ──────────────────────────────────────────────────
-
-async function requireAuth() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser();
-  if (error || !user) redirect("/login");
-  return { supabase, user };
-}
-
-// ── Helper: audit log ──────────────────────────────────────────────────────
-
-async function logAudit(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  supabase: any,
-  userId: string,
-  accion: string,
-  tablaAfectada: string,
-  registroId: string,
-  idClinica?: string | null,
-  idPaciente?: string | null
-) {
-  try {
-    await supabase.from("logs_auditoria").insert({
-      actor_id: userId,
-      actor_tipo: "profesional",
-      accion,
-      tabla_afectada: tablaAfectada,
-      registro_id: registroId,
-      ...(idClinica ? { id_clinica: idClinica } : {}),
-      ...(idPaciente ? { id_paciente: idPaciente } : {}),
-    });
-  } catch {
-    // El audit log no debe romper el flujo principal
-  }
-}
 
 // ── createAndSignOrdenExamen ───────────────────────────────────────────────
 
@@ -69,17 +30,19 @@ export async function createAndSignOrdenExamen(input: {
     return { success: false, error: parsed.error.issues[0]?.message ?? "Datos inválidos" };
   }
 
-  const { supabase, user } = await requireAuth();
-
-  const { data: adminRow } = await supabase
-    .from("admin_users")
-    .select("id_clinica, rol")
-    .eq("auth_id", user.id)
-    .eq("activo", true)
-    .single();
-  if (!adminRow?.id_clinica) return { success: false, error: "No se pudo determinar la clínica" };
-  const idClinica = adminRow.id_clinica as string;
-  const rol = adminRow.rol as Rol;
+  let supabase: Awaited<ReturnType<typeof requireContext>>["supabase"];
+  let user: Awaited<ReturnType<typeof requireContext>>["user"];
+  let idClinica: string;
+  let rol: Rol;
+  try {
+    const ctx = await requireContext();
+    supabase = ctx.supabase;
+    user = ctx.user;
+    idClinica = ctx.idClinica;
+    rol = ctx.rol as Rol;
+  } catch {
+    return { success: false, error: "No se pudo determinar la clínica" };
+  }
 
   const config = await getClinicaConfig(idClinica, supabase);
   if (!config) return { success: false, error: "No se encontró configuración FCE de la clínica." };
@@ -146,15 +109,16 @@ export async function createAndSignOrdenExamen(input: {
     return { success: false, error: "No se pudo crear la orden de examen" };
   }
 
-  await logAudit(
+  await logAudit({
     supabase,
-    user.id,
-    "emitir_orden_examen",
-    "fce_ordenes_examen",
-    orden.id,
-    idClinica,
-    input.patientId
-  );
+    actorId: user.id,
+    accion: "crear_orden_examen",
+    tipoEvento: "sign",
+    tablaAfectada: "fce_ordenes_examen",
+    registroId: orden.id,
+    idClinica: idClinica,
+    idPaciente: input.patientId,
+  });
 
   revalidatePath(`/dashboard/pacientes/${input.patientId}`);
 
@@ -261,15 +225,16 @@ export async function logOrdenExamenAction(
 
   if (!orden) return { success: false, error: "Orden no encontrada" };
 
-  await logAudit(
+  await logAudit({
     supabase,
-    user.id,
+    actorId: user.id,
     accion,
-    "fce_ordenes_examen",
-    ordenId,
-    orden.id_clinica,
-    orden.id_paciente
-  );
+    tipoEvento: "export_pdf",
+    tablaAfectada: "fce_ordenes_examen",
+    registroId: ordenId,
+    idClinica: orden.id_clinica!,
+    idPaciente: orden.id_paciente,
+  });
 
   return { success: true, data: undefined };
 }

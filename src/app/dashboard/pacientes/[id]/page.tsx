@@ -14,6 +14,7 @@ import { ReingresoBanner } from "@/components/shared/ReingresoBanner";
 import { getProfesionalActivo } from "@/lib/fce/profesional";
 import { getEgresosByPaciente } from "@/app/actions/egresos";
 import { ResumenIAButton } from "@/components/modules/ResumenIA";
+import { logAudit } from "@/lib/audit";
 import type { PatientSummary } from "@/app/actions/timeline";
 
 export async function generateMetadata({
@@ -79,6 +80,17 @@ export default async function PatientDetailPage({
     ]);
 
   if (!patientResult.success) notFound();
+
+  void logAudit({
+    supabase,
+    actorId: user.id,
+    accion: "ver_ficha_paciente",
+    tipoEvento: "read_ficha",
+    tablaAfectada: "pacientes",
+    registroId: id,
+    idClinica,
+    idPaciente: id,
+  });
 
   const p = patientResult.data;
   const hasConsent = (consentResult.count ?? 0) > 0;
@@ -169,6 +181,7 @@ export default async function PatientDetailPage({
               currentUserId={profesional?.id ?? ""}
               patientId={id}
               especialidadesActivas={especialidadesActivas}
+              rolActual={rol}
             />
           </div>
 

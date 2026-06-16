@@ -1,8 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { requireAuth, requireContext } from "@/lib/auth";
+import { logAudit } from "@/lib/audit";
 import { notaClinicaSchema } from "@/lib/validations";
 import { getProfesionalActivo } from "@/lib/fce/profesional";
 import { sanitizeRichText } from "@/lib/sanitize";
@@ -35,28 +35,6 @@ function sanitizeSeccionesEstructuradas(
     }
   }
   return out;
-}
-
-async function requireAuth() {
-  const supabase = await createClient();
-  const { data: { user }, error } = await supabase.auth.getUser();
-  if (error || !user) redirect("/login");
-  return { supabase, user };
-}
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function logAudit(supabase: any, userId: string, accion: string, registroId: string, idClinica: string | null, idPaciente: string) {
-  try {
-    await supabase.from("logs_auditoria").insert({
-      actor_id: userId,
-      actor_tipo: "profesional",
-      accion,
-      tabla_afectada: "fce_notas_clinicas",
-      registro_id: registroId,
-      ...(idClinica ? { id_clinica: idClinica } : {}),
-      id_paciente: idPaciente,
-    });
-  } catch { /* no bloquea */ }
 }
 
 // ── getNotaClinica ───────────────────────────────────────────────────────────
@@ -98,16 +76,7 @@ export async function upsertNotaClinica(
     return { success: false, error: parsed.error.issues[0].message };
   }
 
-  const { supabase, user } = await requireAuth();
-
-  const { data: adminRow } = await supabase
-    .from("admin_users")
-    .select("id_clinica")
-    .eq("auth_id", user.id)
-    .eq("activo", true)
-    .single();
-  const idClinica: string | null = adminRow?.id_clinica ?? null;
-  if (!idClinica) return { success: false, error: "No se pudo determinar la clínica del usuario." };
+  const { supabase, user, idClinica } = await requireContext();
 
   const profesional = await getProfesionalActivo(supabase, user.id, idClinica);
 
@@ -146,7 +115,16 @@ export async function upsertNotaClinica(
 
     if (error) return { success: false, error: error.message };
     id = existing.id;
-    await logAudit(supabase, user.id, "actualizar_nota_clinica", id, idClinica, patientId);
+    await logAudit({
+      supabase,
+      actorId: user.id,
+      accion: "actualizar_nota_clinica",
+      tipoEvento: "update",
+      tablaAfectada: "fce_notas_clinicas",
+      registroId: id,
+      idClinica: idClinica,
+      idPaciente: patientId,
+    });
   } else {
     if (!profesional) {
       return { success: false, error: "No se encontró el perfil profesional del usuario." };
@@ -167,7 +145,16 @@ export async function upsertNotaClinica(
 
     if (error) return { success: false, error: error.message };
     id = created.id;
-    await logAudit(supabase, user.id, "crear_nota_clinica", id, idClinica, patientId);
+    await logAudit({
+      supabase,
+      actorId: user.id,
+      accion: "crear_nota_clinica",
+      tipoEvento: "create",
+      tablaAfectada: "fce_notas_clinicas",
+      registroId: id,
+      idClinica: idClinica,
+      idPaciente: patientId,
+    });
   }
 
   revalidatePath(`/dashboard/pacientes/${patientId}`);
@@ -180,17 +167,9 @@ export async function signNotaClinica(
   notaId: string,
   patientId: string,
 ): Promise<ActionResult<{ redirectTo: string }>> {
-  const { supabase, user } = await requireAuth();
+  const { supabase, user, idClinica } = await requireContext();
 
-  const { data: adminRow } = await supabase
-    .from("admin_users")
-    .select("id_clinica")
-    .eq("auth_id", user.id)
-    .eq("activo", true)
-    .single();
-  const idClinica: string | null = adminRow?.id_clinica ?? null;
-
-  const profesional = await getProfesionalActivo(supabase, user.id, idClinica ?? undefined);
+  const profesional = await getProfesionalActivo(supabase, user.id, idClinica);
   if (!profesional) {
     return { success: false, error: "No se encontró el perfil profesional del usuario." };
   }
@@ -200,7 +179,7 @@ export async function signNotaClinica(
     .from("fce_notas_clinicas")
     .select("id_encuentro, firmado")
     .eq("id", notaId)
-    .eq("id_clinica", idClinica ?? "")
+    .eq("id_clinica", idClinica)
     .single();
 
   if (!notaRow) return { success: false, error: "Nota no encontrada." };
@@ -215,7 +194,7 @@ export async function signNotaClinica(
       updated_at: new Date().toISOString(),
     })
     .eq("id", notaId)
-    .eq("id_clinica", idClinica ?? "")
+    .eq("id_clinica", idClinica)
     .eq("firmado", false);
 
   if (error) return { success: false, error: error.message };
@@ -227,7 +206,16 @@ export async function signNotaClinica(
     .eq("id", notaRow.id_encuentro)
     .eq("status", "en_progreso");
 
-  await logAudit(supabase, user.id, "firmar_nota_clinica", notaId, idClinica, patientId);
+  await logAudit({
+    supabase,
+    actorId: user.id,
+    accion: "firmar_nota_clinica",
+    tipoEvento: "sign",
+    tablaAfectada: "fce_notas_clinicas",
+    registroId: notaId,
+    idClinica: idClinica,
+    idPaciente: patientId,
+  });
 
   revalidatePath(`/dashboard/pacientes/${patientId}`);
   return { success: true, data: { redirectTo: `/dashboard/pacientes/${patientId}` } };

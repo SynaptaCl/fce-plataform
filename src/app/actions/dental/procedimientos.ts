@@ -1,20 +1,9 @@
 "use server";
 
-import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { requireAuth } from "@/lib/auth";
 import { getIdClinica } from "@/app/actions/patients";
 import type { ActionResult } from "@/app/actions/patients";
 import type { ProcedimientoCatalogo } from "@/types/plan-tratamiento";
-
-async function requireAuth() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser();
-  if (error || !user) redirect("/login");
-  return { supabase, user };
-}
 
 export async function getProcedimientosCatalogo(): Promise<
   ActionResult<ProcedimientoCatalogo[]>

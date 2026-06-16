@@ -1,7 +1,8 @@
 "use server";
 
 import type { ActionResult } from "@/lib/modules/guards";
-import { requireConfigAdmin, logAuditConfig } from "./_shared-server";
+import { requireConfigAdmin } from "./_shared-server";
+import { logAudit } from "@/lib/audit";
 
 // ── asignarProfesionalServicio ────────────────────────────────────────────────
 
@@ -76,15 +77,16 @@ export async function asignarProfesionalServicio(
     if (errorInsert) return { success: false, error: errorInsert.message };
   }
 
-  // Fix 5 — registro_id uses idProfesional for audit trail queryability
-  await logAuditConfig(
+  await logAudit({
     supabase,
-    user.id,
-    "asignar_profesional_servicio",
-    "profesional_servicios",
-    idProfesional,
-    idClinica
-  );
+    actorId: user.id,
+    actorTipo: "admin",
+    accion: "asignar_profesional_servicio",
+    tipoEvento: "config_update",
+    tablaAfectada: "profesional_servicios",
+    registroId: idProfesional,
+    idClinica,
+  });
 
   return { success: true, data: undefined };
 }
@@ -139,15 +141,16 @@ export async function desasignarProfesionalServicio(
 
   if (errorUpdate) return { success: false, error: errorUpdate.message };
 
-  // Fix 5 — registro_id uses idProfesional for audit trail queryability
-  await logAuditConfig(
+  await logAudit({
     supabase,
-    user.id,
-    "desasignar_profesional_servicio",
-    "profesional_servicios",
-    idProfesional,
-    idClinica
-  );
+    actorId: user.id,
+    actorTipo: "admin",
+    accion: "desasignar_profesional_servicio",
+    tipoEvento: "config_update",
+    tablaAfectada: "profesional_servicios",
+    registroId: idProfesional,
+    idClinica,
+  });
 
   return { success: true, data: undefined };
 }

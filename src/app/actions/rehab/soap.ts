@@ -1,36 +1,13 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { requireAuth, requireContext } from "@/lib/auth";
+import { logAudit } from "@/lib/audit";
 import { soapSchema } from "@/lib/validations";
 import { sanitizeRichText } from "@/lib/sanitize";
 import type { ActionResult } from "@/app/actions/patients";
 import { getIdClinica } from "@/app/actions/patients";
 import type { SoapNote } from "@/types";
-
-// ── Helpers ─────────────────────────────────────────────────────────────────
-
-async function requireAuth() {
-  const supabase = await createClient();
-  const { data: { user }, error } = await supabase.auth.getUser();
-  if (error || !user) redirect("/login");
-  return { supabase, user };
-}
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function logAudit(supabase: any, userId: string, accion: string, tablaAfectada: string, registroId: string, idPaciente?: string) {
-  try {
-    await supabase.from("logs_auditoria").insert({
-      actor_id: userId,
-      actor_tipo: "profesional",
-      accion,
-      tabla_afectada: tablaAfectada,
-      registro_id: registroId,
-      ...(idPaciente ? { id_paciente: idPaciente } : {}),
-    });
-  } catch { /* no bloquea */ }
-}
 
 // ── getOrCreateEncounter ────────────────────────────────────────────────────
 // 1. Busca un encuentro pre-creado por check-in (planificado, con id_cita, de hoy)
@@ -124,18 +101,10 @@ export async function upsertSoapNote(
     return { success: false, error: parsed.error.issues[0].message };
   }
 
-  const { supabase, user } = await requireAuth();
+  const { supabase, user, idClinica, profesionalId, especialidad: espCtx } = await requireContext();
 
-  // Obtener id y especialidad del profesional para el encuentro y FK
-  const { data: prof } = await supabase
-    .from("profesionales")
-    .select("id, especialidad")
-    .eq("auth_id", user.id)
-    .maybeSingle();
-  const especialidad = (prof?.especialidad as string) ?? "Kinesiología";
-  const profesionalId = prof?.id ?? null;
-
-  const idClinica = await getIdClinica(supabase, user.id);
+  // Obtener especialidad del profesional para el encuentro
+  const especialidad = espCtx ?? "Kinesiología";
   let id: string;
 
   const soapData = {
@@ -172,7 +141,16 @@ export async function upsertSoapNote(
 
     if (error) return { success: false, error: error.message };
     id = noteId;
-    await logAudit(supabase, user.id, "update", "soap_note", id, patientId);
+    await logAudit({
+      supabase,
+      actorId: user.id,
+      accion: "actualizar_soap",
+      tipoEvento: "update",
+      tablaAfectada: "fce_notas_soap",
+      registroId: id,
+      idClinica: idClinica!,
+      idPaciente: patientId,
+    });
   } else {
     // CREATE — buscar encuentro pre-creado o crear walk-in
     if (!idClinica) return { success: false, error: "No se encontró la clínica del usuario." };
@@ -200,7 +178,16 @@ export async function upsertSoapNote(
 
     if (error) return { success: false, error: error.message };
     id = created.id;
-    await logAudit(supabase, user.id, "create", "soap_note", id, patientId);
+    await logAudit({
+      supabase,
+      actorId: user.id,
+      accion: "crear_soap",
+      tipoEvento: "create",
+      tablaAfectada: "fce_notas_soap",
+      registroId: id,
+      idClinica: idClinica,
+      idPaciente: patientId,
+    });
   }
 
   revalidatePath(`/dashboard/pacientes/${patientId}`);
@@ -213,18 +200,11 @@ export async function signSoapNote(
   noteId: string,
   patientId: string,
 ): Promise<ActionResult<{ redirectTo: string }>> {
-  const { supabase, user } = await requireAuth();
+  const { supabase, user, idClinica, profesionalId } = await requireContext();
 
   // firmado_por almacena profesionales.id (no auth.uid) — FK a profesionales
-  const { data: profData } = await supabase
-    .from("profesionales")
-    .select("id")
-    .eq("auth_id", user.id)
-    .maybeSingle();
-  const firmadoPor = profData?.id ?? null;
+  const firmadoPor = profesionalId;
   if (!firmadoPor) return { success: false, error: "No se encontró el profesional asociado al usuario." };
-
-  const idClinica = await getIdClinica(supabase, user.id);
 
   const { data: notaConEncuentro } = await supabase
     .from("fce_notas_soap")
@@ -254,7 +234,16 @@ export async function signSoapNote(
       .eq("status", "en_progreso");
   }
 
-  await logAudit(supabase, user.id, "sign", "soap_note", noteId, patientId);
+  await logAudit({
+    supabase,
+    actorId: user.id,
+    accion: "firmar_soap",
+    tipoEvento: "sign",
+    tablaAfectada: "fce_notas_soap",
+    registroId: noteId,
+    idClinica: idClinica!,
+    idPaciente: patientId,
+  });
 
   revalidatePath(`/dashboard/pacientes/${patientId}`);
   return { success: true, data: { redirectTo: `/dashboard/pacientes/${patientId}` } };

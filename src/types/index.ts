@@ -80,3 +80,4 @@ export type {
 export type { Dominio, PlantillaDominio } from "./plantilla-dominio";
 export type { Presupuesto, PresupuestoItem, PresupuestoFormData } from "./presupuesto";
 export type { TipoInforme, InformeClinico, InformeFormData } from "./informe";
+export type { TipoDocumentoFirmable, TipoAdenda, FCEAdenda } from "./adenda";

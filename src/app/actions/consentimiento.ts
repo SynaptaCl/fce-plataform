@@ -1,33 +1,12 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { requireAuth, requireContext } from "@/lib/auth";
+import { logAudit } from "@/lib/audit";
 import { consentSchema, type ConsentSchemaType } from "@/lib/validations";
 import type { ActionResult } from "./patients";
-import { getIdClinica, getProfesionalId } from "./patients";
+import { getIdClinica } from "./patients";
 import type { Consent } from "@/types";
-
-async function requireAuth() {
-  const supabase = await createClient();
-  const { data: { user }, error } = await supabase.auth.getUser();
-  if (error || !user) redirect("/login");
-  return { supabase, user };
-}
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function logAudit(supabase: any, userId: string, accion: string, tablaAfectada: string, registroId: string, idPaciente?: string) {
-  try {
-    await supabase.from("logs_auditoria").insert({
-      actor_id: userId,
-      actor_tipo: "profesional",
-      accion,
-      tabla_afectada: tablaAfectada,
-      registro_id: registroId,
-      ...(idPaciente ? { id_paciente: idPaciente } : {}),
-    });
-  } catch { /* no bloquea el flujo */ }
-}
 
 export async function getConsentimientos(
   patientId: string
@@ -53,11 +32,8 @@ export async function createConsentimiento(
   if (!parsed.success) {
     return { success: false, error: parsed.error.issues[0].message };
   }
-  const { supabase, user } = await requireAuth();
-  const [idClinica, profesionalId] = await Promise.all([
-    getIdClinica(supabase, user.id),
-    getProfesionalId(supabase, user.id),
-  ]);
+  const { supabase, user, idClinica, profesionalId } = await requireContext();
+  if (!idClinica) return { success: false, error: "No se encontró la clínica asociada al usuario." };
   if (!profesionalId) return { success: false, error: "No se encontró el profesional asociado al usuario." };
 
   // Versión: +1 sobre la más alta del mismo tipo
@@ -86,7 +62,16 @@ export async function createConsentimiento(
     .single();
 
   if (error) return { success: false, error: error.message };
-  await logAudit(supabase, user.id, "create", "fce_consentimientos", data.id, patientId);
+  await logAudit({
+    supabase,
+    actorId: user.id,
+    accion: "crear_consentimiento",
+    tipoEvento: "create",
+    tablaAfectada: "fce_consentimientos",
+    registroId: data.id,
+    idClinica: idClinica,
+    idPaciente: patientId,
+  });
   revalidatePath(`/dashboard/pacientes/${patientId}/consentimiento`);
   return { success: true, data: { id: data.id } };
 }
@@ -99,11 +84,7 @@ export async function signConsentimiento(
   if (!firmaDataUrl.startsWith("data:image/")) {
     return { success: false, error: "Firma inválida" };
   }
-  const { supabase, user } = await requireAuth();
-  const [idClinica, profesionalId] = await Promise.all([
-    getIdClinica(supabase, user.id),
-    getProfesionalId(supabase, user.id),
-  ]);
+  const { supabase, user, idClinica, profesionalId } = await requireContext();
   if (!idClinica) return { success: false, error: "No se encontró la clínica asociada al usuario." };
   if (!profesionalId) return { success: false, error: "No se encontró el profesional asociado al usuario." };
   const timestamp = new Date().toISOString();
@@ -122,7 +103,16 @@ export async function signConsentimiento(
     .eq("firmado", false);
 
   if (error) return { success: false, error: error.message };
-  await logAudit(supabase, user.id, "sign", "fce_consentimientos", consentId, patientId);
+  await logAudit({
+    supabase,
+    actorId: user.id,
+    accion: "firmar_consentimiento",
+    tipoEvento: "sign",
+    tablaAfectada: "fce_consentimientos",
+    registroId: consentId,
+    idClinica: idClinica,
+    idPaciente: patientId,
+  });
   revalidatePath(`/dashboard/pacientes/${patientId}/consentimiento`);
   return { success: true, data: { redirectTo: `/dashboard/pacientes/${patientId}` } };
 }

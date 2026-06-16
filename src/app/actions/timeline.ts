@@ -1,7 +1,6 @@
 "use server";
 
-import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { requireAuth } from "@/lib/auth";
 import { createServiceClient } from "@/lib/supabase/service";
 import { getIdClinica } from "./patients";
 import type { ActionResult } from "./patients";
@@ -21,7 +20,8 @@ export type TimelineEntryType =
   | "prescripcion"
   | "orden_examen"
   | "egreso"
-  | "plan_intervencion";
+  | "plan_intervencion"
+  | "adenda";
 
 export interface TimelineEntry {
   id: string;
@@ -64,18 +64,6 @@ export interface PatientSummary {
     fecha_revision: string | null;
     objetivos_activos: number;
   } | null;
-}
-
-// ── Helper ─────────────────────────────────────────────────────────────────
-
-async function requireAuth() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser();
-  if (error || !user) redirect("/login");
-  return { supabase, user };
 }
 
 // ── Local row types for clinical model tables ─────────────────────────────
@@ -150,6 +138,21 @@ type EgresoTimelineRow = {
   created_by: string;
 };
 
+type AdendaRow = {
+  id: string;
+  tipo_adenda: string;
+  tipo_documento: string;
+  id_documento: string;
+  motivo: string;
+  contenido: string;
+  created_at: string;
+  created_by: string;
+  firmado_at: string | null;
+  override_director: boolean;
+  override_motivo: string | null;
+  id_encuentro: string | null;
+};
+
 type InstrumentoAplicadoRow = {
   id: string;
   id_encuentro: string | null;
@@ -191,7 +194,7 @@ export async function getPatientTimeline(
   // fce_notas_soap y fce_evaluaciones tienen id_clinica desde 20260606_03; filtramos como defense-in-depth.
   const serviceClient = createServiceClient();
 
-  const [soapRes, evalRes, vitalsRes, consentRes, anamnesisRes, notasRes, instrumentosRes, prescripcionesRes, ordenesExamenRes, egresosRes, planesRes] = await Promise.all([
+  const [soapRes, evalRes, vitalsRes, consentRes, anamnesisRes, notasRes, instrumentosRes, prescripcionesRes, ordenesExamenRes, egresosRes, planesRes, adendaRes] = await Promise.all([
     idClinica
       ? serviceClient.from("fce_notas_soap").select("*").eq("id_paciente", patientId).eq("id_clinica", idClinica).order("created_at", { ascending: false })
       : serviceClient.from("fce_notas_soap").select("*").eq("id_paciente", patientId).order("created_at", { ascending: false }),
@@ -261,6 +264,14 @@ export async function getPatientTimeline(
           .eq("id_clinica", idClinica)
           .order("created_at", { ascending: false })
       : Promise.resolve({ data: [], error: null }),
+    idClinica
+      ? serviceClient
+          .from("fce_adendas")
+          .select("id, tipo_adenda, tipo_documento, id_documento, motivo, contenido, created_at, created_by, firmado_at, override_director, override_motivo, id_encuentro")
+          .eq("id_paciente", patientId)
+          .eq("id_clinica", idClinica)
+          .order("created_at", { ascending: false })
+      : Promise.resolve({ data: [], error: null }),
   ]);
 
   // Batch-fetch encuentros for SOAP notes AND notas_clinicas to get especialidad
@@ -312,6 +323,10 @@ export async function getPatientTimeline(
   for (const p of (planesRes.data ?? []) as PlanIntervencionRow[]) {
     if (p.created_by) profIds.add(p.created_by);
   }
+  const adendas = (adendaRes.data ?? []) as AdendaRow[];
+  for (const a of adendas) {
+    if (a.created_by) profIds.add(a.created_by);
+  }
 
   type ProfMapEntry = { nombre: string; id_clinica: string };
   const profMap = new Map<string, ProfMapEntry>();
@@ -324,6 +339,21 @@ export async function getPatientTimeline(
       profMap.set(p.id, { nombre: p.nombre ?? "Profesional", id_clinica: p.id_clinica });
     }
   }
+
+  // Badge metadata: adendas per document
+  const adendasPorDoc = new Map<string, { count: number; tieneErrata: boolean; anulada: boolean }>();
+  for (const a of adendas) {
+    const key = a.id_documento;
+    const prev = adendasPorDoc.get(key) ?? { count: 0, tieneErrata: false, anulada: false };
+    adendasPorDoc.set(key, {
+      count: prev.count + 1,
+      tieneErrata: prev.tieneErrata || a.tipo_adenda === "errata",
+      anulada: prev.anulada || a.tipo_adenda === "anulacion",
+    });
+  }
+
+  // Map for original document title (used in adenda entry title)
+  const docTituloMap = new Map<string, string>();
 
   const planes = (planesRes.data ?? []) as PlanIntervencionRow[];
 
@@ -358,6 +388,9 @@ export async function getPatientTimeline(
       ...(soap.analisis_cif?.contexto ?? []),
     ];
     const soapEsp = soap.id_encuentro ? encEspMap.get(soap.id_encuentro) : undefined;
+    // Record title for adenda cross-reference
+    const soapDateStr = new Date(soap.created_at).toLocaleDateString("es-CL", { day: "2-digit", month: "short" });
+    docTituloMap.set(soap.id, `Nota SOAP del ${soapDateStr}`);
     entries.push({
       id: soap.id,
       type: "soap",
@@ -380,6 +413,8 @@ export async function getPatientTimeline(
         cif_count: cifItems.length,
         firmado: soap.firmado,
         firmado_at: soap.firmado_at,
+        firmado_por: soap.firmado_por ?? null,
+        adendas: adendasPorDoc.get(soap.id) ?? null,
       },
     });
   }
@@ -451,6 +486,9 @@ export async function getPatientTimeline(
   for (const nota of (notasRes.data ?? []) as NotaClinicaRow[]) {
     const notaEsp = nota.id_encuentro ? encEspMap.get(nota.id_encuentro) : undefined;
     const notaAutorId = nota.firmado_por ?? nota.created_by ?? undefined;
+    // Record title for adenda cross-reference
+    const notaDateStr = new Date(nota.created_at).toLocaleDateString("es-CL", { day: "2-digit", month: "short" });
+    docTituloMap.set(nota.id, `Nota clínica del ${notaDateStr}`);
     entries.push({
       id: nota.id,
       type: "nota_clinica",
@@ -472,6 +510,7 @@ export async function getPatientTimeline(
         firmado: nota.firmado,
         firmado_at: nota.firmado_at,
         firmado_por_nombre: nota.firmado_por ? profMap.get(nota.firmado_por)?.nombre : undefined,
+        adendas: adendasPorDoc.get(nota.id) ?? null,
       },
     });
   }
@@ -618,6 +657,41 @@ export async function getPatientTimeline(
         firmado: plan.firmado,
         firmado_at: plan.firmado_at,
         objetivos_activos: objetivosActivos,
+      },
+    });
+  }
+
+  // Adendas — entries propias en el timeline
+  const TIPO_ADENDA_LABEL: Record<string, string> = {
+    adenda: "Adenda",
+    errata: "Errata",
+    anulacion: "Anulación",
+  };
+  for (const a of adendas) {
+    const docTitulo = docTituloMap.get(a.id_documento) ?? "documento";
+    const tipoLabel = TIPO_ADENDA_LABEL[a.tipo_adenda] ?? "Adenda";
+    const autorNombre = profMap.get(a.created_by)?.nombre ?? "Profesional";
+    entries.push({
+      id: a.id,
+      type: "adenda",
+      date: a.created_at,
+      autor_id: a.created_by,
+      profesional_nombre: autorNombre,
+      titulo: `${tipoLabel} — ${docTitulo}`,
+      resumen: a.motivo?.slice(0, 100) ?? "",
+      firmado: true,
+      encuentroId: a.id_encuentro ?? undefined,
+      data: {
+        tipo_adenda: a.tipo_adenda,
+        tipo_documento_original: a.tipo_documento,
+        id_documento_original: a.id_documento,
+        titulo_documento_original: docTitulo,
+        motivo: a.motivo,
+        contenido: a.contenido,
+        override_director: a.override_director,
+        override_motivo: a.override_motivo,
+        autor_nombre: autorNombre,
+        firmado_at: a.firmado_at,
       },
     });
   }

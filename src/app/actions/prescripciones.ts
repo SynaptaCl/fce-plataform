@@ -1,8 +1,6 @@
 "use server";
 
-import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { createClient } from "@/lib/supabase/server";
 import { getProfesionalActivo } from "@/lib/fce/profesional";
 import { getClinicaConfig } from "@/lib/modules/config";
 import { assertModuleEnabled, assertPuedeFirmar } from "@/lib/modules/guards";
@@ -14,45 +12,8 @@ import { log } from "@/lib/logger";
 import type { Rol } from "@/lib/modules/registry";
 import type { Prescripcion, MedicamentoPrescrito, ModoFirma, TipoPrescripcion } from "@/types/prescripcion";
 import type { MedicamentoCatalogo } from "@/types/medicamento";
-
-// ── Helper: sesión activa ──────────────────────────────────────────────────
-
-async function requireAuth() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser();
-  if (error || !user) redirect("/login");
-  return { supabase, user };
-}
-
-// ── Helper: audit log ──────────────────────────────────────────────────────
-
-async function logAudit(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  supabase: any,
-  userId: string,
-  accion: string,
-  tablaAfectada: string,
-  registroId: string,
-  idClinica?: string | null,
-  idPaciente?: string | null
-) {
-  try {
-    await supabase.from("logs_auditoria").insert({
-      actor_id: userId,
-      actor_tipo: "profesional",
-      accion,
-      tabla_afectada: tablaAfectada,
-      registro_id: registroId,
-      ...(idClinica ? { id_clinica: idClinica } : {}),
-      ...(idPaciente ? { id_paciente: idPaciente } : {}),
-    });
-  } catch {
-    // El audit log no debe romper el flujo principal
-  }
-}
+import { requireAuth, requireContext } from "@/lib/auth";
+import { logAudit } from "@/lib/audit";
 
 // ── getPrescripcionesByPatient ─────────────────────────────────────────────
 
@@ -131,19 +92,20 @@ export async function createAndSignPrescripcion(input: {
     return { success: false, error: parsed.error.issues[0]?.message ?? "Datos inválidos" };
   }
 
-  // C1: Step 1 — requireAuth
-  const { supabase, user } = await requireAuth();
-
-  // C1: Step 2 — Fetch admin_users for idClinica + rol (authoritative source)
-  const { data: adminRow } = await supabase
-    .from("admin_users")
-    .select("id_clinica, rol")
-    .eq("auth_id", user.id)
-    .eq("activo", true)
-    .single();
-  if (!adminRow?.id_clinica) return { success: false, error: "No se pudo determinar la clínica" };
-  const idClinica = adminRow.id_clinica;
-  const rol = adminRow.rol as Rol;
+  // C1: Steps 1+2 — auth + idClinica + rol via requireContext
+  let supabase: Awaited<ReturnType<typeof requireContext>>["supabase"];
+  let user: Awaited<ReturnType<typeof requireContext>>["user"];
+  let idClinica: string;
+  let rol: Rol;
+  try {
+    const ctx = await requireContext();
+    supabase = ctx.supabase;
+    user = ctx.user;
+    idClinica = ctx.idClinica;
+    rol = ctx.rol as Rol;
+  } catch {
+    return { success: false, error: "No se pudo determinar la clínica" };
+  }
 
   // C2: Step 3 — assertModuleEnabled using getClinicaConfig (avoids double auth roundtrip)
   const config = await getClinicaConfig(idClinica, supabase);
@@ -218,15 +180,16 @@ export async function createAndSignPrescripcion(input: {
   }
 
   // Step 10 — Audit log
-  await logAudit(
+  await logAudit({
     supabase,
-    user.id,
-    "emitir_prescripcion",
-    "fce_prescripciones",
-    prescripcion.id,
-    idClinica,
-    input.patientId
-  );
+    actorId: user.id,
+    accion: "crear_prescripcion",
+    tipoEvento: "sign",
+    tablaAfectada: "fce_prescripciones",
+    registroId: prescripcion.id,
+    idClinica: idClinica,
+    idPaciente: input.patientId,
+  });
 
   // I2: Step 11 — revalidatePath after logAudit
   revalidatePath(`/dashboard/pacientes/${input.patientId}`);
@@ -255,14 +218,16 @@ export async function logPrescripcionDownload(
 
   if (!presc) return { success: false, error: "Prescripción no encontrada" };
 
-  await logAudit(
-    supabase, user.id,
-    "descargar_prescripcion",
-    "fce_prescripciones",
-    prescripcionId,
-    presc.id_clinica,
-    presc.id_paciente
-  );
+  await logAudit({
+    supabase,
+    actorId: user.id,
+    accion: "descargar_prescripcion",
+    tipoEvento: "export_pdf",
+    tablaAfectada: "fce_prescripciones",
+    registroId: prescripcionId,
+    idClinica: presc.id_clinica,
+    idPaciente: presc.id_paciente,
+  });
 
   return { success: true, data: undefined };
 }
@@ -280,14 +245,16 @@ export async function logPrescripcionPrint(
 
   if (!presc) return { success: false, error: "Prescripción no encontrada" };
 
-  await logAudit(
-    supabase, user.id,
-    "imprimir_prescripcion",
-    "fce_prescripciones",
-    prescripcionId,
-    presc.id_clinica,
-    presc.id_paciente
-  );
+  await logAudit({
+    supabase,
+    actorId: user.id,
+    accion: "imprimir_prescripcion",
+    tipoEvento: "export_pdf",
+    tablaAfectada: "fce_prescripciones",
+    registroId: prescripcionId,
+    idClinica: presc.id_clinica,
+    idPaciente: presc.id_paciente,
+  });
 
   return { success: true, data: undefined };
 }
@@ -306,14 +273,16 @@ export async function logPrescripcionShare(
 
   if (!presc) return { success: false, error: "Prescripción no encontrada" };
 
-  await logAudit(
-    supabase, user.id,
-    `compartir_prescripcion_${canal}`,
-    "fce_prescripciones",
-    prescripcionId,
-    presc.id_clinica,
-    presc.id_paciente
-  );
+  await logAudit({
+    supabase,
+    actorId: user.id,
+    accion: `compartir_prescripcion_${canal}`,
+    tipoEvento: "export_pdf",
+    tablaAfectada: "fce_prescripciones",
+    registroId: prescripcionId,
+    idClinica: presc.id_clinica,
+    idPaciente: presc.id_paciente,
+  });
 
   return { success: true, data: undefined };
 }

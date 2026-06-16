@@ -19,6 +19,16 @@ import { isRichTextHtml } from "@/lib/sanitize";
 
 // ── Tipos de data compilada ───────────────────────────────────────────────────
 
+export interface AdendaPdfRow {
+  tipo_adenda: string;
+  motivo: string;
+  contenido: string;
+  override_director: boolean;
+  override_motivo: string | null;
+  created_at: string;
+  autorNombre: string;
+}
+
 export interface FichaClinicaData {
   generadoEl: string; // string ya formateado es-CL
   clinica: {
@@ -137,6 +147,8 @@ export interface FichaClinicaData {
     derivacion_a: string | null;
     firmado_at: string | null;
   } | null;
+  /** Adendas por id_documento — clave = UUID del documento original */
+  adendas: Record<string, AdendaPdfRow[]>;
 }
 
 // ── Constantes de presentación ────────────────────────────────────────────────
@@ -491,10 +503,56 @@ function renderCif(raw: unknown): string {
     </div>`;
 }
 
-function buildSoaps(soaps: FichaClinicaData["notasSoap"]): string {
+// ── Adendas ───────────────────────────────────────────────────────────────────
+
+const ADENDA_BORDER: Record<string, string> = {
+  adenda: "#64748B",
+  errata: "#D97706",
+  anulacion: "#DC2626",
+};
+const ADENDA_BG_COLOR: Record<string, string> = {
+  adenda: "#F8FAFC",
+  errata: "#FEF3C7",
+  anulacion: "#FEE2E2",
+};
+const ADENDA_LABEL: Record<string, string> = {
+  adenda: "ADENDA",
+  errata: "ERRATA / CORRECCIÓN",
+  anulacion: "ANULACIÓN",
+};
+
+function buildAdendaBlocks(docId: string, adendasMap: Record<string, AdendaPdfRow[]>): string {
+  const adendas = adendasMap[docId];
+  if (!adendas || adendas.length === 0) return "";
+  return adendas
+    .map((a) => {
+      const tipo = (a.tipo_adenda in ADENDA_BORDER) ? a.tipo_adenda : "adenda";
+      const border = ADENDA_BORDER[tipo];
+      const bg = ADENDA_BG_COLOR[tipo];
+      const label = ADENDA_LABEL[tipo];
+      let html = `
+    <div style="border-left:3px solid ${border}; background:${bg}; padding:6px 10px 6px 12px; margin:4px 0 4px 16px; border-radius:0 4px 4px 0; page-break-inside:avoid;">
+      <table style="width:100%; border-collapse:collapse; margin-bottom:4px;"><tr>
+        <td style="font-size:8px; font-weight:700; color:${border}; text-transform:uppercase; letter-spacing:0.5px;">${esc(label)}</td>
+        <td style="font-size:8px; color:${INK_3}; text-align:right;">${esc(a.autorNombre)} · ${fmtDate(a.created_at)}</td>
+      </tr></table>`;
+      if (a.motivo) html += `<div style="font-size:9px; color:${INK_2}; margin-bottom:2px;"><strong>Motivo:</strong> ${esc(a.motivo)}</div>`;
+      if (a.contenido) html += `<div style="font-size:10px; color:${INK}; white-space:pre-wrap;">${esc(a.contenido)}</div>`;
+      if (a.override_director && a.override_motivo) {
+        html += `<div style="font-size:8px; color:#92400E; margin-top:4px; font-style:italic;">Autorizado por dirección: ${esc(a.override_motivo)}</div>`;
+      }
+      html += `</div>`;
+      return html;
+    })
+    .join("");
+}
+
+function buildSoaps(soaps: FichaClinicaData["notasSoap"], adendasMap: Record<string, AdendaPdfRow[]>): string {
   if (soaps.length === 0) return "";
   const cards = soaps
     .map((s) => {
+      const docAdendas = adendasMap[s.id] ?? [];
+      const anulada = docAdendas.some((a) => a.tipo_adenda === "anulacion");
       let body = "";
       body += richField("S — Subjetivo", s.subjetivo);
       body += richField("O — Objetivo", s.objetivo);
@@ -509,14 +567,17 @@ function buildSoaps(soaps: FichaClinicaData["notasSoap"]): string {
       body += richField("Tareas domiciliarias", s.tareas_domiciliarias);
       const fecha = fmtDate(s.encuentro?.started_at ?? s.created_at);
       const esp = s.encuentro?.especialidad ? ` · ${esc(s.encuentro.especialidad)}` : "";
-      return entryCard(`SOAP — ${fecha}${esp}`, `✓ Firmada ${fmtDate(s.firmado_at)}`, body);
+      const headerRight = anulada
+        ? `<span style="color:#DC2626; font-weight:700;">⚠ ANULADA</span>`
+        : `✓ Firmada ${fmtDate(s.firmado_at)}`;
+      return entryCard(`SOAP — ${fecha}${esp}`, headerRight, body) + buildAdendaBlocks(s.id, adendasMap);
     })
     .join("");
   if (!cards.trim()) return "";
   return sectionTitle("5. Evoluciones SOAP (firmadas)") + cards;
 }
 
-function buildNotasClinicas(notas: FichaClinicaData["notasClinicas"]): string {
+function buildNotasClinicas(notas: FichaClinicaData["notasClinicas"], adendasMap: Record<string, AdendaPdfRow[]>): string {
   if (notas.length === 0) return "";
   const cards = notas
     .map((n) => {
@@ -547,9 +608,14 @@ function buildNotasClinicas(notas: FichaClinicaData["notasClinicas"]): string {
           }
         }
       }
+      const docAdendas = adendasMap[n.id] ?? [];
+      const anulada = docAdendas.some((a) => a.tipo_adenda === "anulacion");
       const fecha = fmtDate(n.encuentro?.started_at ?? n.created_at);
       const esp = n.encuentro?.especialidad ? ` · ${esc(n.encuentro.especialidad)}` : "";
-      return entryCard(`Nota clínica — ${fecha}${esp}`, `✓ Firmada ${fmtDate(n.firmado_at)}`, body);
+      const headerRight = anulada
+        ? `<span style="color:#DC2626; font-weight:700;">⚠ ANULADA</span>`
+        : `✓ Firmada ${fmtDate(n.firmado_at)}`;
+      return entryCard(`Nota clínica — ${fecha}${esp}`, headerRight, body) + buildAdendaBlocks(n.id, adendasMap);
     })
     .join("");
   if (!cards.trim()) return "";
@@ -722,8 +788,8 @@ export function renderFichaCompletaPdf(data: FichaClinicaData): string {
     buildAnamnesis(data.anamnesis),
     buildEncuentros(data.encuentros),
     buildSignosVitales(data.signosVitales),
-    buildSoaps(data.notasSoap),
-    buildNotasClinicas(data.notasClinicas),
+    buildSoaps(data.notasSoap, data.adendas),
+    buildNotasClinicas(data.notasClinicas, data.adendas),
     buildEvaluaciones(data.evaluaciones),
     buildInstrumentos(data.instrumentos),
     buildConsentimientos(data.consentimientos),

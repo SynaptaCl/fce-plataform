@@ -6,7 +6,8 @@ import {
   validarNumeroRegistro,
   validarTipoRegistro,
 } from "./shared";
-import { requireConfigAdmin, logAuditConfig } from "./_shared-server";
+import { requireConfigAdmin } from "./_shared-server";
+import { logAudit } from "@/lib/audit";
 
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 
@@ -77,14 +78,16 @@ export async function updateProfesionalSelfService(
     return { success: false, error: errorUpdate.message };
   }
 
-  await logAuditConfig(
+  await logAudit({
     supabase,
-    user.id,
-    "actualizar_profesional_self_service",
-    "profesionales",
-    profesionalId,
-    idClinica
-  );
+    actorId: user.id,
+    actorTipo: "admin",
+    accion: "actualizar_profesional_self_service",
+    tipoEvento: "config_update",
+    tablaAfectada: "profesionales",
+    registroId: profesionalId,
+    idClinica,
+  });
 
   return { success: true, data: undefined };
 }
@@ -130,14 +133,16 @@ export async function toggleProfesionalActivo(
     return { success: false, error: errorUpdate.message };
   }
 
-  await logAuditConfig(
+  await logAudit({
     supabase,
-    user.id,
-    nuevoActivo ? "activar_profesional" : "desactivar_profesional",
-    "profesionales",
-    profesionalId,
-    idClinica
-  );
+    actorId: user.id,
+    actorTipo: "admin",
+    accion: nuevoActivo ? "activar_profesional" : "desactivar_profesional",
+    tipoEvento: "config_update",
+    tablaAfectada: "profesionales",
+    registroId: profesionalId,
+    idClinica,
+  });
 
   return { success: true, data: { activo: nuevoActivo } };
 }

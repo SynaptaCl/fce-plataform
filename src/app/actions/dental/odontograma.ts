@@ -1,18 +1,12 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { requireAuth, requireContext } from "@/lib/auth";
+import { logAudit } from "@/lib/audit";
 import { getProfesionalActivo } from "@/lib/fce/profesional";
 import type { ActionResult } from "@/app/actions/patients";
 import type { OdontogramaEntry, OdontogramaHistorial, EstadoPieza, SuperficieDental } from "@/types";
-
-async function requireAuth() {
-  const supabase = await createClient();
-  const { data: { user }, error } = await supabase.auth.getUser();
-  if (error || !user) redirect("/login");
-  return { supabase, user };
-}
 
 async function getClinica(supabase: Awaited<ReturnType<typeof createClient>>, authId: string) {
   const { data } = await supabase
@@ -52,9 +46,7 @@ export async function upsertPieza(input: {
   notas?: string | null;
   procedimiento?: string | null;
 }): Promise<ActionResult<OdontogramaEntry>> {
-  const { supabase, user } = await requireAuth();
-  const idClinica = await getClinica(supabase, user.id);
-  if (!idClinica) return { success: false, error: "Sin clínica activa" };
+  const { supabase, user, idClinica } = await requireContext();
 
   const profesional = await getProfesionalActivo(supabase, user.id, idClinica);
   if (!profesional) return { success: false, error: "Sin perfil profesional activo" };
@@ -116,14 +108,15 @@ export async function upsertPieza(input: {
       registrado_at: now,
     });
 
-    await supabase.from("logs_auditoria").insert({
-      actor_id: user.id,
-      actor_tipo: "profesional",
-      accion: existing ? "update" : "create",
-      tabla_afectada: "fce_odontograma",
-      registro_id: upserted.id,
-      id_clinica: idClinica,
-      id_paciente: input.id_paciente,
+    await logAudit({
+      supabase,
+      actorId: user.id,
+      accion: "actualizar_odontograma",
+      tipoEvento: "update",
+      tablaAfectada: "fce_odontograma",
+      registroId: upserted.id,
+      idClinica: idClinica,
+      idPaciente: input.id_paciente,
     });
   }
 

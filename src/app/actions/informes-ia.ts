@@ -7,6 +7,7 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { requireAccesoFCE } from '@/lib/modules/guards'
 import type { ActionResult } from '@/lib/modules/guards'
 import type { TipoInforme } from '@/types/informe'
+import { logAudit } from '@/lib/audit'
 
 const MODEL = 'claude-sonnet-4-6'
 const MAX_CONTENIDO_LENGTH = 5000
@@ -121,14 +122,14 @@ Responde SOLO con el texto del informe mejorado, sin preámbulos ni comentarios 
 
   // 6. Audit log (service_role para bypasear RLS en logs_auditoria)
   const serviceClient = createServiceClient()
-  await serviceClient.from('logs_auditoria').insert({
-    id_clinica: idClinica,
-    actor_id: user.id,
-    actor_tipo: 'profesional',
+  await logAudit({
+    supabase: serviceClient,
+    actorId: user.id,
     accion: 'informe_estructurado_ia',
-    tabla_afectada: 'fce_informes_clinicos',
-    registro_id: null,
-    id_paciente: idPaciente,
+    tipoEvento: 'ia_informe',
+    tablaAfectada: 'fce_informes_clinicos',
+    idClinica: idClinica,
+    ...(idPaciente ? { idPaciente } : {}),
   })
 
   return { success: true, data: { contenido: contenidoMejorado } }

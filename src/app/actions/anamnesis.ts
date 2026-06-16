@@ -1,35 +1,12 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { requireAuth, requireContext } from "@/lib/auth";
+import { logAudit } from "@/lib/audit";
 import { anamnesisSchema, vitalSignsSchema, type AnamnesisSchemaType, type VitalSignsSchemaType } from "@/lib/validations";
 import type { Anamnesis, VitalSigns } from "@/types";
 import type { ActionResult } from "./patients";
-import { getIdClinica, getProfesionalId } from "./patients";
-
-// ── Helper ─────────────────────────────────────────────────────────────────
-
-async function requireAuth() {
-  const supabase = await createClient();
-  const { data: { user }, error } = await supabase.auth.getUser();
-  if (error || !user) redirect("/login");
-  return { supabase, user };
-}
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function logAudit(supabase: any, userId: string, accion: string, tablaAfectada: string, registroId: string, idPaciente?: string) {
-  try {
-    await supabase.from("logs_auditoria").insert({
-      actor_id: userId,
-      actor_tipo: "profesional",
-      accion,
-      tabla_afectada: tablaAfectada,
-      registro_id: registroId,
-      ...(idPaciente ? { id_paciente: idPaciente } : {}),
-    });
-  } catch { /* no bloquea el flujo */ }
-}
+import { getIdClinica } from "./patients";
 
 // ── getAnamnesis ───────────────────────────────────────────────────────────
 
@@ -63,12 +40,7 @@ export async function upsertAnamnesis(
     return { success: false, error: parsed.error.issues[0].message };
   }
 
-  const { supabase, user } = await requireAuth();
-
-  const [idClinica, profesionalId] = await Promise.all([
-    getIdClinica(supabase, user.id),
-    getProfesionalId(supabase, user.id),
-  ]);
+  const { supabase, user, idClinica, profesionalId } = await requireContext();
   if (!idClinica) return { success: false, error: "No se encontró la clínica asociada al usuario." };
 
   // ¿Ya existe una anamnesis para este paciente?
@@ -94,7 +66,16 @@ export async function upsertAnamnesis(
 
     if (error) return { success: false, error: error.message };
     id = existing.id;
-    await logAudit(supabase, user.id, "update", "anamnesis", id, patientId);
+    await logAudit({
+      supabase,
+      actorId: user.id,
+      accion: "actualizar_anamnesis",
+      tipoEvento: "update",
+      tablaAfectada: "fce_anamnesis",
+      registroId: id,
+      idClinica: idClinica,
+      idPaciente: patientId,
+    });
   } else {
     // INSERT
     if (!profesionalId) return { success: false, error: "No se encontró el profesional asociado al usuario." };
@@ -111,7 +92,16 @@ export async function upsertAnamnesis(
 
     if (error) return { success: false, error: error.message };
     id = created.id;
-    await logAudit(supabase, user.id, "create", "anamnesis", id, patientId);
+    await logAudit({
+      supabase,
+      actorId: user.id,
+      accion: "crear_anamnesis",
+      tipoEvento: "create",
+      tablaAfectada: "fce_anamnesis",
+      registroId: id,
+      idClinica: idClinica,
+      idPaciente: patientId,
+    });
   }
 
   revalidatePath(`/dashboard/pacientes/${patientId}/anamnesis`);
@@ -152,13 +142,9 @@ export async function saveVitalSigns(
     return { success: false, error: parsed.error.issues[0].message };
   }
 
-  const { supabase, user } = await requireAuth();
-
-  const [profesionalId, idClinica] = await Promise.all([
-    getProfesionalId(supabase, user.id),
-    getIdClinica(supabase, user.id),
-  ]);
+  const { supabase, user, idClinica, profesionalId } = await requireContext();
   if (!profesionalId) return { success: false, error: "No se encontró el profesional asociado al usuario." };
+  if (!idClinica) return { success: false, error: "No se encontró la clínica asociada al usuario." };
 
   const { data, error } = await supabase
     .from("fce_signos_vitales")
@@ -168,14 +154,23 @@ export async function saveVitalSigns(
       ...parsed.data,
       recorded_by: profesionalId,
       recorded_at: new Date().toISOString(),
-      ...(idClinica ? { id_clinica: idClinica } : {}),
+      id_clinica: idClinica,
     })
     .select("id")
     .single();
 
   if (error) return { success: false, error: error.message };
 
-  await logAudit(supabase, user.id, "create", "vital_signs", data.id, patientId);
+  await logAudit({
+    supabase,
+    actorId: user.id,
+    accion: "registrar_signos_vitales",
+    tipoEvento: "create",
+    tablaAfectada: "fce_signos_vitales",
+    registroId: data.id,
+    idClinica: idClinica,
+    idPaciente: patientId,
+  });
 
   revalidatePath(`/dashboard/pacientes/${patientId}/anamnesis`);
   return { success: true, data: { id: data.id } };

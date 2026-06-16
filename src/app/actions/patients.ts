@@ -1,29 +1,17 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
 import { patientSchema, type PatientSchemaType } from "@/lib/validations";
 import { formatRut, cleanRut } from "@/lib/run-validator";
 import type { Patient, PacienteClinico, CitaAgenda } from "@/types";
+import { requireAuth, requireContext } from "@/lib/auth";
+import { logAudit } from "@/lib/audit";
 
 // ── Tipos de respuesta ─────────────────────────────────────────────────────
 
 export type ActionResult<T = void> =
   | { success: true; data: T }
   | { success: false; error: string };
-
-// ── Helper: sesión activa ──────────────────────────────────────────────────
-
-async function requireAuth() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser();
-  if (error || !user) redirect("/login");
-  return { supabase, user };
-}
 
 // ── Helper: id_clinica del usuario autenticado ─────────────────────────────
 
@@ -47,33 +35,6 @@ export async function getProfesionalId(supabase: any, authId: string): Promise<s
     .eq("auth_id", authId)
     .maybeSingle();
   return (data?.id as string) ?? null;
-}
-
-// ── Helper: audit log ──────────────────────────────────────────────────────
-
-async function logAudit(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  supabase: any,
-  userId: string,
-  accion: string,
-  tablaAfectada: string,
-  registroId: string,
-  idClinica?: string | null,
-  idPaciente?: string | null
-) {
-  try {
-    await supabase.from("logs_auditoria").insert({
-      actor_id: userId,
-      actor_tipo: "profesional",
-      accion,
-      tabla_afectada: tablaAfectada,
-      registro_id: registroId,
-      ...(idClinica ? { id_clinica: idClinica } : {}),
-      ...(idPaciente ? { id_paciente: idPaciente } : {}),
-    });
-  } catch {
-    // El audit log no debe romper el flujo principal
-  }
 }
 
 // ── getPatients ────────────────────────────────────────────────────────────
@@ -153,7 +114,15 @@ export async function getPatientById(
 
   if (error) return { success: false, error: error.message };
 
-  await logAudit(supabase, user.id, "read", "pacientes", id);
+  await logAudit({
+    supabase,
+    actorId: user.id,
+    accion: "ver_paciente",
+    tipoEvento: "read_ficha",
+    tablaAfectada: "pacientes",
+    registroId: id,
+    idClinica: idClinica,
+  });
 
   return { success: true, data: data as Patient };
 }
@@ -187,9 +156,7 @@ export async function createPatient(
     return { success: false, error: parsed.error.issues[0].message };
   }
 
-  const { supabase, user } = await requireAuth();
-
-  const idClinica = await getIdClinica(supabase, user.id);
+  const { supabase, user, idClinica } = await requireContext();
   if (!idClinica) return { success: false, error: "No se encontró la clínica asociada al usuario." };
 
   // Pre-check: buscar RUT en cualquier formato dentro de la clínica antes del INSERT.
@@ -222,7 +189,16 @@ export async function createPatient(
     return { success: false, error: error.message };
   }
 
-  await logAudit(supabase, user.id, "create", "pacientes", data.id, idClinica, data.id);
+  await logAudit({
+    supabase,
+    actorId: user.id,
+    accion: "crear_paciente",
+    tipoEvento: "create",
+    tablaAfectada: "pacientes",
+    registroId: data.id,
+    idClinica: idClinica,
+    idPaciente: data.id,
+  });
 
   revalidatePath("/dashboard/pacientes");
   return { success: true, data: { id: data.id } };
@@ -239,9 +215,7 @@ export async function updatePatient(
     return { success: false, error: parsed.error.issues[0].message };
   }
 
-  const { supabase, user } = await requireAuth();
-
-  const idClinica = await getIdClinica(supabase, user.id);
+  const { supabase, user, idClinica } = await requireContext();
   if (!idClinica) return { success: false, error: "No se encontró la clínica asociada al usuario." };
 
   const payload = {
@@ -263,7 +237,16 @@ export async function updatePatient(
     return { success: false, error: error.message };
   }
 
-  await logAudit(supabase, user.id, "update", "pacientes", id, idClinica, id);
+  await logAudit({
+    supabase,
+    actorId: user.id,
+    accion: "actualizar_paciente",
+    tipoEvento: "update",
+    tablaAfectada: "pacientes",
+    registroId: id,
+    idClinica: idClinica,
+    idPaciente: id,
+  });
 
   revalidatePath("/dashboard/pacientes");
   revalidatePath(`/dashboard/pacientes/${id}`);

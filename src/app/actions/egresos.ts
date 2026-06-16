@@ -1,11 +1,12 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { requireAuth, requireContext } from "@/lib/auth";
+import { logAudit } from "@/lib/audit";
 import { egresoSchema } from "@/lib/validations";
 import { getProfesionalActivo } from "@/lib/fce/profesional";
 import { assertPuedeFirmar } from "@/lib/modules/guards";
+import type { Rol } from "@/lib/modules/registry";
 import { getIdClinica } from "@/app/actions/patients";
 import type { ActionResult } from "@/app/actions/patients";
 import type { Egreso, SnapshotEquipoTratante } from "@/types/egreso";
@@ -37,30 +38,6 @@ export interface EgresoConContexto {
   fechaIngreso: string | null;
 }
 
-// ── Helpers ──────────────────────────────────────────────────────────────────
-
-async function requireAuth() {
-  const supabase = await createClient();
-  const { data: { user }, error } = await supabase.auth.getUser();
-  if (error || !user) redirect("/login");
-  return { supabase, user };
-}
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function logAudit(supabase: any, userId: string, accion: string, registroId: string, idClinica: string | null, idPaciente: string) {
-  try {
-    await supabase.from("logs_auditoria").insert({
-      actor_id: userId,
-      actor_tipo: "profesional",
-      accion,
-      tabla_afectada: "fce_egresos",
-      registro_id: registroId,
-      ...(idClinica ? { id_clinica: idClinica } : {}),
-      id_paciente: idPaciente,
-    });
-  } catch { /* no bloquea */ }
-}
-
 // ── createEgreso ──────────────────────────────────────────────────────────────
 
 export async function createEgreso(
@@ -72,13 +49,9 @@ export async function createEgreso(
     return { success: false, error: parsed.error.issues[0].message };
   }
 
-  const { supabase, user } = await requireAuth();
-
-  const idClinica = await getIdClinica(supabase, user.id);
+  const { supabase, user, idClinica, profesionalId } = await requireContext();
   if (!idClinica) return { success: false, error: "No se pudo determinar la clínica del usuario." };
-
-  const profesional = await getProfesionalActivo(supabase, user.id, idClinica);
-  if (!profesional) return { success: false, error: "No se encontró el perfil profesional del usuario." };
+  if (!profesionalId) return { success: false, error: "No se encontró el perfil profesional del usuario." };
 
   const { data: created, error } = await supabase
     .from("fce_egresos")
@@ -94,14 +67,23 @@ export async function createEgreso(
       derivacion_a: parsed.data.derivacion_a ?? null,
       notas: parsed.data.notas ?? null,
       firmado: false,
-      created_by: profesional.id,
+      created_by: profesionalId,
     })
     .select("id")
     .single();
 
   if (error) return { success: false, error: error.message };
 
-  await logAudit(supabase, user.id, "crear_egreso", created.id, idClinica, patientId);
+  await logAudit({
+    supabase,
+    actorId: user.id,
+    accion: "crear_egreso",
+    tipoEvento: "create",
+    tablaAfectada: "fce_egresos",
+    registroId: created.id,
+    idClinica: idClinica,
+    idPaciente: patientId,
+  });
   revalidatePath(`/dashboard/pacientes/${patientId}`);
   return { success: true, data: { id: created.id } };
 }
@@ -160,9 +142,7 @@ export async function updateEgreso(
     return { success: false, error: parsed.error.issues[0].message };
   }
 
-  const { supabase, user } = await requireAuth();
-
-  const idClinica = await getIdClinica(supabase, user.id);
+  const { supabase, user, idClinica } = await requireContext();
   if (!idClinica) return { success: false, error: "No se pudo determinar la clínica del usuario." };
 
   const { data: existing } = await supabase
@@ -192,7 +172,16 @@ export async function updateEgreso(
 
   if (error) return { success: false, error: error.message };
 
-  await logAudit(supabase, user.id, "editar_egreso", egresoId, idClinica, patientId);
+  await logAudit({
+    supabase,
+    actorId: user.id,
+    accion: "actualizar_egreso",
+    tipoEvento: "update",
+    tablaAfectada: "fce_egresos",
+    registroId: egresoId,
+    idClinica: idClinica,
+    idPaciente: patientId,
+  });
   revalidatePath(`/dashboard/pacientes/${patientId}`);
   return { success: true, data: undefined };
 }
@@ -203,19 +192,10 @@ export async function signEgreso(
   egresoId: string,
   patientId: string,
 ): Promise<ActionResult<undefined>> {
-  const { supabase, user } = await requireAuth();
-
-  const idClinica = await getIdClinica(supabase, user.id);
+  const { supabase, user, idClinica, rol } = await requireContext();
   if (!idClinica) return { success: false, error: "No se pudo determinar la clínica del usuario." };
 
-  const { data: adminRow } = await supabase
-    .from("admin_users")
-    .select("rol")
-    .eq("auth_id", user.id)
-    .eq("activo", true)
-    .single();
-
-  const guardResult = assertPuedeFirmar(adminRow?.rol ?? null);
+  const guardResult = assertPuedeFirmar(rol as Rol);
   if (!guardResult.success) return guardResult;
 
   const profesional = await getProfesionalActivo(supabase, user.id, idClinica);
@@ -258,7 +238,16 @@ export async function signEgreso(
     .update({ estado_clinico: "egresado" })
     .eq("id", patientId);
 
-  await logAudit(supabase, user.id, "firmar_egreso", egresoId, idClinica, patientId);
+  await logAudit({
+    supabase,
+    actorId: user.id,
+    accion: "firmar_egreso",
+    tipoEvento: "sign",
+    tablaAfectada: "fce_egresos",
+    registroId: egresoId,
+    idClinica: idClinica,
+    idPaciente: patientId,
+  });
   revalidatePath(`/dashboard/pacientes/${patientId}`);
   return { success: true, data: undefined };
 }
@@ -268,9 +257,7 @@ export async function signEgreso(
 export async function reingresarPaciente(
   patientId: string,
 ): Promise<ActionResult<undefined>> {
-  const { supabase, user } = await requireAuth();
-
-  const idClinica = await getIdClinica(supabase, user.id);
+  const { supabase, user, idClinica } = await requireContext();
   if (!idClinica) return { success: false, error: "No se pudo determinar la clínica del usuario." };
 
   const { data: paciente } = await supabase
@@ -293,7 +280,16 @@ export async function reingresarPaciente(
 
   if (error) return { success: false, error: error.message };
 
-  await logAudit(supabase, user.id, "reingresar_paciente", patientId, idClinica, patientId);
+  await logAudit({
+    supabase,
+    actorId: user.id,
+    accion: "reingresar_paciente",
+    tipoEvento: "update",
+    tablaAfectada: "fce_egresos",
+    registroId: patientId,
+    idClinica: idClinica,
+    idPaciente: patientId,
+  });
   revalidatePath(`/dashboard/pacientes/${patientId}`);
   return { success: true, data: undefined };
 }
@@ -447,8 +443,16 @@ export async function registrarExportEpicrisis(
   patientId: string,
 ): Promise<void> {
   try {
-    const { supabase, user } = await requireAuth();
-    const idClinica = await getIdClinica(supabase, user.id);
-    await logAudit(supabase, user.id, "exportar_epicrisis", egresoId, idClinica, patientId);
+    const { supabase, user, idClinica } = await requireContext();
+    await logAudit({
+      supabase,
+      actorId: user.id,
+      accion: "exportar_epicrisis",
+      tipoEvento: "export_epicrisis",
+      tablaAfectada: "fce_egresos",
+      registroId: egresoId,
+      idClinica: idClinica ?? "",
+      idPaciente: patientId,
+    });
   } catch { /* no bloquea UI */ }
 }

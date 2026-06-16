@@ -1,34 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { requireAuth, requireContext } from "@/lib/auth";
+import { logAudit } from "@/lib/audit";
 import type { ActionResult } from "@/app/actions/patients";
-import { getIdClinica, getProfesionalId } from "@/app/actions/patients";
+import { getIdClinica } from "@/app/actions/patients";
 import type { Evaluation } from "@/types";
-
-// ── Helper ─────────────────────────────────────────────────────────────────
-
-async function requireAuth() {
-  const supabase = await createClient();
-  const { data: { user }, error } = await supabase.auth.getUser();
-  if (error || !user) redirect("/login");
-  return { supabase, user };
-}
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function logAudit(supabase: any, userId: string, accion: string, registroId: string, idPaciente?: string) {
-  try {
-    await supabase.from("logs_auditoria").insert({
-      actor_id: userId,
-      actor_tipo: "profesional",
-      accion,
-      tabla_afectada: "fce_evaluaciones",
-      registro_id: registroId,
-      ...(idPaciente ? { id_paciente: idPaciente } : {}),
-    });
-  } catch { /* no bloquea */ }
-}
 
 // ── getEvaluaciones ────────────────────────────────────────────────────────
 
@@ -58,14 +35,9 @@ export async function upsertEvaluacion(
   subArea: string,
   data: Record<string, unknown>
 ): Promise<ActionResult<{ id: string }>> {
-  const { supabase, user } = await requireAuth();
+  const { supabase, user, profesionalId, idClinica } = await requireContext();
 
-  const [profesionalId, idClinica] = await Promise.all([
-    getProfesionalId(supabase, user.id),
-    getIdClinica(supabase, user.id),
-  ]);
   if (!profesionalId) return { success: false, error: "No se encontró el profesional asociado al usuario." };
-  if (!idClinica) return { success: false, error: "No se encontró la clínica del usuario." };
 
   const { data: existing } = await supabase
     .from("fce_evaluaciones")
@@ -87,7 +59,16 @@ export async function upsertEvaluacion(
 
     if (error) return { success: false, error: error.message };
     id = existing.id;
-    await logAudit(supabase, user.id, "update", id, patientId);
+    await logAudit({
+      supabase,
+      actorId: user.id,
+      accion: "aplicar_evaluacion",
+      tipoEvento: "create",
+      tablaAfectada: "fce_evaluaciones",
+      registroId: id,
+      idClinica: idClinica!,
+      idPaciente: patientId,
+    });
   } else {
     const { data: created, error } = await supabase
       .from("fce_evaluaciones")
@@ -105,7 +86,16 @@ export async function upsertEvaluacion(
 
     if (error) return { success: false, error: error.message };
     id = created.id;
-    await logAudit(supabase, user.id, "create", id, patientId);
+    await logAudit({
+      supabase,
+      actorId: user.id,
+      accion: "aplicar_evaluacion",
+      tipoEvento: "create",
+      tablaAfectada: "fce_evaluaciones",
+      registroId: id,
+      idClinica: idClinica!,
+      idPaciente: patientId,
+    });
   }
 
   revalidatePath(`/dashboard/pacientes/${patientId}`);

@@ -9,6 +9,7 @@ import { calcularContextoHash, getResumenCacheado, guardarResumenCache } from '@
 import { requireAccesoFCE } from '@/lib/modules/guards'
 import type { ActionResult } from '@/lib/modules/guards'
 import type { ReporteIA } from '@/types/resumen-ia'
+import { logAudit } from '@/lib/audit'
 
 const MODEL = 'claude-haiku-4-5-20251001'
 
@@ -59,14 +60,14 @@ export async function generarResumenIA(
 
   if (cached) {
     // Audit log cache hit
-    await serviceClient.from('logs_auditoria').insert({
-      id_clinica: idClinica,
-      actor_id: user.id,
-      actor_tipo: 'profesional',
+    await logAudit({
+      supabase: serviceClient,
+      actorId: user.id,
       accion: 'resumen_ia_cache',
-      tabla_afectada: 'fce_resumenes_ia',
-      registro_id: null,
-      id_paciente: idPaciente,
+      tipoEvento: 'ia_resumen',
+      tablaAfectada: 'fce_resumenes_ia',
+      idClinica: idClinica,
+      idPaciente: idPaciente,
     })
     return { success: true, data: cached }
   }
@@ -124,14 +125,14 @@ export async function generarResumenIA(
         tokensInput,
         tokensOutput
       ),
-      serviceClient.from('logs_auditoria').insert({
-        id_clinica: idClinica,
-        actor_id: user.id,
-        actor_tipo: 'profesional',
+      logAudit({
+        supabase: serviceClient,
+        actorId: user.id,
         accion: 'resumen_ia_generado',
-        tabla_afectada: 'fce_resumenes_ia',
-        registro_id: null,
-        id_paciente: idPaciente,
+        tipoEvento: 'ia_resumen',
+        tablaAfectada: 'fce_resumenes_ia',
+        idClinica: idClinica,
+        idPaciente: idPaciente,
       }),
     ])
   } catch (e) {

@@ -1,8 +1,8 @@
 "use server";
 
-import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { createClient } from "@/lib/supabase/server";
+import { requireAuth, requireContext } from "@/lib/auth";
+import { logAudit } from "@/lib/audit";
 import { getProfesionalActivo } from "@/lib/fce/profesional";
 import { getIdClinica } from "@/app/actions/patients";
 import type { ActionResult } from "@/app/actions/patients";
@@ -12,43 +12,6 @@ import type {
   EstadoItem,
   PrioridadItem,
 } from "@/types/plan-tratamiento";
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-async function requireAuth() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser();
-  if (error || !user) redirect("/login");
-  return { supabase, user };
-}
-
-async function logAudit(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  supabase: any,
-  userId: string,
-  accion: string,
-  tabla: string,
-  registroId: string,
-  idClinica: string,
-  idPaciente: string,
-) {
-  try {
-    await supabase.from("logs_auditoria").insert({
-      actor_id: userId,
-      actor_tipo: "profesional",
-      accion,
-      tabla_afectada: tabla,
-      registro_id: registroId,
-      id_clinica: idClinica,
-      id_paciente: idPaciente,
-    });
-  } catch {
-    // no bloquea el flujo principal
-  }
-}
 
 // ── getPlanActivo ─────────────────────────────────────────────────────────────
 
@@ -89,11 +52,7 @@ export async function createPlan(
   patientId: string,
   input: { titulo?: string; diagnostico?: string; observaciones?: string },
 ): Promise<ActionResult<PlanTratamiento>> {
-  const { supabase, user } = await requireAuth();
-
-  const idClinica = await getIdClinica(supabase, user.id);
-  if (!idClinica)
-    return { success: false, error: "No se pudo determinar la clínica." };
+  const { supabase, user, idClinica } = await requireContext();
 
   const profesional = await getProfesionalActivo(supabase, user.id, idClinica);
   if (!profesional)
@@ -121,15 +80,16 @@ export async function createPlan(
 
   if (error) return { success: false, error: error.message };
 
-  await logAudit(
+  await logAudit({
     supabase,
-    user.id,
-    "crear_plan_tratamiento",
-    "fce_plan_tratamiento",
-    data.id,
-    idClinica,
-    patientId,
-  );
+    actorId: user.id,
+    accion: "crear_plan_tratamiento",
+    tipoEvento: "create",
+    tablaAfectada: "fce_plan_tratamiento",
+    registroId: data.id,
+    idClinica: idClinica,
+    idPaciente: patientId,
+  });
 
   revalidatePath(`/dashboard/pacientes/${patientId}`);
   return { success: true, data: { ...data, items: [] } as PlanTratamiento };
@@ -153,11 +113,7 @@ export async function addItemPlan(
   if (!input.procedimiento?.trim())
     return { success: false, error: "El procedimiento es requerido." };
 
-  const { supabase, user } = await requireAuth();
-
-  const idClinica = await getIdClinica(supabase, user.id);
-  if (!idClinica)
-    return { success: false, error: "No se pudo determinar la clínica." };
+  const { supabase, user, idClinica } = await requireContext();
 
   // Verificar que el plan pertenece a esta clínica
   const { data: plan } = await supabase
@@ -199,15 +155,16 @@ export async function addItemPlan(
   // Recalcular presupuesto_total del plan
   await recalcularPresupuesto(supabase, planId, idClinica);
 
-  await logAudit(
+  await logAudit({
     supabase,
-    user.id,
-    "agregar_item_plan",
-    "fce_plan_tratamiento_items",
-    item.id,
-    idClinica,
-    patientId,
-  );
+    actorId: user.id,
+    accion: "agregar_item_plan",
+    tipoEvento: "create",
+    tablaAfectada: "fce_plan_tratamiento_items",
+    registroId: item.id,
+    idClinica: idClinica,
+    idPaciente: patientId,
+  });
 
   revalidatePath(`/dashboard/pacientes/${patientId}`);
   return { success: true, data: item as PlanTratamientoItem };
@@ -222,11 +179,7 @@ export async function updateItemEstado(
   encuentroId: string | null,
   nuevoEstado: EstadoItem,
 ): Promise<ActionResult<undefined>> {
-  const { supabase, user } = await requireAuth();
-
-  const idClinica = await getIdClinica(supabase, user.id);
-  if (!idClinica)
-    return { success: false, error: "No se pudo determinar la clínica." };
+  const { supabase, user, idClinica } = await requireContext();
 
   const profesional = await getProfesionalActivo(supabase, user.id, idClinica);
   if (!profesional)
@@ -260,15 +213,16 @@ export async function updateItemEstado(
 
   if (error) return { success: false, error: error.message };
 
-  await logAudit(
+  await logAudit({
     supabase,
-    user.id,
-    `item_plan_${nuevoEstado}`,
-    "fce_plan_tratamiento_items",
-    itemId,
-    idClinica,
-    patientId,
-  );
+    actorId: user.id,
+    accion: `item_plan_${nuevoEstado}`,
+    tipoEvento: "update",
+    tablaAfectada: "fce_plan_tratamiento_items",
+    registroId: itemId,
+    idClinica: idClinica,
+    idPaciente: patientId,
+  });
 
   revalidatePath(`/dashboard/pacientes/${patientId}`);
   return { success: true, data: undefined };
@@ -281,11 +235,7 @@ export async function removeItemPlan(
   planId: string,
   patientId: string,
 ): Promise<ActionResult<undefined>> {
-  const { supabase, user } = await requireAuth();
-
-  const idClinica = await getIdClinica(supabase, user.id);
-  if (!idClinica)
-    return { success: false, error: "No se pudo determinar la clínica." };
+  const { supabase, idClinica } = await requireContext();
 
   // Solo se pueden eliminar items pendientes o rechazados
   const { data: item } = await supabase
@@ -322,11 +272,7 @@ export async function cerrarPlan(
   planId: string,
   patientId: string,
 ): Promise<ActionResult<undefined>> {
-  const { supabase, user } = await requireAuth();
-
-  const idClinica = await getIdClinica(supabase, user.id);
-  if (!idClinica)
-    return { success: false, error: "No se pudo determinar la clínica." };
+  const { supabase, user, idClinica } = await requireContext();
 
   const profesional = await getProfesionalActivo(supabase, user.id, idClinica);
   if (!profesional)
@@ -350,15 +296,16 @@ export async function cerrarPlan(
 
   if (error) return { success: false, error: error.message };
 
-  await logAudit(
+  await logAudit({
     supabase,
-    user.id,
-    "cerrar_plan_tratamiento",
-    "fce_plan_tratamiento",
-    planId,
-    idClinica,
-    patientId,
-  );
+    actorId: user.id,
+    accion: "cerrar_plan_tratamiento",
+    tipoEvento: "update",
+    tablaAfectada: "fce_plan_tratamiento",
+    registroId: planId,
+    idClinica: idClinica,
+    idPaciente: patientId,
+  });
 
   revalidatePath(`/dashboard/pacientes/${patientId}`);
   return { success: true, data: undefined };

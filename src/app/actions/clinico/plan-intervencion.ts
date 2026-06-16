@@ -1,7 +1,7 @@
 "use server";
 
-import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { requireAuth, requireContext } from "@/lib/auth";
+import { logAudit } from "@/lib/audit";
 import { getIdClinica } from "@/app/actions/patients";
 import { getClinicaConfig } from "@/lib/modules/config";
 import { assertModuleEnabled, assertPuedeFirmar } from "@/lib/modules/guards";
@@ -17,45 +17,6 @@ import type {
   NivelGAS,
   PrioridadObjetivo,
 } from "@/types/plan-intervencion";
-
-// ── Helper: sesión activa ──────────────────────────────────────────────────
-
-async function requireAuth() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser();
-  if (error || !user) redirect("/login");
-  return { supabase, user };
-}
-
-// ── Helper: audit log ──────────────────────────────────────────────────────
-
-async function logAudit(
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  supabase: any,
-  userId: string,
-  accion: string,
-  tablaAfectada: string,
-  registroId: string,
-  idClinica?: string | null,
-  idPaciente?: string | null
-) {
-  try {
-    await supabase.from("logs_auditoria").insert({
-      actor_id: userId,
-      actor_tipo: "profesional",
-      accion,
-      tabla_afectada: tablaAfectada,
-      registro_id: registroId,
-      ...(idClinica ? { id_clinica: idClinica } : {}),
-      ...(idPaciente ? { id_paciente: idPaciente } : {}),
-    });
-  } catch {
-    // El audit log no debe romper el flujo principal
-  }
-}
 
 // ── getPlanesIntervencion ──────────────────────────────────────────────────
 
@@ -160,10 +121,7 @@ export async function crearPlanIntervencion(params: {
   condicionCodigo?: string;
   titulo: string;
 }): Promise<ActionResult<{ planId: string }>> {
-  const { supabase, user } = await requireAuth();
-
-  const idClinica = await getIdClinica(supabase, user.id);
-  if (!idClinica) return { success: false, error: "No se pudo determinar la clínica." };
+  const { supabase, user, idClinica } = await requireContext();
 
   const config = await getClinicaConfig(idClinica, supabase);
   const moduleGuard = assertModuleEnabled(config, "M10_plan_intervencion");
@@ -194,15 +152,16 @@ export async function crearPlanIntervencion(params: {
     return { success: false, error: "No se pudo crear el plan de intervención." };
   }
 
-  await logAudit(
+  await logAudit({
     supabase,
-    user.id,
-    "crear_plan_intervencion",
-    "fce_planes_intervencion",
-    plan.id,
-    idClinica,
-    params.patientId
-  );
+    actorId: user.id,
+    accion: "crear_plan_intervencion",
+    tipoEvento: "create",
+    tablaAfectada: "fce_planes_intervencion",
+    registroId: plan.id,
+    idClinica: idClinica!,
+    idPaciente: params.patientId,
+  });
 
   return { success: true, data: { planId: plan.id } };
 }
@@ -218,10 +177,7 @@ export async function actualizarPlanIntervencion(
     >
   >
 ): Promise<ActionResult> {
-  const { supabase, user } = await requireAuth();
-
-  const idClinica = await getIdClinica(supabase, user.id);
-  if (!idClinica) return { success: false, error: "No se pudo determinar la clínica." };
+  const { supabase, user, idClinica } = await requireContext();
 
   const config = await getClinicaConfig(idClinica, supabase);
   const moduleGuard = assertModuleEnabled(config, "M10_plan_intervencion");
@@ -249,15 +205,16 @@ export async function actualizarPlanIntervencion(
 
   if (updateError) return { success: false, error: updateError.message };
 
-  await logAudit(
+  await logAudit({
     supabase,
-    user.id,
-    "actualizar_plan_intervencion",
-    "fce_planes_intervencion",
-    planId,
-    idClinica,
-    plan.id_paciente
-  );
+    actorId: user.id,
+    accion: "actualizar_plan_intervencion",
+    tipoEvento: "update",
+    tablaAfectada: "fce_planes_intervencion",
+    registroId: planId,
+    idClinica: idClinica!,
+    idPaciente: plan.id_paciente,
+  });
 
   return { success: true, data: undefined };
 }
@@ -283,10 +240,7 @@ export async function upsertObjetivo(
     orden?: number;
   }
 ): Promise<ActionResult<{ id: string }>> {
-  const { supabase, user } = await requireAuth();
-
-  const idClinica = await getIdClinica(supabase, user.id);
-  if (!idClinica) return { success: false, error: "No se pudo determinar la clínica." };
+  const { supabase, user, idClinica } = await requireContext();
 
   const config = await getClinicaConfig(idClinica, supabase);
   const moduleGuard = assertModuleEnabled(config, "M10_plan_intervencion");
@@ -336,15 +290,16 @@ export async function upsertObjetivo(
       return { success: false, error: "No se pudo actualizar el objetivo." };
     }
 
-    await logAudit(
+    await logAudit({
       supabase,
-      user.id,
-      "actualizar_objetivo_plan",
-      "fce_plan_objetivos",
-      updated.id,
-      idClinica,
-      plan.id_paciente
-    );
+      actorId: user.id,
+      accion: "upsert_objetivo",
+      tipoEvento: "update",
+      tablaAfectada: "fce_plan_objetivos",
+      registroId: updated.id,
+      idClinica: idClinica!,
+      idPaciente: plan.id_paciente,
+    });
 
     return { success: true, data: { id: updated.id } };
   } else {
@@ -395,15 +350,16 @@ export async function upsertObjetivo(
       return { success: false, error: "No se pudo crear el objetivo." };
     }
 
-    await logAudit(
+    await logAudit({
       supabase,
-      user.id,
-      "crear_objetivo_plan",
-      "fce_plan_objetivos",
-      inserted.id,
-      idClinica,
-      plan.id_paciente
-    );
+      actorId: user.id,
+      accion: "upsert_objetivo",
+      tipoEvento: "update",
+      tablaAfectada: "fce_plan_objetivos",
+      registroId: inserted.id,
+      idClinica: idClinica!,
+      idPaciente: plan.id_paciente,
+    });
 
     return { success: true, data: { id: inserted.id } };
   }
@@ -412,10 +368,7 @@ export async function upsertObjetivo(
 // ── eliminarObjetivo ───────────────────────────────────────────────────────
 
 export async function eliminarObjetivo(objetivoId: string): Promise<ActionResult> {
-  const { supabase, user } = await requireAuth();
-
-  const idClinica = await getIdClinica(supabase, user.id);
-  if (!idClinica) return { success: false, error: "No se pudo determinar la clínica." };
+  const { supabase, user, idClinica } = await requireContext();
 
   const config = await getClinicaConfig(idClinica, supabase);
   const moduleGuard = assertModuleEnabled(config, "M10_plan_intervencion");
@@ -455,15 +408,16 @@ export async function eliminarObjetivo(objetivoId: string): Promise<ActionResult
 
   if (deleteError) return { success: false, error: deleteError.message };
 
-  await logAudit(
+  await logAudit({
     supabase,
-    user.id,
-    "eliminar_objetivo_plan",
-    "fce_plan_objetivos",
-    objetivoId,
-    idClinica,
-    obj.id_paciente
-  );
+    actorId: user.id,
+    accion: "eliminar_objetivo",
+    tipoEvento: "delete",
+    tablaAfectada: "fce_plan_objetivos",
+    registroId: objetivoId,
+    idClinica: idClinica!,
+    idPaciente: obj.id_paciente,
+  });
 
   return { success: true, data: undefined };
 }
@@ -477,10 +431,7 @@ export async function registrarProgreso(params: {
   observacion?: string;
   estrategias?: string;
 }): Promise<ActionResult<{ id: string }>> {
-  const { supabase, user } = await requireAuth();
-
-  const idClinica = await getIdClinica(supabase, user.id);
-  if (!idClinica) return { success: false, error: "No se pudo determinar la clínica." };
+  const { supabase, user, idClinica } = await requireContext();
 
   const config = await getClinicaConfig(idClinica, supabase);
   const moduleGuard = assertModuleEnabled(config, "M10_plan_intervencion");
@@ -530,15 +481,16 @@ export async function registrarProgreso(params: {
     return { success: false, error: "Progreso insertado pero no se pudo actualizar nivel_actual: " + updateObjError.message };
   }
 
-  await logAudit(
+  await logAudit({
     supabase,
-    user.id,
-    "registrar_progreso_objetivo",
-    "fce_plan_progreso",
-    progreso.id,
-    obj.id_clinica,
-    obj.id_paciente
-  );
+    actorId: user.id,
+    accion: "registrar_progreso",
+    tipoEvento: "create",
+    tablaAfectada: "fce_plan_progreso",
+    registroId: progreso.id,
+    idClinica: obj.id_clinica!,
+    idPaciente: obj.id_paciente,
+  });
 
   return { success: true, data: { id: progreso.id } };
 }
@@ -546,22 +498,13 @@ export async function registrarProgreso(params: {
 // ── firmarPlanIntervencion ─────────────────────────────────────────────────
 
 export async function firmarPlanIntervencion(planId: string): Promise<ActionResult> {
-  const { supabase, user } = await requireAuth();
-
-  const idClinica = await getIdClinica(supabase, user.id);
-  if (!idClinica) return { success: false, error: "No se pudo determinar la clínica." };
+  const { supabase, user, idClinica, rol: rolCtx } = await requireContext();
 
   const config = await getClinicaConfig(idClinica, supabase);
   const moduleGuard = assertModuleEnabled(config, "M10_plan_intervencion");
   if (!moduleGuard.success) return moduleGuard;
 
-  // Obtener rol desde admin_users (fuente autoritativa)
-  const { data: adminRow } = await supabase
-    .from("admin_users")
-    .select("rol")
-    .eq("auth_id", user.id)
-    .single();
-  const rol = (adminRow?.rol as Rol) ?? null;
+  const rol = rolCtx as Rol;
 
   const firmaGuard = assertPuedeFirmar(rol);
   if (!firmaGuard.success) return firmaGuard;
@@ -611,15 +554,16 @@ export async function firmarPlanIntervencion(planId: string): Promise<ActionResu
 
   if (updateError) return { success: false, error: updateError.message };
 
-  await logAudit(
+  await logAudit({
     supabase,
-    user.id,
-    "firmar_plan_intervencion",
-    "fce_planes_intervencion",
-    planId,
-    idClinica,
-    plan.id_paciente
-  );
+    actorId: user.id,
+    accion: "firmar_plan_intervencion",
+    tipoEvento: "sign",
+    tablaAfectada: "fce_planes_intervencion",
+    registroId: planId,
+    idClinica: idClinica!,
+    idPaciente: plan.id_paciente,
+  });
 
   return { success: true, data: undefined };
 }

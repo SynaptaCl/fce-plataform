@@ -2,14 +2,13 @@
 
 import { z } from "zod";
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
 import { getProfesionalActivo } from "@/lib/fce/profesional";
-import { getIdClinica } from "@/app/actions/patients";
 import { sanitizeRichText } from "@/lib/sanitize";
 import { stripHtml } from "@/lib/utils";
 import type { ActionResult } from "@/app/actions/patients";
 import { log } from "@/lib/logger";
+import { requireContext } from "@/lib/auth";
+import { logAudit } from "@/lib/audit";
 
 // ── Validation ────────────────────────────────────────────────────────────────
 // contenido es HTML rich-text — validar longitud sobre el TEXTO PLANO, no el crudo,
@@ -23,33 +22,6 @@ const quickNoteSchema = z.object({
   motivo: z.string().max(200, "El motivo no puede superar los 200 caracteres.").nullable().optional(),
 });
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-async function requireAuth() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-    error,
-  } = await supabase.auth.getUser();
-  if (error || !user) redirect("/login");
-  return { supabase, user };
-}
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function logAudit(supabase: any, userId: string, notaId: string, idClinica: string | null, idPaciente: string) {
-  try {
-    await supabase.from("logs_auditoria").insert({
-      actor_id: userId,
-      actor_tipo: "profesional",
-      accion: "crear_nota_rapida",
-      tabla_afectada: "fce_notas_clinicas",
-      registro_id: notaId,
-      ...(idClinica ? { id_clinica: idClinica } : {}),
-      id_paciente: idPaciente,
-    });
-  } catch { /* no bloquea el flujo principal */ }
-}
-
 // ── createQuickNote ───────────────────────────────────────────────────────────
 
 export async function createQuickNote(
@@ -62,12 +34,7 @@ export async function createQuickNote(
     return { success: false, error: parsed.error.issues[0].message };
   }
 
-  const { supabase, user } = await requireAuth();
-
-  const idClinica = await getIdClinica(supabase, user.id);
-  if (!idClinica) {
-    return { success: false, error: "No se pudo determinar la clínica del usuario." };
-  }
+  const { supabase, user, idClinica } = await requireContext();
 
   const profesional = await getProfesionalActivo(supabase, user.id, idClinica);
   if (!profesional) {
@@ -123,7 +90,16 @@ export async function createQuickNote(
 
   const notaId = nota.id as string;
 
-  await logAudit(supabase, user.id, notaId, idClinica, patientId);
+  await logAudit({
+    supabase,
+    actorId: user.id,
+    accion: "crear_nota_rapida",
+    tipoEvento: "create",
+    tablaAfectada: "fce_notas_clinicas",
+    registroId: notaId,
+    idClinica: idClinica,
+    idPaciente: patientId,
+  });
   revalidatePath(`/dashboard/pacientes/${patientId}`);
 
   return { success: true, data: { encuentroId, notaId } };

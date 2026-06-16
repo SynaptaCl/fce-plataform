@@ -1,38 +1,11 @@
 "use server";
 
-import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
-import { getProfesionalActivo } from "@/lib/fce/profesional";
+import { requireAuth, requireContext } from "@/lib/auth";
+import { logAudit } from "@/lib/audit";
 import { getModeloDeEspecialidad } from "@/lib/modules/modelos";
 import type { ModeloClinico } from "@/lib/modules/registry";
 import type { ActionResult } from "./patients";
 import { getIdClinica } from "./patients";
-
-// ── requireAuth ───────────────────────────────────────────────────────────────
-
-async function requireAuth() {
-  const supabase = await createClient();
-  const { data: { user }, error } = await supabase.auth.getUser();
-  if (error || !user) redirect("/login");
-  return { supabase, user };
-}
-
-// ── logAudit ──────────────────────────────────────────────────────────────────
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function logAudit(supabase: any, userId: string, accion: string, tablaAfectada: string, registroId: string, idClinica?: string | null, idPaciente?: string | null) {
-  try {
-    await supabase.from("logs_auditoria").insert({
-      actor_id: userId,
-      actor_tipo: "profesional",
-      accion,
-      tabla_afectada: tablaAfectada,
-      registro_id: registroId,
-      ...(idClinica  ? { id_clinica:  idClinica  } : {}),
-      ...(idPaciente ? { id_paciente: idPaciente } : {}),
-    });
-  } catch { /* no bloquea el flujo principal */ }
-}
 
 // ── createEncuentro ───────────────────────────────────────────────────────────
 
@@ -40,39 +13,20 @@ export async function createEncuentro(
   patientId: string,
   especialidad: string
 ): Promise<ActionResult<{ encuentroId: string; modelo: ModeloClinico }>> {
-  const { supabase, user } = await requireAuth();
-
-  // Fetch rol + id_clinica + profesional activo en paralelo
-  const [adminRes, profesional] = await Promise.all([
-    supabase
-      .from("admin_users")
-      .select("id_clinica, rol")
-      .eq("auth_id", user.id)
-      .eq("activo", true)
-      .single(),
-    getProfesionalActivo(supabase, user.id),
-  ]);
-
-  if (!adminRes.data) {
-    return { success: false, error: "Sin perfil de usuario activo" };
-  }
-
-  const rol: string = adminRes.data.rol;
-  const idClinica: string | null = await getIdClinica(supabase, user.id);
+  const { supabase, user, idClinica, rol, profesionalId, especialidad: espActiva } = await requireContext();
 
   // Validar coherencia profesional ↔ especialidad
   // Admin/director/superadmin pueden crear encuentros de cualquier especialidad
   const esAdminODirector = ["admin", "director", "superadmin"].includes(rol);
   if (!esAdminODirector) {
-    if (!profesional) {
+    if (!profesionalId) {
       return { success: false, error: "No tienes un perfil de profesional activo" };
     }
-    if (profesional.especialidad !== especialidad) {
+    if (espActiva !== especialidad) {
       return { success: false, error: "Solo puedes iniciar encuentros de tu especialidad" };
     }
   }
 
-  const profesionalId = profesional?.id ?? null;
   if (!profesionalId) {
     return { success: false, error: "No se encontró perfil de profesional para este encuentro" };
   }
@@ -135,7 +89,16 @@ export async function createEncuentro(
 
   const modelo = getModeloDeEspecialidad(especialidad);
 
-  await logAudit(supabase, user.id, "crear_encuentro", "fce_encuentros", encuentroId, idClinica, patientId);
+  await logAudit({
+    supabase,
+    actorId: user.id,
+    accion: "crear_encuentro",
+    tipoEvento: "create",
+    tablaAfectada: "fce_encuentros",
+    registroId: encuentroId,
+    idClinica: idClinica!,
+    idPaciente: patientId,
+  });
 
   return { success: true, data: { encuentroId, modelo } };
 }

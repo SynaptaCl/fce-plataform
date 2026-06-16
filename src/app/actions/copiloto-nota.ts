@@ -9,6 +9,7 @@ import { parseBorradorNota } from '@/lib/ia/copiloto-nota/parser'
 import { requireAccesoFCE } from '@/lib/modules/guards'
 import type { ActionResult } from '@/lib/modules/guards'
 import type { EstructurarNotaInput, BorradorNota } from '@/lib/ia/copiloto-nota/types'
+import { logAudit } from '@/lib/audit'
 
 const MODEL = 'claude-sonnet-4-6'
 const MAX_BULLETS_LENGTH = 5000
@@ -106,14 +107,15 @@ export async function estructurarNota(
 
   // 6. Audit log (service_role para bypasear RLS en logs_auditoria)
   const serviceClient = createServiceClient()
-  await serviceClient.from('logs_auditoria').insert({
-    id_clinica: idClinica,
-    actor_id: user.id,
-    actor_tipo: 'profesional',
+  await logAudit({
+    supabase: serviceClient,
+    actorId: user.id,
     accion: 'nota_estructurada_ia',
-    tabla_afectada: 'fce_notas_clinicas',
-    registro_id: null,
-    id_paciente: encuentro.id_paciente,
+    tipoEvento: 'ia_copiloto',
+    tablaAfectada: 'fce_notas_clinicas',
+    registroId: idEncuentro,
+    idClinica: idClinica,
+    idPaciente: encuentro.id_paciente,
   })
 
   return { success: true, data: borrador }
