@@ -37,6 +37,24 @@ export default async function PatientDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  try {
+    return await _patientDetailPage(params);
+  } catch (error) {
+    // Re-throw Next.js navigation errors (redirect, notFound) without logging
+    const digest = (error as { digest?: string })?.digest ?? "";
+    if (digest.startsWith("NEXT_")) throw error;
+    console.error(
+      "[FCE_DEBUG] PatientDetailPage error:",
+      error instanceof Error ? error.message : String(error),
+      error instanceof Error ? error.stack : ""
+    );
+    throw error;
+  }
+}
+
+async function _patientDetailPage(
+  params: Promise<{ id: string }>
+) {
   const { id } = await params;
 
   // ── Auth ───────────────────────────────────────────────────────────────
