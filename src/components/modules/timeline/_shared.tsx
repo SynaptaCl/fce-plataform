@@ -7,7 +7,7 @@ import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import type { CifAssessment, CifItem } from "@/types/cif";
 import { CIF_QUANTIFIER_LABELS } from "@/types/cif";
-import { isRichTextHtml } from "@/lib/sanitize";
+import { isRichTextHtml } from "@/lib/utils";
 
 // ── Text helpers ──────────────────────────────────────────────────────────────
 

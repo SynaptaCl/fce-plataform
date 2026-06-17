@@ -13,7 +13,8 @@
  * en el smoke manual (sección 6.2 del sprint) — requieren Supabase + IDs reales.
  */
 
-import { sanitizeRichText, isRichTextHtml } from "../src/lib/sanitize";
+import { sanitizeRichText } from "../src/lib/sanitize";
+import { isRichTextHtml } from "../src/lib/utils";
 import { stripHtml, textoPlanoAHtml } from "../src/lib/utils";
 
 // Réplica de la lógica privada de nota-clinica.ts para validar su contrato.

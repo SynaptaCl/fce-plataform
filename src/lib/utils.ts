@@ -81,6 +81,16 @@ export function stripHtml(value: string | null | undefined): string {
 }
 
 /**
+ * Detecta si un string contiene HTML rich-text de la whitelist clínica.
+ * Distingue contenido legacy (texto plano) de contenido nuevo (HTML del editor RTE).
+ * Pure regex — sin dependencias de DOM, usable en cliente y servidor.
+ */
+export function isRichTextHtml(value: string | null | undefined): boolean {
+  if (!value) return false;
+  return /<(p|strong|em|u|ul|ol|li|h2|h3|blockquote|br)\b/i.test(value);
+}
+
+/**
  * Convierte texto plano (ej: output del copiloto IA) en HTML rich-text simple.
  * Cada bloque separado por línea en blanco se vuelve un <p>; los saltos simples
  * se vuelven <br>. El texto se escapa para evitar inyección.

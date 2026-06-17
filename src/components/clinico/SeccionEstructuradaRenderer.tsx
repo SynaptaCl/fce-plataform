@@ -4,7 +4,7 @@ import { useState } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { Input } from "@/components/ui/Input";
 import { RichTextEditor } from "@/components/shared/RichTextEditor";
-import { isRichTextHtml } from "@/lib/sanitize";
+import { isRichTextHtml } from "@/lib/utils";
 import type { SeccionNota, CampoNota } from "@/lib/modules/especialidad-config";
 
 // ── Props ─────────────────────────────────────────────────────────────────────

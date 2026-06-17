@@ -15,7 +15,7 @@ import type { NivelGAS, EstadoPlanIntervencion } from "@/types/plan-intervencion
 import type { TipoEgreso } from "@/types/egreso";
 import { TIPOS_EGRESO } from "@/types/egreso";
 import { calculateAge } from "@/lib/utils";
-import { isRichTextHtml } from "@/lib/sanitize";
+import { isRichTextHtml } from "@/lib/utils";
 
 // ── Tipos de data compilada ───────────────────────────────────────────────────
 
