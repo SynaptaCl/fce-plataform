@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -20,6 +21,8 @@ import {
   Pill,
   LogOut,
 } from "lucide-react";
+import { useProfesionalActivo } from "@/lib/modules/provider";
+import { EncuentroLauncher } from "@/components/shared/EncuentroLauncher";
 import { Badge } from "@/components/ui/Badge";
 import { cn } from "@/lib/utils";
 import type { TimelineEntry } from "@/app/actions/timeline";
@@ -548,6 +551,7 @@ export function ClinicalTimeline({
   rolActual = "",
 }: ClinicalTimelineProps) {
   const router = useRouter();
+  const profesionalActivo = useProfesionalActivo();
   const [activeTab, setActiveTab] = useState<string>("todos");
   const [viewMode, setViewMode] = useState<ViewMode>("todos");
   // Inicializar con los entries principales expandidos
@@ -708,17 +712,39 @@ export function ClinicalTimeline({
       {/* Entries list */}
       <div className="p-3 space-y-2 min-h-[200px]">
         {filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-14 text-center">
-            <FileText className="w-8 h-8 text-ink-4 mb-2" />
-            <p className="text-sm font-medium text-ink-3">
-              {activeTab === "todos" && viewMode === "todos"
-                ? "Sin actividad clínica registrada"
-                : "Sin registros para este filtro"}
-            </p>
-            <p className="text-xs text-ink-4 mt-1">
-              Los registros aparecerán aquí en orden cronológico inverso
-            </p>
-          </div>
+          entries.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-14 text-center">
+              <FileText className="w-8 h-8 text-ink-4 mb-2" />
+              <p className="text-sm font-medium text-ink-3">
+                Paciente sin registros clínicos
+              </p>
+              <div className="flex flex-wrap gap-2 mt-4 justify-center">
+                <Link
+                  href={`/dashboard/pacientes/${patientId}/anamnesis`}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-kp-border bg-surface-0 text-ink-2 hover:text-kp-accent hover:border-kp-accent transition-colors"
+                >
+                  <ClipboardList className="w-3.5 h-3.5" />
+                  Completar anamnesis
+                </Link>
+                {profesionalActivo && (
+                  <EncuentroLauncher
+                    patientId={patientId}
+                    especialidad={profesionalActivo.especialidad}
+                  />
+                )}
+              </div>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-14 text-center">
+              <FileText className="w-8 h-8 text-ink-4 mb-2" />
+              <p className="text-sm font-medium text-ink-3">
+                Sin registros para este filtro
+              </p>
+              <p className="text-xs text-ink-4 mt-1">
+                Los registros aparecerán aquí en orden cronológico inverso
+              </p>
+            </div>
+          )
         ) : (
           filtered.map((entry) => (
             <TimelineCard

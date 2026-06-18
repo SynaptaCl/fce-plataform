@@ -1,7 +1,5 @@
 "use server";
 
-console.log("[FCE_DEBUG] encuentros.ts module loading...");
-
 import { requireAuth, requireContext } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import { getModeloDeEspecialidad } from "@/lib/modules/modelos";
@@ -9,18 +7,14 @@ import type { ModeloClinico } from "@/lib/modules/registry";
 import type { ActionResult } from "./patients";
 import { getIdClinica } from "./patients";
 
-console.log("[FCE_DEBUG] encuentros.ts module loaded OK");
-
 // ── createEncuentro ───────────────────────────────────────────────────────────
 
 export async function createEncuentro(
   patientId: string,
   especialidad: string
 ): Promise<ActionResult<{ encuentroId: string; modelo: ModeloClinico }>> {
-  console.log("[FCE_DEBUG] createEncuentro called:", { patientId, especialidad });
   try {
     const { supabase, user, idClinica, rol, profesionalId, especialidad: espActiva } = await requireContext();
-    console.log("[FCE_DEBUG] requireContext OK:", { idClinica, rol, profesionalId, espActiva });
 
     // Validar coherencia profesional ↔ especialidad
     // Admin/director/superadmin pueden crear encuentros de cualquier especialidad
@@ -95,7 +89,6 @@ export async function createEncuentro(
     }
 
     const modelo = getModeloDeEspecialidad(especialidad);
-    console.log("[FCE_DEBUG] encuentro created:", { encuentroId, modelo });
 
     await logAudit({
       supabase,
@@ -111,7 +104,6 @@ export async function createEncuentro(
     return { success: true, data: { encuentroId, modelo } };
   } catch (err: unknown) {
     const error = err instanceof Error ? err : new Error(String(err));
-    console.error("[FCE_DEBUG] createEncuentro CRASHED:", error.message, error.stack);
     return { success: false, error: `Error interno: ${error.message}` };
   }
 }

@@ -14,6 +14,7 @@ import type { Prescripcion, MedicamentoPrescrito, ModoFirma, TipoPrescripcion } 
 import type { MedicamentoCatalogo } from "@/types/medicamento";
 import { requireAuth, requireContext } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
+import { getPerfilPrescripcion } from "@/lib/prescripciones/perfiles";
 
 // ── getPrescripcionesByPatient ─────────────────────────────────────────────
 
@@ -68,9 +69,14 @@ export async function getPrescripcionById(
 export async function searchMedicamentos(
   query: string
 ): Promise<ActionResult<MedicamentoCatalogo[]>> {
-  const { supabase } = await requireAuth();
+  const { supabase, user, idClinica } = await requireContext();
 
-  const results = await buscarMedicamentos(supabase, query);
+  const profesional = await getProfesionalActivo(supabase, user.id, idClinica);
+  const perfil = profesional
+    ? getPerfilPrescripcion(profesional.especialidad)
+    : undefined;
+
+  const results = await buscarMedicamentos(supabase, query, perfil);
   return { success: true, data: results };
 }
 
@@ -126,6 +132,29 @@ export async function createAndSignPrescripcion(input: {
   // Step 6 — puede_prescribir check
   if (!profesional.puede_prescribir) {
     return { success: false, error: "Tu perfil profesional no tiene autorización para prescribir" };
+  }
+
+  // Step 6b — Validar medicamentos autorizados para el perfil del profesional
+  if (input.tipo === "farmacologica" && input.medicamentos?.length) {
+    const perfil = getPerfilPrescripcion(profesional.especialidad);
+    const nombresPrescritos = input.medicamentos.map((m) => m.principio_activo);
+
+    const { data: autorizados } = await supabase
+      .from("medicamentos_catalogo")
+      .select("principio_activo")
+      .eq("activo", true)
+      .contains("perfiles_autorizados", [perfil])
+      .in("principio_activo", nombresPrescritos);
+
+    const autorizadosSet = new Set(autorizados?.map((a) => a.principio_activo) ?? []);
+    const noAutorizados = nombresPrescritos.filter((n) => !autorizadosSet.has(n));
+
+    if (noAutorizados.length > 0) {
+      return {
+        success: false,
+        error: `Medicamentos no autorizados para tu perfil: ${noAutorizados.join(", ")}`,
+      };
+    }
   }
 
   // Step 7 — Encuentro validation (if provided)

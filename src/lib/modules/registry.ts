@@ -45,7 +45,9 @@ export type EspecialidadCodigo =
   | "Nutrición"
   | "Terapia Ocupacional"
   | "Podología"
-  | "Enfermería";
+  | "Enfermería"
+  | "Obstetricia y Puericultura"
+  | "Ginecología y Obstetricia";
 
 // ============================================================================
 // Modelo clínico (bifurcación por especialidad)
@@ -308,6 +310,10 @@ export const ESPECIALIDADES_REGISTRY: Record<string, EspecialidadRegistro> = {
   "Psicología":          { codigo: "Psicología",          label: "Psicología",          modelo: "clinico_general", tieneContraindicaciones: false, tieneEscalaFuncional: false, estado: "estable" },
   "Nutrición":           { codigo: "Nutrición",           label: "Nutrición",           modelo: "clinico_general", tieneContraindicaciones: false, tieneEscalaFuncional: false, estado: "estable" },
   "Odontología":         { codigo: "Odontología",         label: "Odontología",         modelo: "odontologico",    tieneContraindicaciones: true,  tieneEscalaFuncional: false, estado: "beta"    },
+
+  // Modelo clínico general — obstetricia
+  "Obstetricia y Puericultura": { codigo: "Obstetricia y Puericultura", label: "Obstetricia y Puericultura", modelo: "clinico_general", tieneContraindicaciones: false, tieneEscalaFuncional: false, estado: "estable" },
+  "Ginecología y Obstetricia":  { codigo: "Ginecología y Obstetricia",  label: "Ginecología y Obstetricia",  modelo: "clinico_general", tieneContraindicaciones: false, tieneEscalaFuncional: false, estado: "estable" },
 
   // Modelo ninguno
   "Administración Clínica": { codigo: "Administración Clínica", label: "Administración Clínica", modelo: "ninguno", tieneContraindicaciones: false, tieneEscalaFuncional: false, estado: "estable" },

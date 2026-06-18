@@ -44,9 +44,8 @@ export default async function PatientDetailPage({
     const digest = (error as { digest?: string })?.digest ?? "";
     if (digest.startsWith("NEXT_")) throw error;
     console.error(
-      "[FCE_DEBUG] PatientDetailPage error:",
-      error instanceof Error ? error.message : String(error),
-      error instanceof Error ? error.stack : ""
+      "PatientDetailPage error:",
+      error instanceof Error ? error.message : String(error)
     );
     throw error;
   }
@@ -159,8 +158,15 @@ async function _patientDetailPage(
       {/* PatientHeader — compact single line */}
       <PatientHeader patient={p} hasConsent={hasConsent} patientId={id} />
 
-      {/* ActionBar — horizontal chips */}
-      <ActionBar patientId={id} />
+      {/* ActionBar — horizontal chips con CTA principal */}
+      <ActionBar
+        patientId={id}
+        primaryAction={
+          especialidadProfesional && p.estado_clinico !== "egresado" ? (
+            <EncuentroLauncher patientId={id} especialidad={especialidadProfesional} />
+          ) : undefined
+        }
+      />
 
       {/* Below-header alerts and launchers */}
       <div className="space-y-3 px-5 pt-4">
@@ -171,11 +177,6 @@ async function _patientDetailPage(
             egresoFirmadoAt={egresosFirmados[0]?.firmado_at ?? null}
             tipoEgreso={egresosFirmados[0]?.tipo_egreso ?? null}
           />
-        )}
-
-        {/* Iniciar atención — solo para profesionales con especialidad activa y paciente no egresado */}
-        {especialidadProfesional && p.estado_clinico !== "egresado" && (
-          <EncuentroLauncher patientId={id} especialidad={especialidadProfesional} />
         )}
 
         {/* Egresar paciente — para roles permitidos con M9 activo */}
@@ -209,6 +210,7 @@ async function _patientDetailPage(
               summary={summary}
               patientId={id}
               especialidadesActivas={especialidadesActivas}
+              hasEntries={entries.length > 0}
               resumenIASlot={
                 idClinica && !["recepcionista", "recepcion"].includes(rol)
                   ? <ResumenIAButton idPaciente={id} idClinica={idClinica} />

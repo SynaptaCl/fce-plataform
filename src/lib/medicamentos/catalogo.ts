@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { MedicamentoCatalogo } from "@/types/medicamento";
+import type { PerfilPrescripcion } from "@/lib/prescripciones/perfiles";
 
 /**
  * Busca medicamentos en el catálogo por término de búsqueda.
@@ -14,19 +15,26 @@ import type { MedicamentoCatalogo } from "@/types/medicamento";
 export async function buscarMedicamentos(
   supabase: SupabaseClient,
   query: string,
+  perfilPrescripcion?: PerfilPrescripcion,
   limit = 20
 ): Promise<MedicamentoCatalogo[]> {
   if (!query || query.trim().length < 2) return [];
 
   const searchTerm = query.trim();
 
-  const { data, error } = await supabase
+  let q = supabase
     .from("medicamentos_catalogo")
     .select("*")
     .eq("activo", true)
     .or(
       `principio_activo.ilike.%${searchTerm}%,nombre_comercial.ilike.%${searchTerm}%`
-    )
+    );
+
+  if (perfilPrescripcion) {
+    q = q.contains("perfiles_autorizados", [perfilPrescripcion]);
+  }
+
+  const { data, error } = await q
     .order("principio_activo", { ascending: true })
     .limit(limit);
 

@@ -56,11 +56,14 @@ export default async function RehabPage({
         .eq("id", encuentroId)
         .eq("id_paciente", id)
         .single(),
-      supabase
-        .from("fce_notas_soap")
-        .select("*")
-        .eq("id_encuentro", encuentroId)
-        .maybeSingle(),
+      idClinica
+        ? supabase
+            .from("fce_notas_soap")
+            .select("*")
+            .eq("id_encuentro", encuentroId)
+            .eq("id_clinica", idClinica)
+            .maybeSingle()
+        : Promise.resolve({ data: null, error: null }),
       supabase
         .from("fce_evaluaciones")
         .select("*")

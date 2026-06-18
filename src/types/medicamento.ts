@@ -17,6 +17,7 @@ export interface MedicamentoCatalogo {
   especialidades_comunes: string[];
   origen: "seed" | "clinica" | "admin";
   id_clinica: string | null;
+  perfiles_autorizados: string[];
   activo: boolean;
   notas: string | null;
   created_at: string;
