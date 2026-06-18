@@ -10,6 +10,7 @@ import type { PerfilPrescripcion } from "@/lib/prescripciones/perfiles";
  *
  * @param supabase Cliente Supabase (server)
  * @param query Término de búsqueda (mínimo 2 caracteres)
+ * @param perfilPrescripcion Perfil del profesional — filtra medicamentos autorizados
  * @param limit Máximo de resultados (default 20)
  */
 export async function buscarMedicamentos(

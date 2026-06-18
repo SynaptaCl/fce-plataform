@@ -8,8 +8,11 @@ export interface MedicamentoCatalogo {
   via_administracion: string;
   dosis_adulto_sugerida: string | null;
   dosis_pediatrica_sugerida: string | null;
+  bioequivalentes: string[] | null;
+  laboratorio: string | null;
   indicaciones_comunes: string[];
   contraindicaciones_clave: string[];
+  advertencias_importantes: string[] | null;
   grupo_terapeutico: string | null;
   codigo_atc: string | null;
   es_controlado: boolean;
