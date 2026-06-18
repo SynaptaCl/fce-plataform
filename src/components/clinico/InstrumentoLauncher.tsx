@@ -70,10 +70,8 @@ export function InstrumentoLauncher({
       setError(null);
       setInstrumentoNoDisponible(false);
     } else {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setInstrumentoNoDisponible(true);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [resolvedOpen, codigoPreseleccionado, catalogo, instrumentoSeleccionado]);
 
   // Reset state when controlled modal closes from outside

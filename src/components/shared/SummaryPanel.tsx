@@ -10,7 +10,6 @@ import {
   AlertTriangle,
   Clock,
   Calendar,
-  Target,
   Sparkles,
 } from "lucide-react";
 import { getModeloDeEspecialidad } from "@/lib/modules/modelos";
