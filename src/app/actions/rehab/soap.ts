@@ -164,15 +164,27 @@ export async function upsertSoapNote(
       return { success: false, error: (e as Error).message };
     }
 
+    // DEBUG — remover después de diagnosticar RLS INSERT
+    const { data: { user: debugUser } } = await supabase.auth.getUser();
+    const insertPayload = {
+      ...soapData,
+      id_paciente: patientId,
+      id_encuentro: encounterId,
+      id_clinica: idClinica,   // después del spread: siempre gana
+      firmado: false,
+    };
+    console.error("[FCE_DEBUG_SOAP]", JSON.stringify({
+      authUid: debugUser?.id ?? "NULL",
+      idClinicaFromContext: idClinica,
+      idClinicaInPayload: insertPayload.id_clinica,
+      payloadKeys: Object.keys(insertPayload),
+      soapDataKeys: Object.keys(soapData),
+      soapDataHasIdClinica: "id_clinica" in soapData,
+    }));
+
     const { data: created, error } = await supabase
       .from("fce_notas_soap")
-      .insert({
-        id_paciente: patientId,
-        id_encuentro: encounterId,
-        id_clinica: idClinica,
-        ...soapData,
-        firmado: false,
-      })
+      .insert(insertPayload)
       .select("id")
       .single();
 
