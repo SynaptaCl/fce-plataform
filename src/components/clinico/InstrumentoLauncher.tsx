@@ -14,6 +14,10 @@ interface InstrumentoLauncherProps {
   onGuardado?: () => void;
   trigger?: React.ReactNode;
   instrumentosSugeridos?: string[];
+  // Controlled-mode props (used by InstrumentosPanel for badge preselection)
+  openControlado?: boolean;
+  onCerrar?: () => void;
+  codigoPreseleccionado?: string;
 }
 
 export function InstrumentoLauncher({
@@ -23,6 +27,9 @@ export function InstrumentoLauncher({
   onGuardado,
   trigger,
   instrumentosSugeridos = [],
+  openControlado,
+  onCerrar,
+  codigoPreseleccionado,
 }: InstrumentoLauncherProps) {
   const [open, setOpen] = useState(false);
   const [catalogo, setCatalogo] = useState<InstrumentoSchema[]>([]);
@@ -35,16 +42,54 @@ export function InstrumentoLauncher({
   const [guardando, setGuardando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [CustomComp, setCustomComp] = useState<ComponentType<InstrumentoCustomProps> | null>(null);
+  const [instrumentoNoDisponible, setInstrumentoNoDisponible] = useState(false);
+
+  // In controlled mode the parent owns open state; in uncontrolled mode the internal state owns it.
+  const resolvedOpen = openControlado !== undefined ? openControlado : open;
 
   useEffect(() => {
-    if (!open) return;
+    if (!resolvedOpen) return;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true);
     getCatalogoInstrumentos(especialidad).then((result) => {
       if (result.success) setCatalogo(result.data);
       setLoading(false);
     });
-  }, [open, especialidad]);
+  }, [resolvedOpen, especialidad]);
+
+  // Auto-select preseleccionado instrument once catalog loads
+  useEffect(() => {
+    if (!resolvedOpen || !codigoPreseleccionado || catalogo.length === 0 || instrumentoSeleccionado) return;
+    const match = catalogo.find((i) => i.codigo === codigoPreseleccionado);
+    if (match) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setInstrumentoSeleccionado(match);
+      setRespuestas({});
+      setNotas("");
+      setMostrarEnTimeline(true);
+      setError(null);
+      setInstrumentoNoDisponible(false);
+    } else {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setInstrumentoNoDisponible(true);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [resolvedOpen, codigoPreseleccionado, catalogo, instrumentoSeleccionado]);
+
+  // Reset state when controlled modal closes from outside
+  useEffect(() => {
+    if (openControlado !== undefined && !openControlado) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setInstrumentoSeleccionado(null);
+      setRespuestas({});
+      setNotas("");
+      setQuery("");
+      setError(null);
+      setCustomComp(null);
+      setInstrumentoNoDisponible(false);
+      setCatalogo([]);
+    }
+  }, [openControlado]);
 
   useEffect(() => {
     if (
@@ -96,29 +141,37 @@ export function InstrumentoLauncher({
   }
 
   function handleClose() {
-    setOpen(false);
+    if (openControlado !== undefined) {
+      onCerrar?.();
+    } else {
+      setOpen(false);
+    }
     setInstrumentoSeleccionado(null);
     setRespuestas({});
     setNotas("");
     setQuery("");
     setError(null);
     setCustomComp(null);
+    setInstrumentoNoDisponible(false);
   }
 
   return (
     <>
-      <div onClick={() => setOpen(true)}>
-        {trigger ?? (
-          <button
-            className="text-sm font-medium px-3 py-1.5 rounded-md"
-            style={{ background: "var(--color-kp-accent)", color: "#fff" }}
-          >
-            Aplicar instrumento
-          </button>
-        )}
-      </div>
+      {/* Trigger: only rendered in uncontrolled mode */}
+      {openControlado === undefined && (
+        <div onClick={() => setOpen(true)}>
+          {trigger ?? (
+            <button
+              className="text-sm font-medium px-3 py-1.5 rounded-md"
+              style={{ background: "var(--color-kp-accent)", color: "#fff" }}
+            >
+              Aplicar instrumento
+            </button>
+          )}
+        </div>
+      )}
 
-      {open && (
+      {resolvedOpen && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div
             className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-lg shadow-xl"
@@ -148,9 +201,18 @@ export function InstrumentoLauncher({
             </div>
 
             <div className="p-4 space-y-4">
-              {/* Lista de catálogo (si no hay instrumento seleccionado) */}
+              {/* Lista de catálogo */}
               {!instrumentoSeleccionado && (
                 <>
+                  {/* Banner: instrumento sugerido no disponible en este catálogo */}
+                  {instrumentoNoDisponible && codigoPreseleccionado && (
+                    <div
+                      className="rounded-md px-3 py-2 text-sm"
+                      style={{ background: "var(--color-kp-warning-lt, #FFF7ED)", color: "var(--color-ink-2)" }}
+                    >
+                      El instrumento <strong className="uppercase">{codigoPreseleccionado}</strong> no está disponible para esta especialidad todavía. Búscalo abajo o contacta al administrador.
+                    </div>
+                  )}
                   <input
                     type="text"
                     placeholder="Buscar instrumento..."
@@ -226,6 +288,7 @@ export function InstrumentoLauncher({
                     onClick={() => {
                       setInstrumentoSeleccionado(null);
                       setRespuestas({});
+                      setInstrumentoNoDisponible(false);
                     }}
                     className="text-xs underline"
                     style={{ color: "var(--color-ink-3)" }}

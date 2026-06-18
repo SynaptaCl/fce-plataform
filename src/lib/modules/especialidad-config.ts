@@ -334,7 +334,7 @@ export const ESPECIALIDAD_CONFIG: Record<string, EspecialidadConfig> = {
   },
   "Obstetricia y Puericultura": {
     modelo: "clinico_general",
-    instrumentosSugeridos: ["apgar", "eva", "edinburgh", "bishop"],
+    instrumentosSugeridos: ["epds", "bishop", "apgar", "eva", "epsa", "vif", "lactancia_obs"],
     modulosHabilitados: ["M7"],
     tieneContraindicaciones: false,
     tieneEscalaFuncional: false,
@@ -378,7 +378,7 @@ export const ESPECIALIDAD_CONFIG: Record<string, EspecialidadConfig> = {
   },
   "Ginecología y Obstetricia": {
     modelo: "clinico_general",
-    instrumentosSugeridos: ["apgar", "eva", "edinburgh", "bishop"],
+    instrumentosSugeridos: ["epds", "bishop", "mrs", "eva", "audit_c"],
     modulosHabilitados: ["M7", "M8"],
     tieneContraindicaciones: false,
     tieneEscalaFuncional: false,
