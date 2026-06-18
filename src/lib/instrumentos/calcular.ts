@@ -6,11 +6,14 @@ export function calcularPuntaje(
 ): number | null {
   const { items, calculo } = schema_items;
 
-  // Retorna null si hay respuestas incompletas o no numéricas
+  // Ítems ausentes se tratan como 0; ítems con valor no numérico son error
   const valores: number[] = [];
   for (const item of items) {
     const val = respuestas[item.codigo];
-    if (val === undefined || val === null) return null;
+    if (val === undefined || val === null) {
+      valores.push(0);
+      continue;
+    }
     if (typeof val !== "number") return null;
     valores.push(val);
   }

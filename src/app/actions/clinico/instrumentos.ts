@@ -120,6 +120,12 @@ export async function aplicarInstrumento(params: {
     ? calcularPuntaje(schema.schema_items, respuestas)
     : null;
 
+  // Si el schema define ítems pero el cálculo falló (valores no numéricos / tipo desconocido),
+  // rechazar el INSERT — nunca guardar puntaje_total=null silenciosamente
+  if (schema.schema_items && puntaje === null) {
+    return { success: false, error: "No se pudo calcular el puntaje del instrumento. Verifique que todos los valores ingresados sean numéricos." };
+  }
+
   // Resolver interpretación si hay rangos y puntaje calculado
   let interpretacionLabel: string | null = null;
   if (puntaje !== null && schema.interpretacion && schema.interpretacion.length > 0) {

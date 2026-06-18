@@ -66,19 +66,23 @@ export function RichTextEditor({
       }}
     >
       {!readOnly && <Toolbar editor={editor} />}
-      <EditorContent editor={editor} />
-      {!editor.getText() && placeholder && (
-        <div
-          aria-hidden
-          style={{
-            position: "absolute", padding: "0.75rem",
-            color: "var(--color-ink-3)", pointerEvents: "none",
-            fontSize: 14,
-          }}
-        >
-          {placeholder}
-        </div>
-      )}
+      <div style={{ position: "relative" }}>
+        <EditorContent editor={editor} />
+        {!editor.getText() && placeholder && (
+          <div
+            aria-hidden
+            style={{
+              position: "absolute", top: 0, left: 0,
+              padding: "0.75rem", width: "100%",
+              color: "var(--color-ink-3)", pointerEvents: "none",
+              fontSize: 14, whiteSpace: "nowrap",
+              overflow: "hidden", textOverflow: "ellipsis",
+            }}
+          >
+            {placeholder}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
