@@ -332,6 +332,96 @@ export const ESPECIALIDAD_CONFIG: Record<string, EspecialidadConfig> = {
       { id: "prescribir", label: "Prescripción", modulo: "M7", icon: "Pill", requierePermiso: "puede_prescribir" },
     ],
   },
+  "Obstetricia y Puericultura": {
+    modelo: "clinico_general",
+    instrumentosSugeridos: ["apgar", "eva", "edinburgh", "bishop"],
+    modulosHabilitados: ["M7"],
+    tieneContraindicaciones: false,
+    tieneEscalaFuncional: false,
+    tieneCopilotoIA: true,
+    tieneResumenIA: true,
+    tienePresupuesto: true,
+    tieneInformes: true,
+    diagnostico: { tipo: 'icd11_mms', label: 'Diagnóstico (ICD-11)', mostrarCIE10: true },
+    secciones: [
+      {
+        id: "motivo", label: "Motivo de consulta",
+        colapsable: false, defaultAbierta: true,
+        campos: [
+          { id: "motivo_principal", label: "Motivo de consulta", tipo: "texto_largo", obligatorio: true, placeholder: "Motivo de la atención obstétrica / ginecológica…" },
+        ],
+      },
+      {
+        id: "contenido", label: "Evolución",
+        descripcion: "Evaluación clínica y hallazgos",
+        colapsable: false, defaultAbierta: true,
+        campos: [
+          { id: "edad_gestacional", label: "Edad gestacional (semanas)", tipo: "texto_corto", obligatorio: false, placeholder: "Ej: 32+4" },
+          { id: "examen_obstetrico", label: "Examen obstétrico", tipo: "texto_largo", obligatorio: false, placeholder: "AU, LCF, presentación, dinámica uterina, movimientos fetales…" },
+          { id: "examen_ginecologico", label: "Examen ginecológico", tipo: "texto_largo", obligatorio: false, placeholder: "Hallazgos del examen ginecológico si aplica…" },
+          { id: "evolucion", label: "Evolución / Observaciones", tipo: "texto_largo", obligatorio: true, placeholder: "Estado general, evolución de la paciente…" },
+        ],
+      },
+      {
+        id: "plan", label: "Plan",
+        colapsable: true, defaultAbierta: false,
+        campos: [
+          { id: "indicaciones", label: "Indicaciones", tipo: "texto_largo", obligatorio: false, placeholder: "Indicaciones, educación, derivaciones…" },
+          { id: "proxima_sesion_fecha", label: "Próximo control", tipo: "fecha", obligatorio: false },
+        ],
+      },
+    ],
+    accionesRapidas: [
+      { id: "prescribir", label: "Prescripción", modulo: "M7", icon: "Pill", requierePermiso: "puede_prescribir" },
+      { id: "instrumento", label: "Aplicar instrumento", modulo: "instrumento", icon: "ListChecks" },
+    ],
+  },
+  "Ginecología y Obstetricia": {
+    modelo: "clinico_general",
+    instrumentosSugeridos: ["apgar", "eva", "edinburgh", "bishop"],
+    modulosHabilitados: ["M7", "M8"],
+    tieneContraindicaciones: false,
+    tieneEscalaFuncional: false,
+    tieneCopilotoIA: true,
+    tieneResumenIA: true,
+    tienePresupuesto: true,
+    tieneInformes: true,
+    diagnostico: { tipo: 'icd11_mms', label: 'Diagnóstico (ICD-11)', mostrarCIE10: true },
+    secciones: [
+      {
+        id: "motivo", label: "Motivo de consulta",
+        colapsable: false, defaultAbierta: true,
+        campos: [
+          { id: "motivo_principal", label: "Motivo de consulta", tipo: "texto_largo", obligatorio: true, placeholder: "Motivo de la consulta gineco-obstétrica…" },
+        ],
+      },
+      {
+        id: "contenido", label: "Evolución",
+        descripcion: "Evaluación clínica y hallazgos",
+        colapsable: false, defaultAbierta: true,
+        campos: [
+          { id: "edad_gestacional", label: "Edad gestacional (semanas)", tipo: "texto_corto", obligatorio: false, placeholder: "Ej: 32+4" },
+          { id: "examen_obstetrico", label: "Examen obstétrico", tipo: "texto_largo", obligatorio: false, placeholder: "AU, LCF, presentación, dinámica uterina, movimientos fetales…" },
+          { id: "examen_ginecologico", label: "Examen ginecológico", tipo: "texto_largo", obligatorio: false, placeholder: "Especuloscopía, TV, hallazgos ecográficos…" },
+          { id: "examen_fisico", label: "Examen físico general", tipo: "texto_largo", obligatorio: false, placeholder: "Hallazgos relevantes del examen físico…" },
+          { id: "evolucion", label: "Evolución / Observaciones", tipo: "texto_largo", obligatorio: true, placeholder: "Estado general, evolución clínica…" },
+        ],
+      },
+      {
+        id: "plan", label: "Plan",
+        colapsable: true, defaultAbierta: false,
+        campos: [
+          { id: "indicaciones", label: "Indicaciones / Plan", tipo: "texto_largo", obligatorio: false, placeholder: "Indicaciones, derivaciones, procedimientos programados…" },
+          { id: "proxima_sesion_fecha", label: "Próximo control", tipo: "fecha", obligatorio: false },
+        ],
+      },
+    ],
+    accionesRapidas: [
+      { id: "prescribir", label: "Prescripción", modulo: "M7", icon: "Pill", requierePermiso: "puede_prescribir" },
+      { id: "examen", label: "Orden de examen", modulo: "M8", icon: "FlaskConical", requierePermiso: "puede_indicar_examenes" },
+      { id: "instrumento", label: "Aplicar instrumento", modulo: "instrumento", icon: "ListChecks" },
+    ],
+  },
   "Administración Clínica": {
     modelo: "ninguno",
     instrumentosSugeridos: [],
