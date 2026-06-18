@@ -70,6 +70,23 @@ async function getOrCreateEncounter(
   return created.id as string;
 }
 
+// ── stripForbidden ───────────────────────────────────────────────────────────
+// Columnas que NUNCA deben venir en un UPDATE/INSERT desde el form:
+// afectan la RLS policy (id_clinica, firmado) o son inmutables (created_*).
+// Eliminarlas evita violar WITH CHECK al actualizar.
+const FORBIDDEN_SOAP_COLS = [
+  "id_clinica", "id_paciente", "id_encuentro", "firmado",
+  "firmado_at", "firmado_por", "created_at", "created_by",
+];
+
+function stripForbidden(o: Record<string, unknown>): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const [k, v] of Object.entries(o)) {
+    if (!FORBIDDEN_SOAP_COLS.includes(k)) out[k] = v;
+  }
+  return out;
+}
+
 // ── getSoapNotes ─────────────────────────────────────────────────────────────
 
 export async function getSoapNotes(
@@ -133,9 +150,20 @@ export async function upsertSoapNote(
       return { success: false, error: "La nota está firmada y no puede modificarse." };
     }
 
+    const cleanSoapData = stripForbidden(soapData as Record<string, unknown>);
+    // DEBUG — remover después de diagnosticar RLS UPDATE
+    console.error("[FCE_DEBUG_SOAP_UPDATE]", JSON.stringify({
+      noteId,
+      idClinica,
+      soapDataKeys: Object.keys(soapData),
+      soapDataHasIdClinica: "id_clinica" in soapData,
+      soapDataHasFirmado: "firmado" in soapData,
+      cleanSoapDataKeys: Object.keys(cleanSoapData),
+    }));
+
     const { error } = await supabase
       .from("fce_notas_soap")
-      .update({ ...soapData })
+      .update(cleanSoapData)
       .eq("id", noteId)
       .eq("id_clinica", idClinica);
 
@@ -166,8 +194,9 @@ export async function upsertSoapNote(
 
     // DEBUG — remover después de diagnosticar RLS INSERT
     const { data: { user: debugUser } } = await supabase.auth.getUser();
+    const cleanSoapData = stripForbidden(soapData as Record<string, unknown>);
     const insertPayload = {
-      ...soapData,
+      ...cleanSoapData,
       id_paciente: patientId,
       id_encuentro: encounterId,
       id_clinica: idClinica,   // después del spread: siempre gana
