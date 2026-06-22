@@ -1,6 +1,7 @@
 import { SupabaseClient } from '@supabase/supabase-js'
 import { differenceInDays } from 'date-fns'
 import { stripHtml } from '@/lib/utils'
+import { sanitizeRutFromText } from '@/lib/ia/sanitize-pii'
 
 export interface EvolucionResult {
   total_sesiones: number
@@ -82,7 +83,7 @@ export async function extraerEvolucion(
   const notas: EvolucionResult['ultimas_notas'] = []
 
   for (const nc of notasClinicasRes.data ?? []) {
-    const contenido = stripHtml((nc.contenido as string) ?? '')
+    const contenido = sanitizeRutFromText(stripHtml((nc.contenido as string) ?? ''))
     notas.push({
       fecha: new Date(nc.created_at).toLocaleDateString('sv-SE', { timeZone: 'America/Santiago' }),
       tipo: 'clinica',
@@ -95,10 +96,12 @@ export async function extraerEvolucion(
   }
 
   for (const ns of soapFiltradas) {
-    const contenido = [ns.subjetivo, ns.objetivo, ns.plan]
-      .map((v) => stripHtml(v as string | null | undefined))
-      .filter(Boolean)
-      .join(' | ')
+    const contenido = sanitizeRutFromText(
+      [ns.subjetivo, ns.objetivo, ns.plan]
+        .map((v) => stripHtml(v as string | null | undefined))
+        .filter(Boolean)
+        .join(' | ')
+    )
     notas.push({
       fecha: new Date(ns.created_at).toLocaleDateString('sv-SE', { timeZone: 'America/Santiago' }),
       tipo: 'soap',

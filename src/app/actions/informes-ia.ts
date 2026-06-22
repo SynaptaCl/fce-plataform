@@ -8,6 +8,7 @@ import { requireAccesoFCE } from '@/lib/modules/guards'
 import type { ActionResult } from '@/lib/modules/guards'
 import type { TipoInforme } from '@/types/informe'
 import { logAudit } from '@/lib/audit'
+import { sanitizeRutFromText } from '@/lib/ia/sanitize-pii'
 
 const MODEL = 'claude-sonnet-4-6'
 const MAX_CONTENIDO_LENGTH = 5000
@@ -103,7 +104,7 @@ Responde SOLO con el texto del informe mejorado, sin preámbulos ni comentarios 
       model: MODEL,
       max_tokens: 2048,
       system: systemPrompt,
-      messages: [{ role: 'user', content: contenidoTrimmed }],
+      messages: [{ role: 'user', content: sanitizeRutFromText(contenidoTrimmed) }],
     })
 
     const textBlock = response.content.find((b) => b.type === 'text')

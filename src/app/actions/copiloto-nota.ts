@@ -10,6 +10,7 @@ import { requireAccesoFCE } from '@/lib/modules/guards'
 import type { ActionResult } from '@/lib/modules/guards'
 import type { EstructurarNotaInput, BorradorNota } from '@/lib/ia/copiloto-nota/types'
 import { logAudit } from '@/lib/audit'
+import { sanitizeRutFromText } from '@/lib/ia/sanitize-pii'
 
 const MODEL = 'claude-sonnet-4-6'
 const MAX_BULLETS_LENGTH = 5000
@@ -77,7 +78,7 @@ export async function estructurarNota(
       model: MODEL,
       max_tokens: 1024,
       system: buildSystemPrompt(encuentro.especialidad, input.seccion),
-      messages: [{ role: 'user', content: buildUserPrompt(bulletsTrimmed) }],
+      messages: [{ role: 'user', content: buildUserPrompt(sanitizeRutFromText(bulletsTrimmed)) }],
     })
 
     const textBlock = response.content.find((b) => b.type === 'text')
