@@ -562,17 +562,22 @@ export function ClinicalTimeline({
   const [modalOrdenId, setModalOrdenId] = useState<string | null>(null);
   const [adendaTarget, setAdendaTarget] = useState<AdendaTarget | null>(null);
 
-  // Construir tabs dinámicamente desde config de la clínica
+  // Construir tabs solo desde especialidades con entradas reales en este paciente
   const filterTabs = useMemo(() => {
     const base = [
       { key: "todos", label: "Todos" },
       { key: "mis", label: "Mis Atenciones" },
     ];
+    const espConEntradas = new Set(
+      entries
+        .map((e) => e.especialidad)
+        .filter((esp): esp is string => !!esp && !ESPECIALIDADES_SIN_TIMELINE.includes(esp))
+    );
     const espTabs = especialidadesActivas
-      .filter((esp) => !ESPECIALIDADES_SIN_TIMELINE.includes(esp))
+      .filter((esp) => !ESPECIALIDADES_SIN_TIMELINE.includes(esp) && espConEntradas.has(esp))
       .map((esp) => ({ key: esp, label: esp }));
     return [...base, ...espTabs];
-  }, [especialidadesActivas]);
+  }, [especialidadesActivas, entries]);
 
   // ── Filtering ─────────────────────────────────────────────────────────
   const filtered = useMemo(() => {
