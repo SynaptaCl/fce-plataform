@@ -2,6 +2,7 @@
 
 import { useState, useLayoutEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import {
   Calendar,
@@ -268,12 +269,13 @@ export function Sidebar({
             }}
           >
             {branding?.logo_url ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
+              <Image
                 src={branding.logo_url}
                 alt={clinicDisplayName}
                 width={24}
                 height={24}
+                priority
+                quality={75}
                 style={{ objectFit: "contain", borderRadius: 5 }}
               />
             ) : (
