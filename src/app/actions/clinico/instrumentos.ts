@@ -1,5 +1,6 @@
 "use server";
 
+import { dbError } from "@/lib/modules/guards";
 import { requireAuth, requireContext } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import { getIdClinica } from "@/app/actions/patients";
@@ -21,7 +22,7 @@ export async function getCatalogoInstrumentos(
     .eq("activo", true)
     .contains("especialidades", [especialidad]);
 
-  if (error) return { success: false, error: error.message };
+  if (error) return dbError("instrumentos", error);
   return { success: true, data: (data ?? []) as InstrumentoSchema[] };
 }
 
@@ -42,7 +43,7 @@ export async function getInstrumentosAplicados(
     .eq("id_clinica", idClinica)
     .order("aplicado_at", { ascending: true });
 
-  if (error) return { success: false, error: error.message };
+  if (error) return dbError("instrumentos", error);
   return { success: true, data: (data ?? []) as InstrumentoAplicado[] };
 }
 
@@ -99,7 +100,7 @@ export async function aplicarInstrumento(params: {
       .single();
 
     if (insertError || !inserted) {
-      return { success: false, error: insertError?.message ?? "Error al guardar el instrumento." };
+      return dbError("instrumentos", insertError);
     }
 
     await logAudit({
@@ -152,7 +153,7 @@ export async function aplicarInstrumento(params: {
     .single();
 
   if (insertError || !inserted) {
-    return { success: false, error: insertError?.message ?? "Error al guardar el instrumento." };
+    return dbError("instrumentos", insertError);
   }
 
   await logAudit({
@@ -207,7 +208,7 @@ export async function eliminarInstrumentoAplicado(
     .delete()
     .eq("id", id);
 
-  if (deleteError) return { success: false, error: deleteError.message };
+  if (deleteError) return dbError("instrumentos", deleteError);
 
   await logAudit({
     supabase,

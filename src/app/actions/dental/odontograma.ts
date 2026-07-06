@@ -1,5 +1,6 @@
 "use server";
 
+import { dbError } from "@/lib/modules/guards";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requireAuth, requireContext } from "@/lib/auth";
@@ -32,7 +33,7 @@ export async function getOdontograma(
     .eq("id_clinica", idClinica)
     .order("pieza");
 
-  if (error) return { success: false, error: error.message };
+  if (error) return dbError("odontograma", error);
   return { success: true, data: (data ?? []) as OdontogramaEntry[] };
 }
 
@@ -82,7 +83,7 @@ export async function upsertPieza(input: {
     .single();
 
   if (upsertErr || !upserted) {
-    return { success: false, error: upsertErr?.message ?? "Error al guardar pieza" };
+    return dbError("odontograma", upsertErr);
   }
 
   const estadoAnterior = existing?.estado ?? null;
@@ -145,6 +146,6 @@ export async function getHistorialPieza(
     .order("registrado_at", { ascending: false })
     .limit(20);
 
-  if (error) return { success: false, error: error.message };
+  if (error) return dbError("odontograma", error);
   return { success: true, data: (data ?? []) as unknown as HistorialPiezaEntry[] };
 }

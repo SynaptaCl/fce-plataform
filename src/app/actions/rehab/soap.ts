@@ -1,5 +1,6 @@
 "use server";
 
+import { dbError } from "@/lib/modules/guards";
 import { revalidatePath } from "next/cache";
 import { requireAuth, requireContext } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
@@ -102,7 +103,7 @@ export async function getSoapNotes(
     .eq("id_clinica", idClinica)
     .order("created_at", { ascending: false });
 
-  if (error) return { success: false, error: error.message };
+  if (error) return dbError("soap", error);
   return { success: true, data: (data ?? []) as SoapNote[] };
 }
 
@@ -167,7 +168,7 @@ export async function upsertSoapNote(
       .eq("id", noteId)
       .eq("id_clinica", idClinica);
 
-    if (error) return { success: false, error: error.message };
+    if (error) return dbError("soap", error);
     id = noteId;
     await logAudit({
       supabase,
@@ -189,7 +190,7 @@ export async function upsertSoapNote(
       }
       encounterId = await getOrCreateEncounter(supabase, patientId, profesionalId, idClinica, especialidad);
     } catch (e) {
-      return { success: false, error: (e as Error).message };
+      return dbError("soap", (e as Error));
     }
 
     // DEBUG — remover después de diagnosticar RLS INSERT
@@ -217,7 +218,7 @@ export async function upsertSoapNote(
       .select("id")
       .single();
 
-    if (error) return { success: false, error: error.message };
+    if (error) return dbError("soap", error);
     id = created.id;
     await logAudit({
       supabase,
@@ -265,7 +266,7 @@ export async function signSoapNote(
     .eq("id_clinica", idClinica)
     .eq("firmado", false); // solo si no estaba ya firmado
 
-  if (error) return { success: false, error: error.message };
+  if (error) return dbError("soap", error);
 
   if (notaConEncuentro?.id_encuentro) {
     await supabase

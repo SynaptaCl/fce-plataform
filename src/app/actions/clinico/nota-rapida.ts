@@ -9,6 +9,7 @@ import type { ActionResult } from "@/app/actions/patients";
 import { log } from "@/lib/logger";
 import { requireContext } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
+import { dbError } from "@/lib/modules/guards";
 
 // ── Validation ────────────────────────────────────────────────────────────────
 // contenido es HTML rich-text — validar longitud sobre el TEXTO PLANO, no el crudo,
@@ -60,7 +61,7 @@ export async function createQuickNote(
     .single();
 
   if (errEnc || !encuentro) {
-    return { success: false, error: errEnc?.message ?? "Error al crear el encuentro." };
+    return dbError("nota-rapida", errEnc, { id_clinica: idClinica, id_paciente: patientId });
   }
 
   const encuentroId = encuentro.id as string;
@@ -85,7 +86,7 @@ export async function createQuickNote(
   if (errNota || !nota) {
     // El encuentro quedó creado pero la nota falló — inocuo (no aparece en Timeline)
     log("error", { action: "create_quick_note", id_clinica: idClinica, id_paciente: patientId, id_encuentro: encuentroId, error: errNota });
-    return { success: false, error: errNota?.message ?? "Error al guardar la nota clínica." };
+    return { success: false, error: "Error al guardar la nota clínica." };
   }
 
   const notaId = nota.id as string;

@@ -1,5 +1,6 @@
 "use server";
 
+import { dbError } from "@/lib/modules/guards";
 import { requireAuth } from "@/lib/auth";
 import { getIdClinica } from "@/app/actions/patients";
 import type { ActionResult } from "@/app/actions/patients";
@@ -22,6 +23,6 @@ export async function getProcedimientosCatalogo(): Promise<
     .order("categoria", { ascending: true })
     .order("orden", { ascending: true });
 
-  if (error) return { success: false, error: error.message };
+  if (error) return dbError("procedimientos", error);
   return { success: true, data: (data ?? []) as ProcedimientoCatalogo[] };
 }

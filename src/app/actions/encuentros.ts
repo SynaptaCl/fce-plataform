@@ -1,5 +1,6 @@
 "use server";
 
+import { dbError } from "@/lib/modules/guards";
 import { requireAuth, requireContext } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import { getModeloDeEspecialidad } from "@/lib/modules/modelos";
@@ -60,7 +61,7 @@ export async function createEncuentro(
           .update({ status: "en_progreso", started_at: new Date().toISOString() })
           .eq("id", preplanned.id);
         if (updateError) {
-          return { success: false, error: updateError.message };
+          return dbError("encuentros", updateError);
         }
         encuentroId = preplanned.id as string;
       }
@@ -83,7 +84,7 @@ export async function createEncuentro(
         .single();
 
       if (insertError) {
-        return { success: false, error: insertError.message };
+        return dbError("encuentros", insertError);
       }
       encuentroId = created.id as string;
     }
@@ -103,8 +104,7 @@ export async function createEncuentro(
 
     return { success: true, data: { encuentroId, modelo } };
   } catch (err: unknown) {
-    const error = err instanceof Error ? err : new Error(String(err));
-    return { success: false, error: `Error interno: ${error.message}` };
+    return dbError("encuentros", err);
   }
 }
 

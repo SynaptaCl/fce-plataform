@@ -1,5 +1,6 @@
 "use server";
 
+import { dbError } from "@/lib/modules/guards";
 import { revalidatePath } from "next/cache";
 import { requireAuth, requireContext } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
@@ -20,7 +21,7 @@ export async function getConsentimientos(
     .eq("id_paciente", patientId)
     .eq("id_clinica", idClinica)
     .order("created_at", { ascending: false });
-  if (error) return { success: false, error: error.message };
+  if (error) return dbError("consentimiento", error);
   return { success: true, data: data as Consent[] };
 }
 
@@ -61,7 +62,7 @@ export async function createConsentimiento(
     .select("id")
     .single();
 
-  if (error) return { success: false, error: error.message };
+  if (error) return dbError("consentimiento", error);
   await logAudit({
     supabase,
     actorId: user.id,
@@ -102,7 +103,7 @@ export async function signConsentimiento(
     .eq("id_clinica", idClinica)
     .eq("firmado", false);
 
-  if (error) return { success: false, error: error.message };
+  if (error) return dbError("consentimiento", error);
   await logAudit({
     supabase,
     actorId: user.id,

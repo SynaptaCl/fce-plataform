@@ -1,5 +1,6 @@
 "use server";
 
+import { dbError } from "@/lib/modules/guards";
 import { requireAuth } from "@/lib/auth";
 import type { ActionResult } from "@/lib/modules/guards";
 import type { PlantillaDominio } from "@/types/plantilla-dominio";
@@ -19,7 +20,7 @@ export async function getPlantillasDominios(): Promise<ActionResult<PlantillaDom
     .eq("activo", true)
     .order("orden", { ascending: true });
 
-  if (error) return { success: false, error: error.message };
+  if (error) return dbError("plantillas-dominios", error);
   return { success: true, data: (data ?? []) as PlantillaDominio[] };
 }
 

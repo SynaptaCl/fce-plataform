@@ -8,10 +8,41 @@ import type { ModuleId, EspecialidadCodigo, Rol } from "./registry";
 import { ROLES_CON_ACCESO_FCE, ROLES_QUE_PUEDEN_ESCRIBIR, ROLES_QUE_PUEDEN_FIRMAR, ROLES_QUE_CONFIGURAN } from "./registry";
 import type { ClinicaConfig } from "./config";
 import { isModuleEnabled, isEspecialidadEnabled } from "./config";
+import { log } from "@/lib/logger";
 
 export type ActionResult<T = void> =
   | { success: true; data: T }
   | { success: false; error: string };
+
+const GENERIC_DB_ERROR = "Ocurrió un error al procesar la solicitud";
+
+/** Mapea errores de negocio conocidos a mensajes humanizados; null si no aplica. */
+function mapKnownDbError(error: unknown): string | null {
+  const e = error as { code?: string; message?: string } | null;
+  if (!e || typeof e !== "object") return null;
+  // 23505 = unique_violation en Postgres.
+  if (e.code === "23505") {
+    if (typeof e.message === "string" && /rut/i.test(e.message)) {
+      return "Ya existe un paciente con este RUT.";
+    }
+    return "Ya existe un registro con estos datos.";
+  }
+  return null;
+}
+
+/**
+ * Retorno de error estándar para Server Actions: NUNCA expone el mensaje raw de
+ * Postgres/PostgREST al cliente (evita recon del schema multi-tenant). El detalle
+ * se envía solo a log() server-side. Usa ctx SOLO con UUIDs — nunca PII (sección 22).
+ */
+export function dbError<T = never>(
+  action: string,
+  error: unknown,
+  ctx?: Record<string, unknown>
+): ActionResult<T> {
+  log("error", { action, error, ...ctx });
+  return { success: false, error: mapKnownDbError(error) ?? GENERIC_DB_ERROR };
+}
 
 // ============================================================================
 // GUARDS PARA SERVER COMPONENTS (page.tsx, layout.tsx)

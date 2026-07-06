@@ -5,7 +5,7 @@ import { requireAuth, requireContext } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import { egresoSchema } from "@/lib/validations";
 import { getProfesionalActivo } from "@/lib/fce/profesional";
-import { assertPuedeFirmar } from "@/lib/modules/guards";
+import { assertPuedeFirmar, dbError } from "@/lib/modules/guards";
 import type { Rol } from "@/lib/modules/registry";
 import { getIdClinica } from "@/app/actions/patients";
 import type { ActionResult } from "@/app/actions/patients";
@@ -72,7 +72,7 @@ export async function createEgreso(
     .select("id")
     .single();
 
-  if (error) return { success: false, error: error.message };
+  if (error) return dbError("egresos", error);
 
   await logAudit({
     supabase,
@@ -105,7 +105,7 @@ export async function getEgreso(
     .eq("id_clinica", idClinica)
     .single();
 
-  if (error) return { success: false, error: error.message };
+  if (error) return dbError("egresos", error);
   return { success: true, data: data as Egreso };
 }
 
@@ -126,7 +126,7 @@ export async function getEgresosByPaciente(
     .eq("id_clinica", idClinica)
     .order("created_at", { ascending: false });
 
-  if (error) return { success: false, error: error.message };
+  if (error) return dbError("egresos", error);
   return { success: true, data: (data ?? []) as Egreso[] };
 }
 
@@ -170,7 +170,7 @@ export async function updateEgreso(
     .eq("id", egresoId)
     .eq("firmado", false);
 
-  if (error) return { success: false, error: error.message };
+  if (error) return dbError("egresos", error);
 
   await logAudit({
     supabase,
@@ -230,7 +230,7 @@ export async function signEgreso(
     .eq("id", egresoId)
     .eq("firmado", false);
 
-  if (error) return { success: false, error: error.message };
+  if (error) return dbError("egresos", error);
 
   // Marcar paciente como egresado
   await supabase
@@ -278,7 +278,7 @@ export async function reingresarPaciente(
     .eq("id", patientId)
     .eq("id_clinica", idClinica);
 
-  if (error) return { success: false, error: error.message };
+  if (error) return dbError("egresos", error);
 
   await logAudit({
     supabase,
@@ -312,7 +312,8 @@ export async function getEgresoConContexto(
     .eq("id_clinica", idClinica)
     .single();
 
-  if (egresoError || !egresoData) return { success: false, error: egresoError?.message ?? "Egreso no encontrado." };
+  if (egresoError) return dbError("egresos", egresoError);
+  if (!egresoData) return { success: false, error: "Egreso no encontrado." };
   const egreso = egresoData as Egreso;
 
   // 2. Fetch paciente
@@ -396,7 +397,7 @@ export async function getResumenEquipoTratante(
     .eq("status", "finalizado")
     .order("created_at", { ascending: true });
 
-  if (error) return { success: false, error: error.message };
+  if (error) return dbError("egresos", error);
   const rows = encuentros ?? [];
 
   const profIds = [...new Set(rows.map((r) => r.id_profesional).filter(Boolean) as string[])];

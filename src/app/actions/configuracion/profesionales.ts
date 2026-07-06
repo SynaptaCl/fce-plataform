@@ -1,5 +1,6 @@
 "use server";
 
+import { dbError } from "@/lib/modules/guards";
 import type { ActionResult } from "@/lib/modules/guards";
 import {
   filtrarCamposEditables,
@@ -58,7 +59,7 @@ export async function updateProfesionalSelfService(
     .maybeSingle();
 
   if (errorLectura) {
-    return { success: false, error: errorLectura.message };
+    return dbError("profesionales", errorLectura);
   }
   if (!profExistente) {
     return {
@@ -75,7 +76,7 @@ export async function updateProfesionalSelfService(
     .eq("id_clinica", idClinica);
 
   if (errorUpdate) {
-    return { success: false, error: errorUpdate.message };
+    return dbError("profesionales", errorUpdate);
   }
 
   await logAudit({
@@ -112,7 +113,7 @@ export async function toggleProfesionalActivo(
     .maybeSingle();
 
   if (errorLectura) {
-    return { success: false, error: errorLectura.message };
+    return dbError("profesionales", errorLectura);
   }
   if (!prof) {
     return {
@@ -130,7 +131,7 @@ export async function toggleProfesionalActivo(
     .eq("id_clinica", idClinica);
 
   if (errorUpdate) {
-    return { success: false, error: errorUpdate.message };
+    return dbError("profesionales", errorUpdate);
   }
 
   await logAudit({

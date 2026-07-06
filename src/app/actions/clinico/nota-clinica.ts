@@ -1,5 +1,6 @@
 "use server";
 
+import { dbError } from "@/lib/modules/guards";
 import { revalidatePath } from "next/cache";
 import { requireAuth, requireContext } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
@@ -60,7 +61,7 @@ export async function getNotaClinica(
     .eq("id_clinica", idClinica)
     .maybeSingle();
 
-  if (error) return { success: false, error: error.message };
+  if (error) return dbError("nota-clinica", error);
   return { success: true, data: data as NotaClinica | null };
 }
 
@@ -113,7 +114,7 @@ export async function upsertNotaClinica(
       .eq("id", existing.id)
       .eq("id_clinica", idClinica);
 
-    if (error) return { success: false, error: error.message };
+    if (error) return dbError("nota-clinica", error);
     id = existing.id;
     await logAudit({
       supabase,
@@ -143,7 +144,7 @@ export async function upsertNotaClinica(
       .select("id")
       .single();
 
-    if (error) return { success: false, error: error.message };
+    if (error) return dbError("nota-clinica", error);
     id = created.id;
     await logAudit({
       supabase,
@@ -197,7 +198,7 @@ export async function signNotaClinica(
     .eq("id_clinica", idClinica)
     .eq("firmado", false);
 
-  if (error) return { success: false, error: error.message };
+  if (error) return dbError("nota-clinica", error);
 
   // Finalizar el encuentro
   await supabase

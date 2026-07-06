@@ -1,5 +1,6 @@
 "use server";
 
+import { dbError } from "@/lib/modules/guards";
 import { revalidatePath } from "next/cache";
 import { requireAuth, requireContext } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
@@ -25,7 +26,7 @@ export async function getAnamnesis(
     .eq("id_clinica", idClinica)
     .maybeSingle();
 
-  if (error) return { success: false, error: error.message };
+  if (error) return dbError("anamnesis", error);
   return { success: true, data: data as Anamnesis | null };
 }
 
@@ -64,7 +65,7 @@ export async function upsertAnamnesis(
       .eq("id", existing.id)
       .eq("id_clinica", idClinica);
 
-    if (error) return { success: false, error: error.message };
+    if (error) return dbError("anamnesis", error);
     id = existing.id;
     await logAudit({
       supabase,
@@ -90,7 +91,7 @@ export async function upsertAnamnesis(
       .select("id")
       .single();
 
-    if (error) return { success: false, error: error.message };
+    if (error) return dbError("anamnesis", error);
     id = created.id;
     await logAudit({
       supabase,
@@ -127,7 +128,7 @@ export async function getLatestVitalSigns(
     .limit(1)
     .maybeSingle();
 
-  if (error) return { success: false, error: error.message };
+  if (error) return dbError("anamnesis", error);
   return { success: true, data: data as VitalSigns | null };
 }
 
@@ -159,7 +160,7 @@ export async function saveVitalSigns(
     .select("id")
     .single();
 
-  if (error) return { success: false, error: error.message };
+  if (error) return dbError("anamnesis", error);
 
   await logAudit({
     supabase,

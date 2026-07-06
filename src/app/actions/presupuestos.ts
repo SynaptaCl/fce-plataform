@@ -5,7 +5,7 @@ import { requireAuth, requireContext } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import { getProfesionalActivo } from "@/lib/fce/profesional";
 import { getClinicaConfig } from "@/lib/modules/config";
-import { assertModuleEnabled } from "@/lib/modules/guards";
+import { assertModuleEnabled, dbError } from "@/lib/modules/guards";
 import type { ActionResult } from "@/lib/modules/guards";
 import { log } from "@/lib/logger";
 import type { Presupuesto, PresupuestoItem, PresupuestoFormData } from "@/types/presupuesto";
@@ -35,7 +35,7 @@ export async function getPresupuestos(
 
   if (error) {
     log("error", { action: "get_presupuestos", id_clinica: idClinica, id_paciente: idPaciente, error });
-    return { success: false, error: error.message };
+    return dbError("presupuestos", error);
   }
 
   const list = presupuestos ?? [];
@@ -52,7 +52,7 @@ export async function getPresupuestos(
 
   if (itemsError) {
     log("error", { action: "get_presupuestos_items", id_clinica: idClinica, id_paciente: idPaciente, error: itemsError });
-    return { success: false, error: itemsError.message };
+    return dbError("presupuestos", itemsError);
   }
 
   const items: PresupuestoItem[] = allItems ?? [];
@@ -99,7 +99,7 @@ export async function getPresupuesto(
 
   if (itemsError) {
     log("error", { action: "get_presupuesto_items", id_clinica: idClinica, error: itemsError });
-    return { success: false, error: itemsError.message };
+    return dbError("presupuestos", itemsError);
   }
 
   return {

@@ -5,7 +5,7 @@ import { requireAuth, requireContext } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import { getProfesionalActivo } from "@/lib/fce/profesional";
 import { getClinicaConfig } from "@/lib/modules/config";
-import { assertModuleEnabled, assertPuedeFirmar } from "@/lib/modules/guards";
+import { assertModuleEnabled, assertPuedeFirmar, dbError } from "@/lib/modules/guards";
 import { OrdenExamenInputSchema } from "@/lib/ordenes-examen/validations";
 import { buildProfesionalSnapshot } from "@/lib/prescripciones/snapshot";
 import type { ActionResult } from "@/lib/modules/guards";
@@ -147,7 +147,7 @@ export async function getOrdenesExamenByPatient(
     .eq("id_clinica", adminRow.id_clinica)
     .order("created_at", { ascending: false });
 
-  if (error) return { success: false, error: error.message };
+  if (error) return dbError("ordenes-examen", error);
   return { success: true, data: (data ?? []) as OrdenExamen[] };
 }
 
@@ -200,7 +200,7 @@ export async function searchExamenes(
 
   const { data, error } = await q;
 
-  if (error) return { success: false, error: error.message };
+  if (error) return dbError("ordenes-examen", error);
   return { success: true, data: (data ?? []) as ExamenCatalogo[] };
 }
 

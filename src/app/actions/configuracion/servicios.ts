@@ -1,5 +1,6 @@
 "use server";
 
+import { dbError } from "@/lib/modules/guards";
 import type { ActionResult } from "@/lib/modules/guards";
 import { requireConfigAdmin } from "./_shared-server";
 import { logAudit } from "@/lib/audit";
@@ -25,7 +26,7 @@ export async function asignarProfesionalServicio(
     .eq("id_clinica", idClinica)
     .maybeSingle();
 
-  if (errorProf) return { success: false, error: errorProf.message };
+  if (errorProf) return dbError("servicios", errorProf);
   if (!prof) {
     return {
       success: false,
@@ -41,7 +42,7 @@ export async function asignarProfesionalServicio(
     .eq("id_clinica", idClinica)
     .maybeSingle();
 
-  if (errorServ) return { success: false, error: errorServ.message };
+  if (errorServ) return dbError("servicios", errorServ);
   if (!servicio) {
     return {
       success: false,
@@ -57,7 +58,7 @@ export async function asignarProfesionalServicio(
     .eq("id_servicio", idServicio)
     .maybeSingle();
 
-  if (errorCheck) return { success: false, error: errorCheck.message };
+  if (errorCheck) return dbError("servicios", errorCheck);
 
   if (existente) {
     // Ya existe — reactivar
@@ -67,14 +68,14 @@ export async function asignarProfesionalServicio(
       .eq("id_profesional", idProfesional)
       .eq("id_servicio", idServicio);
 
-    if (errorUpdate) return { success: false, error: errorUpdate.message };
+    if (errorUpdate) return dbError("servicios", errorUpdate);
   } else {
     // No existe — insertar
     const { error: errorInsert } = await supabase
       .from("profesional_servicios")
       .insert({ id_profesional: idProfesional, id_servicio: idServicio, activo: true });
 
-    if (errorInsert) return { success: false, error: errorInsert.message };
+    if (errorInsert) return dbError("servicios", errorInsert);
   }
 
   await logAudit({
@@ -111,7 +112,7 @@ export async function desasignarProfesionalServicio(
     .eq("id_clinica", idClinica)
     .maybeSingle();
 
-  if (errorProf) return { success: false, error: errorProf.message };
+  if (errorProf) return dbError("servicios", errorProf);
   if (!prof) {
     return {
       success: false,
@@ -127,7 +128,7 @@ export async function desasignarProfesionalServicio(
     .eq("id_clinica", idClinica)
     .maybeSingle();
 
-  if (errorServ) return { success: false, error: errorServ.message };
+  if (errorServ) return dbError("servicios", errorServ);
   if (!serv) {
     return { success: false, error: "Servicio no encontrado en tu clínica." };
   }
@@ -139,7 +140,7 @@ export async function desasignarProfesionalServicio(
     .eq("id_profesional", idProfesional)
     .eq("id_servicio", idServicio);
 
-  if (errorUpdate) return { success: false, error: errorUpdate.message };
+  if (errorUpdate) return dbError("servicios", errorUpdate);
 
   await logAudit({
     supabase,

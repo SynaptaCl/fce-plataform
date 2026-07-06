@@ -1,5 +1,6 @@
 "use server";
 
+import { dbError } from "@/lib/modules/guards";
 import { revalidatePath } from "next/cache";
 import { patientSchema, type PatientSchemaType } from "@/lib/validations";
 import { formatRut, cleanRut } from "@/lib/run-validator";
@@ -51,7 +52,7 @@ export async function getPatients(): Promise<ActionResult<PacienteClinico[]>> {
     .eq("id_clinica", idClinica)
     .order("ultima_atencion", { ascending: false, nullsFirst: false });
 
-  if (error) return { success: false, error: error.message };
+  if (error) return dbError("patients", error);
   return { success: true, data: data as PacienteClinico[] };
 }
 
@@ -89,7 +90,7 @@ export async function getAgendaDiaria(): Promise<ActionResult<CitaAgenda[]>> {
 
   // Profesional clínico → solo su agenda; admin sin match → toda la clínica
   const { data, error } = await (prof ? baseQuery.eq("id_profesional", prof.id) : baseQuery);
-  if (error) return { success: false, error: error.message };
+  if (error) return dbError("patients", error);
   return { success: true, data: (data ?? []) as unknown as CitaAgenda[] };
 }
 
@@ -112,7 +113,7 @@ export async function getPatientById(
     .eq("id_clinica", idClinica)
     .single();
 
-  if (error) return { success: false, error: error.message };
+  if (error) return dbError("patients", error);
 
   await logAudit({
     supabase,
@@ -186,7 +187,7 @@ export async function createPatient(
     if (error.code === "23505") {
       return { success: false, error: mensajeDuplicado(error) };
     }
-    return { success: false, error: error.message };
+    return dbError("patients", error);
   }
 
   await logAudit({
@@ -234,7 +235,7 @@ export async function updatePatient(
     if (error.code === "23505") {
       return { success: false, error: mensajeDuplicado(error) };
     }
-    return { success: false, error: error.message };
+    return dbError("patients", error);
   }
 
   await logAudit({

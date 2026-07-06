@@ -1,5 +1,6 @@
 "use server";
 
+import { dbError } from "@/lib/modules/guards";
 import { revalidatePath } from "next/cache";
 import { requireAuth, requireContext } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
@@ -34,7 +35,7 @@ export async function getPlanActivo(
     .limit(1)
     .maybeSingle();
 
-  if (error) return { success: false, error: error.message };
+  if (error) return dbError("plan-tratamiento", error);
   if (!data) return { success: true, data: null };
 
   const plan = data as PlanTratamiento & {
@@ -78,7 +79,7 @@ export async function createPlan(
     .select(`*, items:fce_plan_tratamiento_items(*)`)
     .single();
 
-  if (error) return { success: false, error: error.message };
+  if (error) return dbError("plan-tratamiento", error);
 
   await logAudit({
     supabase,
@@ -150,7 +151,7 @@ export async function addItemPlan(
     .select("*")
     .single();
 
-  if (error) return { success: false, error: error.message };
+  if (error) return dbError("plan-tratamiento", error);
 
   // Recalcular presupuesto_total del plan
   await recalcularPresupuesto(supabase, planId, idClinica);
@@ -211,7 +212,7 @@ export async function updateItemEstado(
     .eq("id_plan", planId)
     .eq("id_clinica", idClinica);
 
-  if (error) return { success: false, error: error.message };
+  if (error) return dbError("plan-tratamiento", error);
 
   await logAudit({
     supabase,
@@ -258,7 +259,7 @@ export async function removeItemPlan(
     .eq("id", itemId)
     .eq("id_clinica", idClinica);
 
-  if (error) return { success: false, error: error.message };
+  if (error) return dbError("plan-tratamiento", error);
 
   await recalcularPresupuesto(supabase, planId, idClinica);
 
@@ -294,7 +295,7 @@ export async function cerrarPlan(
     .eq("id_clinica", idClinica)
     .eq("cerrado", false);
 
-  if (error) return { success: false, error: error.message };
+  if (error) return dbError("plan-tratamiento", error);
 
   await logAudit({
     supabase,

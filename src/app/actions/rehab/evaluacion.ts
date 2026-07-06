@@ -1,5 +1,6 @@
 "use server";
 
+import { dbError } from "@/lib/modules/guards";
 import { revalidatePath } from "next/cache";
 import { requireAuth, requireContext } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
@@ -23,7 +24,7 @@ export async function getEvaluaciones(
     .eq("id_clinica", idClinica)
     .order("created_at", { ascending: false });
 
-  if (error) return { success: false, error: error.message };
+  if (error) return dbError("evaluacion", error);
   return { success: true, data: (data ?? []) as Evaluation[] };
 }
 
@@ -61,7 +62,7 @@ export async function upsertEvaluacion(
       .eq("id", existing.id)
       .eq("id_clinica", idClinica);
 
-    if (error) return { success: false, error: error.message };
+    if (error) return dbError("evaluacion", error);
     id = existing.id;
     await logAudit({
       supabase,
@@ -88,7 +89,7 @@ export async function upsertEvaluacion(
       .select("id")
       .single();
 
-    if (error) return { success: false, error: error.message };
+    if (error) return dbError("evaluacion", error);
     id = created.id;
     await logAudit({
       supabase,

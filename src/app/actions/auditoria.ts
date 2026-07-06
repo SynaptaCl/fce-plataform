@@ -1,5 +1,6 @@
 "use server";
 
+import { dbError } from "@/lib/modules/guards";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { ActionResult } from "./patients";
@@ -64,6 +65,6 @@ export async function getAuditLogs(
   }
 
   const { data, error } = await query;
-  if (error) return { success: false, error: error.message };
+  if (error) return dbError("auditoria", error);
   return { success: true, data: data as AuditEntry[] };
 }

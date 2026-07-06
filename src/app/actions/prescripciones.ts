@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { getProfesionalActivo } from "@/lib/fce/profesional";
 import { getClinicaConfig } from "@/lib/modules/config";
-import { assertModuleEnabled, assertPuedeFirmar } from "@/lib/modules/guards";
+import { assertModuleEnabled, assertPuedeFirmar, dbError } from "@/lib/modules/guards";
 import { buscarMedicamentos } from "@/lib/medicamentos/catalogo";
 import { PrescripcionInputSchema } from "@/lib/prescripciones/validations";
 import { buildProfesionalSnapshot } from "@/lib/prescripciones/snapshot";
@@ -35,7 +35,7 @@ export async function getPrescripcionesByPatient(
     .eq("id_clinica", idClinica)
     .order("created_at", { ascending: false });
 
-  if (error) return { success: false, error: error.message };
+  if (error) return dbError("prescripciones", error);
   return { success: true, data: (data ?? []) as Prescripcion[] };
 }
 

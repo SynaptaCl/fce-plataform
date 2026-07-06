@@ -5,7 +5,7 @@ import { requireAuth, requireContext } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import { getProfesionalActivo } from "@/lib/fce/profesional";
 import { getClinicaConfig } from "@/lib/modules/config";
-import { assertModuleEnabled } from "@/lib/modules/guards";
+import { assertModuleEnabled, dbError } from "@/lib/modules/guards";
 import type { ActionResult } from "@/lib/modules/guards";
 import { log } from "@/lib/logger";
 import type { InformeClinico, InformeFormData } from "@/types/informe";
@@ -35,7 +35,7 @@ export async function getInformes(
 
   if (error) {
     log("error", { action: "get_informes", id_clinica: idClinica, id_paciente: idPaciente, error });
-    return { success: false, error: error.message };
+    return dbError("informes", error);
   }
 
   return { success: true, data: (data ?? []) as InformeClinico[] };

@@ -1,5 +1,6 @@
 "use server";
 
+import { dbError } from "@/lib/modules/guards";
 import { revalidatePath } from "next/cache";
 import { requireAuth, requireContext } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
@@ -24,7 +25,7 @@ export async function getPeriograma(
     .eq("id_encuentro", encuentroId)
     .maybeSingle();
 
-  if (error) return { success: false, error: error.message };
+  if (error) return dbError("periograma", error);
   return { success: true, data: data as Periograma | null };
 }
 
@@ -67,7 +68,7 @@ export async function savePeriograma(
       })
       .eq("id", existing.id);
 
-    if (error) return { success: false, error: error.message };
+    if (error) return dbError("periograma", error);
     id = existing.id;
     await logAudit({
       supabase,
@@ -103,7 +104,7 @@ export async function savePeriograma(
       .select("id")
       .single();
 
-    if (error) return { success: false, error: error.message };
+    if (error) return dbError("periograma", error);
     id = created.id;
     await logAudit({
       supabase,
@@ -154,7 +155,7 @@ export async function signPeriograma(
     .eq("id", periogramaId)
     .eq("firmado", false);
 
-  if (error) return { success: false, error: error.message };
+  if (error) return dbError("periograma", error);
 
   await logAudit({
     supabase,

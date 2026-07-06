@@ -1,5 +1,6 @@
 "use server";
 
+import { dbError } from "@/lib/modules/guards";
 import { requireContext } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import type { ActionResult } from "@/app/actions/patients";
@@ -73,7 +74,7 @@ export async function crearProfesional(
     .select("id")
     .single();
 
-  if (error) return { success: false, error: error.message };
+  if (error) return dbError("profesionales", error);
 
   await logAudit({
     supabase,
@@ -116,7 +117,7 @@ export async function actualizarProfesional(
     .eq("id", profesionalId)
     .eq("id_clinica", idClinica);
 
-  if (error) return { success: false, error: error.message };
+  if (error) return dbError("profesionales", error);
 
   await logAudit({
     supabase,

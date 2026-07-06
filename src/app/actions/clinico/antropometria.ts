@@ -1,5 +1,6 @@
 "use server";
 
+import { dbError } from "@/lib/modules/guards";
 import { revalidatePath } from "next/cache";
 import { requireAuth, requireContext } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
@@ -67,7 +68,7 @@ export async function getAntropometriaByPaciente(
 
   if (error) {
     log("error", { action: "get_antropometria", id_clinica: idClinica, id_paciente: idPaciente, error });
-    return { success: false, error: error.message };
+    return dbError("antropometria", error);
   }
 
   return { success: true, data: (data ?? []) as AntropometriaRecord[] };
@@ -203,7 +204,7 @@ export async function registrarAntropometria(
 
   if (error) {
     log("error", { action: "registrar_antropometria", id_clinica: idClinica, id_paciente: input.idPaciente, error });
-    return { success: false, error: error.message };
+    return dbError("antropometria", error);
   }
 
   await logAudit({
@@ -238,7 +239,7 @@ export async function eliminarAntropometria(
 
   if (error) {
     log("error", { action: "eliminar_antropometria", id_clinica: idClinica, id_paciente: idPaciente, error });
-    return { success: false, error: error.message };
+    return dbError("antropometria", error);
   }
 
   await logAudit({

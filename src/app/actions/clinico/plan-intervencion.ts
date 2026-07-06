@@ -4,7 +4,7 @@ import { requireAuth, requireContext } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import { getIdClinica } from "@/app/actions/patients";
 import { getClinicaConfig } from "@/lib/modules/config";
-import { assertModuleEnabled, assertPuedeFirmar } from "@/lib/modules/guards";
+import { assertModuleEnabled, assertPuedeFirmar, dbError } from "@/lib/modules/guards";
 import { getProfesionalActivo } from "@/lib/fce/profesional";
 import type { ActionResult } from "@/lib/modules/guards";
 import type { Rol } from "@/lib/modules/registry";
@@ -39,7 +39,7 @@ export async function getPlanesIntervencion(
     .eq("id_clinica", idClinica)
     .order("created_at", { ascending: false });
 
-  if (error) return { success: false, error: error.message };
+  if (error) return dbError("plan-intervencion", error);
   return { success: true, data: (data ?? []) as PlanIntervencion[] };
 }
 
@@ -77,7 +77,7 @@ export async function getPlanIntervencionDetalle(
     .eq("id_clinica", idClinica)
     .order("orden", { ascending: true });
 
-  if (objError) return { success: false, error: objError.message };
+  if (objError) return dbError("plan-intervencion", objError);
 
   const objetivosList = (objetivos ?? []) as PlanObjetivo[];
 
@@ -91,7 +91,7 @@ export async function getPlanIntervencionDetalle(
       .eq("id_clinica", idClinica)
       .order("registrado_at", { ascending: true });
 
-    if (progError) return { success: false, error: progError.message };
+    if (progError) return dbError("plan-intervencion", progError);
 
     for (const p of (progresos ?? []) as PlanProgreso[]) {
       (progresoPorObjetivo[p.id_objetivo] ??= []).push(p);
@@ -203,7 +203,7 @@ export async function actualizarPlanIntervencion(
     .update({ ...campos, updated_at: new Date().toISOString() })
     .eq("id", planId);
 
-  if (updateError) return { success: false, error: updateError.message };
+  if (updateError) return dbError("plan-intervencion", updateError);
 
   await logAudit({
     supabase,
@@ -406,7 +406,7 @@ export async function eliminarObjetivo(objetivoId: string): Promise<ActionResult
     .delete()
     .eq("id", objetivoId);
 
-  if (deleteError) return { success: false, error: deleteError.message };
+  if (deleteError) return dbError("plan-intervencion", deleteError);
 
   await logAudit({
     supabase,
@@ -478,7 +478,7 @@ export async function registrarProgreso(params: {
     .eq("id", params.objetivoId)
     .eq("id_clinica", idClinica);
   if (updateObjError) {
-    return { success: false, error: "Progreso insertado pero no se pudo actualizar nivel_actual: " + updateObjError.message };
+    return dbError("plan-intervencion", updateObjError, { detail: "progreso insertado, fallo update nivel_actual" });
   }
 
   await logAudit({
@@ -552,7 +552,7 @@ export async function firmarPlanIntervencion(planId: string): Promise<ActionResu
     })
     .eq("id", planId);
 
-  if (updateError) return { success: false, error: updateError.message };
+  if (updateError) return dbError("plan-intervencion", updateError);
 
   await logAudit({
     supabase,
