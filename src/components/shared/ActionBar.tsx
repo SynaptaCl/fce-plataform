@@ -11,15 +11,17 @@ import {
   Download,
   Code,
   MoreHorizontal,
-  Pill,
-  Microscope,
   Shield,
 } from "lucide-react";
 import { useClinicaSession } from "@/lib/modules/provider";
 import { QuickNoteModal } from "@/components/clinico/QuickNoteModal";
+import { PrescripcionLauncher } from "@/components/shared/PrescripcionLauncher";
+import { OrdenExamenLauncher } from "@/components/shared/OrdenExamenLauncher";
+import type { Patient } from "@/types/patient";
 
 interface ActionBarProps {
   patientId: string;
+  paciente: Patient;
   primaryAction?: React.ReactNode;
 }
 
@@ -40,13 +42,6 @@ const chipBase: React.CSSProperties = {
   whiteSpace: "nowrap",
 };
 
-const chipCondicional: React.CSSProperties = {
-  ...chipBase,
-  borderStyle: "dashed",
-  borderColor: "var(--color-kp-accent, #00B0A8)",
-  color: "var(--color-kp-primary, #006B6B)",
-};
-
 const divider: React.CSSProperties = {
   width: 1,
   height: 20,
@@ -62,7 +57,7 @@ function IconBox({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function ActionBar({ patientId, primaryAction }: ActionBarProps) {
+export function ActionBar({ patientId, paciente, primaryAction }: ActionBarProps) {
   const router = useRouter();
   const { config, rol, profesionalActivo } = useClinicaSession();
   const modulosActivos = config.modulosActivos;
@@ -155,31 +150,23 @@ export function ActionBar({ patientId, primaryAction }: ActionBarProps) {
           </Link>
         )}
 
-        {/* Nivel 3 — Acciones condicionales (M7/M8) */}
+        {/* Nivel 3 — Acciones condicionales (M7/M8) — sin encuentro activo (encuentroId=null) */}
         {showCondicionales && (
           <>
             <div style={divider} />
             {hasM7 && puedePrescribir && (
-              <Link
-                href={`${base}`}
-                style={chipCondicional}
-                className="hover:border-kp-primary hover:text-kp-primary"
-                title="Crear prescripción"
-              >
-                <IconBox><Pill style={{ width: 12, height: 12 }} /></IconBox>
-                Prescripción
-              </Link>
+              <PrescripcionLauncher
+                patientId={patientId}
+                encuentroId={null}
+                paciente={paciente}
+              />
             )}
             {hasM8 && puedeExamenes && (
-              <Link
-                href={`${base}`}
-                style={chipCondicional}
-                className="hover:border-kp-primary hover:text-kp-primary"
-                title="Crear orden de examen"
-              >
-                <IconBox><Microscope style={{ width: 12, height: 12 }} /></IconBox>
-                Orden examen
-              </Link>
+              <OrdenExamenLauncher
+                patientId={patientId}
+                encuentroId={null}
+                paciente={paciente}
+              />
             )}
           </>
         )}

@@ -161,6 +161,7 @@ async function _patientDetailPage(
       {/* ActionBar — horizontal chips con CTA principal */}
       <ActionBar
         patientId={id}
+        paciente={p}
         primaryAction={
           especialidadProfesional && p.estado_clinico !== "egresado" ? (
             <EncuentroLauncher patientId={id} especialidad={especialidadProfesional} />
