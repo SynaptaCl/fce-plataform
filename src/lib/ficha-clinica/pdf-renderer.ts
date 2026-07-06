@@ -16,6 +16,7 @@ import type { TipoEgreso } from "@/types/egreso";
 import { TIPOS_EGRESO } from "@/types/egreso";
 import { calculateAge } from "@/lib/utils";
 import { isRichTextHtml } from "@/lib/utils";
+import { sanitizeRichText } from "@/lib/sanitize";
 
 // ── Tipos de data compilada ───────────────────────────────────────────────────
 
@@ -242,10 +243,12 @@ function field(label: string, value: string): string {
 function richField(label: string, value: string | null | undefined): string {
   if (!value) return "";
   if (isRichTextHtml(value)) {
+    // Backstop de render: re-sanitiza SIEMPRE. Cubre filas legacy que se guardaron antes
+    // del sanitize en el write-path (no hay migration de limpieza de datos históricos).
     return `
     <div style="margin-bottom:4px;">
       <span style="font-size:9px; color:${INK_3}; font-weight:700; text-transform:uppercase; letter-spacing:0.5px;">${esc(label)}: </span>
-      <div class="rte-pdf" style="font-size:11px; color:${INK}; margin-top:2px;">${value}</div>
+      <div class="rte-pdf" style="font-size:11px; color:${INK}; margin-top:2px;">${sanitizeRichText(value)}</div>
     </div>`;
   }
   return field(label, value);

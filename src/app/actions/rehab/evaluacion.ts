@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { requireAuth, requireContext } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
+import { sanitizeJsonbStrings } from "@/lib/sanitize";
 import type { ActionResult } from "@/app/actions/patients";
 import { getIdClinica } from "@/app/actions/patients";
 import type { Evaluation } from "@/types";
@@ -39,6 +40,9 @@ export async function upsertEvaluacion(
 
   if (!profesionalId) return { success: false, error: "No se encontró el profesional asociado al usuario." };
 
+  // Sanitizar todo string HTML dentro del jsonb antes de persistir (stored XSS defense).
+  const dataSegura = sanitizeJsonbStrings(data);
+
   const { data: existing } = await supabase
     .from("fce_evaluaciones")
     .select("id")
@@ -53,7 +57,7 @@ export async function upsertEvaluacion(
   if (existing?.id) {
     const { error } = await supabase
       .from("fce_evaluaciones")
-      .update({ data })
+      .update({ data: dataSegura })
       .eq("id", existing.id)
       .eq("id_clinica", idClinica);
 
@@ -78,7 +82,7 @@ export async function upsertEvaluacion(
         id_clinica: idClinica,
         especialidad,
         sub_area: subArea,
-        data,
+        data: dataSegura,
         created_by: profesionalId,
       })
       .select("id")
