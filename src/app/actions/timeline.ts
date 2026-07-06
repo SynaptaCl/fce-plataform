@@ -1,7 +1,7 @@
 "use server";
 
 import { requireAuth } from "@/lib/auth";
-import { createServiceClient } from "@/lib/supabase/service";
+import { log } from "@/lib/logger";
 import { getIdClinica } from "./patients";
 import type { ActionResult } from "./patients";
 import type { SoapNote, VitalSigns } from "@/types";
@@ -176,102 +176,88 @@ export async function getPatientTimeline(
 
   const idClinica = await getIdClinica(supabase, user.id);
 
-  // Verificar que el paciente pertenece a la clínica del usuario antes de usar serviceClient.
-  // Esta validación usa el cliente con RLS — si falla, el acceso está bloqueado.
-  if (idClinica) {
-    const { data: patientOwnership } = await supabase
-      .from("pacientes")
-      .select("id")
-      .eq("id", patientId)
-      .eq("id_clinica", idClinica)
-      .maybeSingle();
-    if (!patientOwnership) {
-      return { success: false, error: "Acceso no autorizado" };
-    }
+  // Guard incondicional: un usuario auth sin fila en admin_users (la DB es compartida con synapta)
+  // no tiene clínica y NO puede acceder al timeline de ningún paciente.
+  if (!idClinica) {
+    log("warn", { action: "timeline_acceso_sin_clinica", actor: user.id });
+    return { success: false, error: "Acceso no autorizado" };
   }
 
-  // serviceClient bypasea RLS — necesario para el timeline que agrega datos de múltiples tablas.
-  // fce_notas_soap y fce_evaluaciones tienen id_clinica desde 20260606_03; filtramos como defense-in-depth.
-  const serviceClient = createServiceClient();
+  // Ownership incondicional: el paciente debe pertenecer a la clínica del usuario.
+  // Usa el cliente con RLS — si falla, el acceso está bloqueado.
+  const { data: patientOwnership } = await supabase
+    .from("pacientes")
+    .select("id")
+    .eq("id", patientId)
+    .eq("id_clinica", idClinica)
+    .maybeSingle();
+  if (!patientOwnership) {
+    return { success: false, error: "Acceso no autorizado" };
+  }
 
+  // Todas las queries usan el cliente con RLS + filtro id_clinica explícito (defense-in-depth).
+  // Ya NO se usa service_role: fce_notas_soap y fce_evaluaciones tienen id_clinica + RLS directa (20260606_03).
   const [soapRes, evalRes, vitalsRes, consentRes, anamnesisRes, notasRes, instrumentosRes, prescripcionesRes, ordenesExamenRes, egresosRes, planesRes, adendaRes] = await Promise.all([
-    idClinica
-      ? serviceClient.from("fce_notas_soap").select("*").eq("id_paciente", patientId).eq("id_clinica", idClinica).order("created_at", { ascending: false })
-      : serviceClient.from("fce_notas_soap").select("*").eq("id_paciente", patientId).order("created_at", { ascending: false }),
-    idClinica
-      ? serviceClient.from("fce_evaluaciones").select("*").eq("id_paciente", patientId).eq("id_clinica", idClinica).order("created_at", { ascending: false })
-      : serviceClient.from("fce_evaluaciones").select("*").eq("id_paciente", patientId).order("created_at", { ascending: false }),
-    idClinica
-      ? supabase.from("fce_signos_vitales").select("*").eq("id_paciente", patientId).eq("id_clinica", idClinica).order("recorded_at", { ascending: false })
-      : supabase.from("fce_signos_vitales").select("*").eq("id_paciente", patientId).order("recorded_at", { ascending: false }),
+    supabase.from("fce_notas_soap").select("*").eq("id_paciente", patientId).eq("id_clinica", idClinica).order("created_at", { ascending: false }),
+    supabase.from("fce_evaluaciones").select("*").eq("id_paciente", patientId).eq("id_clinica", idClinica).order("created_at", { ascending: false }),
+    supabase.from("fce_signos_vitales").select("*").eq("id_paciente", patientId).eq("id_clinica", idClinica).order("recorded_at", { ascending: false }),
     supabase
       .from("fce_consentimientos")
       .select("id, id_paciente, tipo, version, firmado, created_at")
       .eq("id_paciente", patientId)
+      .eq("id_clinica", idClinica)
       .order("created_at", { ascending: false }),
     supabase
       .from("fce_anamnesis")
       .select("motivo_consulta, red_flags, antecedentes_medicos, alergias, farmacologia")
       .eq("id_paciente", patientId)
+      .eq("id_clinica", idClinica)
       .maybeSingle(),
-    idClinica
-      ? supabase
-          .from("fce_notas_clinicas")
-          .select("id, id_encuentro, motivo_consulta, contenido, diagnostico, cie10_codigos, icd_codigos, secciones_estructuradas, plan, proxima_sesion, firmado, firmado_at, firmado_por, created_by, created_at")
-          .eq("id_paciente", patientId)
-          .eq("id_clinica", idClinica)
-          .order("created_at", { ascending: false })
-      : Promise.resolve({ data: [], error: null }),
-    idClinica
-      ? supabase
-          .from("instrumentos_aplicados")
-          .select("id, id_encuentro, id_instrumento, puntaje_total, interpretacion, respuestas, notas, mostrar_en_timeline, aplicado_por, aplicado_at, instrumento:instrumentos_valoracion(nombre, schema_items)")
-          .eq("id_paciente", patientId)
-          .eq("id_clinica", idClinica)
-          .eq("mostrar_en_timeline", true)
-          .order("aplicado_at", { ascending: false })
-      : Promise.resolve({ data: [], error: null }),
-    idClinica
-      ? supabase
-          .from("fce_prescripciones")
-          .select("id, folio_display, tipo, medicamentos, indicaciones_generales, diagnostico_asociado, firmado_at, prof_nombre_snapshot, prof_especialidad_snapshot, id_clinica, id_paciente")
-          .eq("id_paciente", patientId)
-          .eq("firmado", true)
-          .order("firmado_at", { ascending: false })
-      : Promise.resolve({ data: [], error: null }),
-    idClinica
-      ? supabase
-          .from("fce_ordenes_examen")
-          .select("id, folio_display, examenes, diagnostico_presuntivo, prioridad, estado_resultados, firmado_at, prof_nombre_snapshot, prof_especialidad_snapshot, id_clinica, id_paciente")
-          .eq("id_paciente", patientId)
-          .eq("id_clinica", idClinica)
-          .eq("firmado", true)
-          .order("firmado_at", { ascending: false })
-      : Promise.resolve({ data: [], error: null }),
-    idClinica
-      ? supabase
-          .from("fce_egresos")
-          .select("id, tipo_egreso, diagnostico_egreso, resumen_tratamiento, firmado, firmado_at, firmado_por, created_at, created_by")
-          .eq("id_paciente", patientId)
-          .eq("id_clinica", idClinica)
-          .order("created_at", { ascending: false })
-      : Promise.resolve({ data: [], error: null }),
-    idClinica
-      ? supabase
-          .from("fce_planes_intervencion")
-          .select("id, titulo, condicion_codigo, estado, fecha_inicio, fecha_revision, firmado, firmado_at, created_by, created_at")
-          .eq("id_paciente", patientId)
-          .eq("id_clinica", idClinica)
-          .order("created_at", { ascending: false })
-      : Promise.resolve({ data: [], error: null }),
-    idClinica
-      ? serviceClient
-          .from("fce_adendas")
-          .select("id, tipo_adenda, tipo_documento, id_documento, motivo, contenido, created_at, created_by, firmado_at, override_director, override_motivo, id_encuentro")
-          .eq("id_paciente", patientId)
-          .eq("id_clinica", idClinica)
-          .order("created_at", { ascending: false })
-      : Promise.resolve({ data: [], error: null }),
+    supabase
+      .from("fce_notas_clinicas")
+      .select("id, id_encuentro, motivo_consulta, contenido, diagnostico, cie10_codigos, icd_codigos, secciones_estructuradas, plan, proxima_sesion, firmado, firmado_at, firmado_por, created_by, created_at")
+      .eq("id_paciente", patientId)
+      .eq("id_clinica", idClinica)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("instrumentos_aplicados")
+      .select("id, id_encuentro, id_instrumento, puntaje_total, interpretacion, respuestas, notas, mostrar_en_timeline, aplicado_por, aplicado_at, instrumento:instrumentos_valoracion(nombre, schema_items)")
+      .eq("id_paciente", patientId)
+      .eq("id_clinica", idClinica)
+      .eq("mostrar_en_timeline", true)
+      .order("aplicado_at", { ascending: false }),
+    supabase
+      .from("fce_prescripciones")
+      .select("id, folio_display, tipo, medicamentos, indicaciones_generales, diagnostico_asociado, firmado_at, prof_nombre_snapshot, prof_especialidad_snapshot, id_clinica, id_paciente")
+      .eq("id_paciente", patientId)
+      .eq("id_clinica", idClinica)
+      .eq("firmado", true)
+      .order("firmado_at", { ascending: false }),
+    supabase
+      .from("fce_ordenes_examen")
+      .select("id, folio_display, examenes, diagnostico_presuntivo, prioridad, estado_resultados, firmado_at, prof_nombre_snapshot, prof_especialidad_snapshot, id_clinica, id_paciente")
+      .eq("id_paciente", patientId)
+      .eq("id_clinica", idClinica)
+      .eq("firmado", true)
+      .order("firmado_at", { ascending: false }),
+    supabase
+      .from("fce_egresos")
+      .select("id, tipo_egreso, diagnostico_egreso, resumen_tratamiento, firmado, firmado_at, firmado_por, created_at, created_by")
+      .eq("id_paciente", patientId)
+      .eq("id_clinica", idClinica)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("fce_planes_intervencion")
+      .select("id, titulo, condicion_codigo, estado, fecha_inicio, fecha_revision, firmado, firmado_at, created_by, created_at")
+      .eq("id_paciente", patientId)
+      .eq("id_clinica", idClinica)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("fce_adendas")
+      .select("id, tipo_adenda, tipo_documento, id_documento, motivo, contenido, created_at, created_by, firmado_at, override_director, override_motivo, id_encuentro")
+      .eq("id_paciente", patientId)
+      .eq("id_clinica", idClinica)
+      .order("created_at", { ascending: false }),
   ]);
 
   // Batch-fetch encuentros for SOAP notes AND notas_clinicas to get especialidad
@@ -290,8 +276,9 @@ export async function getPatientTimeline(
     const encsQuery = supabase
       .from("fce_encuentros")
       .select("id, especialidad")
-      .in("id", allEncIds);
-    const { data: encs } = await (idClinica ? encsQuery.eq("id_clinica", idClinica) : encsQuery);
+      .in("id", allEncIds)
+      .eq("id_clinica", idClinica);
+    const { data: encs } = await encsQuery;
     for (const enc of encs ?? []) {
       validEncIds.add(enc.id);
       if (enc.especialidad) encEspMap.set(enc.id, enc.especialidad as string);
@@ -331,10 +318,11 @@ export async function getPatientTimeline(
   type ProfMapEntry = { nombre: string; id_clinica: string };
   const profMap = new Map<string, ProfMapEntry>();
   if (profIds.size > 0) {
-    const { data: profs } = await serviceClient
+    const { data: profs } = await supabase
       .from("profesionales")
       .select("id, nombre, id_clinica")
-      .in("id", Array.from(profIds));
+      .in("id", Array.from(profIds))
+      .eq("id_clinica", idClinica);
     for (const p of profs ?? []) {
       profMap.set(p.id, { nombre: p.nombre ?? "Profesional", id_clinica: p.id_clinica });
     }
@@ -830,22 +818,30 @@ export interface TimelineEntryClinico {
 // ── getTimelineClinico ─────────────────────────────────────────────────────
 
 export async function getTimelineClinico(
-  patientId: string,
-  idClinica: string
+  patientId: string
 ): Promise<ActionResult<TimelineEntryClinico[]>> {
-  const { supabase } = await requireAuth();
+  const { supabase, user } = await requireAuth();
+
+  // idClinica se deriva server-side — NUNCA se confía en un parámetro del cliente.
+  const idClinica = await getIdClinica(supabase, user.id);
+  if (!idClinica) {
+    log("warn", { action: "timeline_clinico_acceso_sin_clinica", actor: user.id });
+    return { success: false, error: "Acceso no autorizado" };
+  }
 
   const [evalsRes, soapsRes, vitalsRes] = await Promise.all([
     supabase
       .from("fce_evaluaciones")
       .select("id, especialidad, sub_area, data, created_at, created_by")
       .eq("id_paciente", patientId)
+      .eq("id_clinica", idClinica)
       .order("created_at", { ascending: false })
       .limit(50),
     supabase
       .from("fce_notas_soap")
       .select("id, subjetivo, firmado, firmado_por, created_at, id_encuentro")
       .eq("id_paciente", patientId)
+      .eq("id_clinica", idClinica)
       .order("created_at", { ascending: false })
       .limit(50),
     supabase
