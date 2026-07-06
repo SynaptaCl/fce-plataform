@@ -6,6 +6,8 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { buildContextoClinico } from '@/lib/ia/contexto-clinico'
 import { SYSTEM_PROMPT, buildUserPrompt } from '@/lib/ia/prompt'
 import { calcularContextoHash, getResumenCacheado, guardarResumenCache } from '@/lib/ia/cache'
+import { seudonimizarTexto } from '@/lib/ia/sanitize-pii'
+import { fetchPiiPaciente } from '@/lib/ia/pii-paciente'
 import { requireAccesoFCE } from '@/lib/modules/guards'
 import type { ActionResult } from '@/lib/modules/guards'
 import type { ReporteIA } from '@/types/resumen-ia'
@@ -74,6 +76,10 @@ export async function generarResumenIA(
   }
 
   // 5. Llamada Anthropic API
+  // Choke point único: se seudonimiza el prompt ENSAMBLADO (un solo punto) antes de salir del server.
+  const pii = await fetchPiiPaciente(supabase, idPaciente)
+  const userPrompt = seudonimizarTexto(buildUserPrompt(contexto), pii)
+
   const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
   let reporte: ReporteIA
 
@@ -82,7 +88,7 @@ export async function generarResumenIA(
       model: MODEL,
       max_tokens: 2048,
       system: SYSTEM_PROMPT,
-      messages: [{ role: 'user', content: buildUserPrompt(contexto) }],
+      messages: [{ role: 'user', content: userPrompt }],
     })
 
     const textBlock = response.content.find((b) => b.type === 'text')

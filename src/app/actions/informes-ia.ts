@@ -8,7 +8,9 @@ import { requireAccesoFCE } from '@/lib/modules/guards'
 import type { ActionResult } from '@/lib/modules/guards'
 import type { TipoInforme } from '@/types/informe'
 import { logAudit } from '@/lib/audit'
-import { sanitizeRutFromText } from '@/lib/ia/sanitize-pii'
+import { seudonimizarTexto } from '@/lib/ia/sanitize-pii'
+import { fetchPiiPaciente } from '@/lib/ia/pii-paciente'
+import type { PIIPaciente } from '@/lib/ia/sanitize-pii'
 
 const MODEL = 'claude-sonnet-4-6'
 const MAX_CONTENIDO_LENGTH = 5000
@@ -87,8 +89,12 @@ export async function estructurarInforme(
   }
 
   // 5. Llamada Anthropic
+  // Seudonimizar contenido Y destinatario. Si hay paciente, con su PID; si no, solo genéricos.
+  const pii: PIIPaciente = idPaciente ? await fetchPiiPaciente(supabase, idPaciente) : {}
   const tipoLabel = TIPO_LABELS[tipo]
-  const destinatarioLabel = destinatario?.trim() || 'No especificado'
+  const destinatarioSeguro = destinatario?.trim() ? seudonimizarTexto(destinatario.trim(), pii) : ''
+  const destinatarioLabel = destinatarioSeguro || 'No especificado'
+  const contenidoSeguro = seudonimizarTexto(contenidoTrimmed, pii)
 
   const systemPrompt = `Eres un asistente de redacción clínica especializado en informes para ${tipoLabel}.
 Destinatario: ${destinatarioLabel}.
@@ -104,7 +110,7 @@ Responde SOLO con el texto del informe mejorado, sin preámbulos ni comentarios 
       model: MODEL,
       max_tokens: 2048,
       system: systemPrompt,
-      messages: [{ role: 'user', content: sanitizeRutFromText(contenidoTrimmed) }],
+      messages: [{ role: 'user', content: contenidoSeguro }],
     })
 
     const textBlock = response.content.find((b) => b.type === 'text')

@@ -11,7 +11,8 @@ import type { ActionResult } from '@/lib/modules/guards'
 import type { EstructurarNotaInput, BorradorNota } from '@/lib/ia/copiloto-nota/types'
 import { logAudit } from '@/lib/audit'
 import { log } from '@/lib/logger'
-import { sanitizeRutFromText } from '@/lib/ia/sanitize-pii'
+import { seudonimizarTexto } from '@/lib/ia/sanitize-pii'
+import { fetchPiiPaciente } from '@/lib/ia/pii-paciente'
 
 const MODEL = 'claude-sonnet-4-6'
 const MAX_BULLETS_LENGTH = 5000
@@ -71,6 +72,10 @@ export async function estructurarNota(
   }
 
   // 5. Llamada Anthropic
+  // Choke point: seudonimizar los apuntes con la PII del paciente del encuentro antes de salir.
+  const pii = await fetchPiiPaciente(supabase, encuentro.id_paciente)
+  const bulletsSeguros = seudonimizarTexto(bulletsTrimmed, pii)
+
   const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
   let borrador: BorradorNota
 
@@ -79,7 +84,7 @@ export async function estructurarNota(
       model: MODEL,
       max_tokens: 1024,
       system: buildSystemPrompt(encuentro.especialidad, input.seccion),
-      messages: [{ role: 'user', content: buildUserPrompt(sanitizeRutFromText(bulletsTrimmed)) }],
+      messages: [{ role: 'user', content: buildUserPrompt(bulletsSeguros) }],
     })
 
     const textBlock = response.content.find((b) => b.type === 'text')
@@ -92,14 +97,15 @@ export async function estructurarNota(
       parsed = parseBorradorNota(textBlock.text)
     } catch (parseErr) {
       // NO loguear contenido clínico (regla seccion 22 CLAUDE.md — solo UUIDs/metadata).
-      log('error', {
+      // NO pasar parseErr: el SyntaxError de JSON.parse embebe un fragmento del input fallido.
+      log('warn', {
         action: 'copiloto_nota_parse_failed',
         idClinica,
         idEncuentro,
         stopReason: response.stop_reason,
         outputTokens: response.usage.output_tokens,
         rawLength: textBlock.text.length,
-        error: parseErr,
+        errorName: parseErr instanceof Error ? parseErr.name : 'Unknown',
       })
       return { success: false, error: 'Error procesando respuesta de IA. Intenta nuevamente.' }
     }
