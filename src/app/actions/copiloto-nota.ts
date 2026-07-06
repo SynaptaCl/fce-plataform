@@ -10,6 +10,7 @@ import { requireAccesoFCE } from '@/lib/modules/guards'
 import type { ActionResult } from '@/lib/modules/guards'
 import type { EstructurarNotaInput, BorradorNota } from '@/lib/ia/copiloto-nota/types'
 import { logAudit } from '@/lib/audit'
+import { log } from '@/lib/logger'
 import { sanitizeRutFromText } from '@/lib/ia/sanitize-pii'
 
 const MODEL = 'claude-sonnet-4-6'
@@ -90,10 +91,16 @@ export async function estructurarNota(
     try {
       parsed = parseBorradorNota(textBlock.text)
     } catch (parseErr) {
-      console.error('[FCE][COPILOTO] JSON parse failed:', parseErr)
-      console.error('[FCE][COPILOTO] Stop reason:', response.stop_reason)
-      console.error('[FCE][COPILOTO] Output tokens:', response.usage.output_tokens, '/', 1024)
-      console.error('[FCE][COPILOTO] Raw tail:', textBlock.text.slice(-200))
+      // NO loguear contenido clínico (regla seccion 22 CLAUDE.md — solo UUIDs/metadata).
+      log('error', {
+        action: 'copiloto_nota_parse_failed',
+        idClinica,
+        idEncuentro,
+        stopReason: response.stop_reason,
+        outputTokens: response.usage.output_tokens,
+        rawLength: textBlock.text.length,
+        error: parseErr,
+      })
       return { success: false, error: 'Error procesando respuesta de IA. Intenta nuevamente.' }
     }
 

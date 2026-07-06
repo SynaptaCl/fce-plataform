@@ -10,6 +10,7 @@ import { requireAccesoFCE } from '@/lib/modules/guards'
 import type { ActionResult } from '@/lib/modules/guards'
 import type { ReporteIA } from '@/types/resumen-ia'
 import { logAudit } from '@/lib/audit'
+import { log } from '@/lib/logger'
 
 const MODEL = 'claude-haiku-4-5-20251001'
 
@@ -98,10 +99,14 @@ export async function generarResumenIA(
     try {
       parsed = JSON.parse(raw)
     } catch {
-      console.error('[FCE][IA] JSON parse failed.')
-      console.error('[FCE][IA] Stop reason:', response.stop_reason)
-      console.error('[FCE][IA] Output tokens:', response.usage.output_tokens, '/', 2048)
-      console.error('[FCE][IA] Raw tail:', raw.substring(raw.length - 200))
+      // NO loguear contenido clínico (regla seccion 22 CLAUDE.md — solo UUIDs/metadata).
+      log('error', {
+        action: 'resumen_ia_parse_failed',
+        idClinica,
+        stopReason: response.stop_reason,
+        outputTokens: response.usage.output_tokens,
+        rawLength: raw.length,
+      })
       return { success: false, error: 'Error procesando respuesta de IA. Intenta nuevamente.' }
     }
     reporte = {
