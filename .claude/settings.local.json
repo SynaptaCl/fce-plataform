@@ -194,7 +194,15 @@
       "PowerShell(npm install *)",
       "PowerShell(npx eslint src/lib/sanitize.ts src/lib/utils.ts src/components/shared/RichTextEditor.tsx src/app/actions/rehab/soap.ts src/app/actions/clinico/nota-clinica.ts src/app/actions/clinico/nota-rapida.ts src/components/clinico/SeccionEstructuradaRenderer.tsx src/components/rehab/SoapForm.tsx src/components/clinico/NotaClinicaForm.tsx src/components/clinico/QuickNoteModal.tsx src/components/modules/timeline/_shared.tsx src/components/modules/timeline/SoapExpandedCard.tsx src/components/modules/timeline/NotaClinicaExpandedCard.tsx src/lib/ficha-clinica/pdf-renderer.ts src/lib/ia/extraccion/evolucion.ts 2>&1 | Select-Object -Last 20)",
       "PowerShell(npm uninstall *)",
-      "PowerShell(npx eslint src/lib/validations.ts src/app/actions/clinico/nota-rapida.ts src/lib/utils.ts 2>&1 | Select-Object -Last 15; Write-Output \"EXIT:$LASTEXITCODE\")"
+      "PowerShell(npx eslint src/lib/validations.ts src/app/actions/clinico/nota-rapida.ts src/lib/utils.ts 2>&1 | Select-Object -Last 15; Write-Output \"EXIT:$LASTEXITCODE\")",
+      "PowerShell(Get-Process *)",
+      "mcp__plugin_vercel_vercel__list_teams",
+      "mcp__plugin_vercel_vercel__list_projects",
+      "mcp__plugin_vercel_vercel__list_deployments",
+      "mcp__plugin_vercel_vercel__get_project",
+      "mcp__plugin_vercel_vercel__get_deployment_build_logs",
+      "mcp__plugin_vercel_vercel__get_runtime_errors",
+      "mcp__plugin_vercel_vercel__web_fetch_vercel_url"
     ]
   },
   "mcpServers": {
