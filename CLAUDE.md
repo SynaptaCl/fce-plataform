@@ -1,6 +1,6 @@
 # CLAUDE.md — FCE Platform (fce-plataform)
 
-> Última actualización: 2026-06-13 (Sprint RTE — Rich Text Editor transversal en notas clínicas)
+> Última actualización: 2026-07-03 (Estándar next/image obligatorio para imágenes de UI)
 > Este documento es la fuente de verdad para Claude Code. Leerlo antes de cualquier cambio.
 
 ---
@@ -75,6 +75,7 @@ Deploy: Vercel. Supabase project: `vigyhfpwyxihrjiygfsa` (sa-east-1).
 17. **M10 NO es inmutable** — el plan de intervención es documento vivo; no hay trigger de bloqueo post-firma
 18. **Personalización por especialidad = `getEspecialidadConfig(esp)`** — NUNCA `if (especialidad === '...')` en componentes. La fuente única de verdad es `src/lib/modules/especialidad-config.ts`.
 19. **Validar especialidad antes de INSERT/UPDATE en `profesionales`** — usar `crearProfesional`/`actualizarProfesional` de `src/app/actions/profesionales.ts` que validan contra `especialidades_catalogo` DB.
+20. **Toda imagen de UI usa `next/image`** — nunca `<img>` crudo, salvo PdfViews (html2pdf.js incompatible) y firma dataURL. Ver sección 9 "Imágenes — next/image obligatorio".
 
 ---
 
@@ -277,6 +278,19 @@ Ambos son `false` por defecto. Se activan manualmente por clínica. Verificar co
 ### permissions.ts — LEGACY, no usar en código nuevo
 `canAccessFCE` usa `"recepcion"` (viejo). Usar `requireAccesoFCE(rol)` de `guards.ts`.
 
+### Errores DB — NUNCA exponer `error.message` raw al cliente (sprint SEC-1)
+Los Server Actions deben retornar errores genéricos vía `dbError()` de `guards.ts` — el mensaje raw de Postgres/PostgREST expone tablas/columnas/constraints y fallos de política RLS (recon del schema multi-tenant). El detalle va solo a `log()` server-side.
+```typescript
+import { dbError } from "@/lib/modules/guards";
+const { data, error } = await supabase.from("...").insert(...);
+if (error) return dbError("<action>", error, { id_clinica: idClinica }); // ctx solo UUIDs, nunca PII
+// ❌ NUNCA: return { success: false, error: error.message }
+```
+Excepción permitida: mensajes de validación Zod (`parsed.error.issues[0].message`) — son validación del input del propio usuario, no internals de DB. Errores de negocio conocidos (ej. RUT duplicado) se humanizan en `mapKnownDbError()`.
+
+### Seudonimización PII antes de enviar a Claude (sprint SEC-1)
+Todo texto que salga hacia la API de Anthropic pasa por `seudonimizarTexto(text, pii)` de `lib/ia/sanitize-pii.ts` (reemplaza nombre/apellidos/rut/teléfono/email del paciente + genéricos). PII vía `fetchPiiPaciente()`. Choke point ÚNICO por action (prompt ensamblado), no por campo. Ley 21.719. `sanitizeRutFromText` sola NO basta — no cubre nombres.
+
 ### Token CSS — regla crítica
 ```typescript
 // ✅ CORRECTO
@@ -297,6 +311,24 @@ recharts no resuelve CSS vars. En `ProgresoChart` y cualquier chart:
 ```typescript
 const LINE_COLORS = ["#00B0A8", "#006B6B", "#F5A623", "#E53935", "#43A047"];
 ```
+
+### Imágenes — next/image obligatorio (2026-07-03)
+Toda imagen nueva en UI (logos, fotos, assets) va con `next/image`, NUNCA `<img>` crudo. Excepción única ya documentada: PdfViews (`RecetaPdfView`, `OrdenExamenPdfView`, etc.) porque html2pdf.js rompe con next/image — ahí sí `<img>` + `eslint-disable-next-line @next/next/no-img-element`. Firma de paciente (dataURL de canvas) también queda como `<img>` — no es asset remoto, next/image no aporta ahí.
+
+```tsx
+// ✅ CORRECTO — asset remoto (Supabase Storage, URL dinámica por clínica)
+import Image from "next/image";
+<Image src={branding.logo_url} alt={clinicDisplayName} width={24} height={24} quality={75} />
+
+// ❌ INCORRECTO — sin optimización, sin cache CDN, carga lenta
+<img src={branding.logo_url} alt={clinicDisplayName} />
+```
+
+Requisitos:
+- `next.config.ts` → `images.remotePatterns` debe cubrir el hostname del asset (ya configurado para `*.supabase.co/storage/v1/object/**`). Si se agrega un nuevo origen de imágenes (otro bucket, otro dominio), sumar su patrón ahí — si no, next/image tira error en build/runtime.
+- `width`/`height` siempre explícitos (evita CLS).
+- `priority` solo en la imagen above-the-fold real (ej. logo sidebar). No abusar — mata el beneficio de lazy-loading en imágenes bajo el fold.
+- `quality={75}` como default razonable; no usar 100 salvo necesidad clínica específica (ej. imagen diagnóstica).
 
 ### Cálculos biológicos nutricionales — sexo_registral, degradación y pliegues
 
@@ -614,6 +646,24 @@ Actualmente **ninguna clínica tiene fce-plataform en producción** — el repo 
 | Datasets OMS LMS (`oms-lms/*.json`) en `PENDIENTE_CLINICA` — verificar contra tablas mensuales WHO antes de activar modo pediátrico en producción | Alta |
 | Bandas Atalah en `atalah.ts` en `PENDIENTE_CLINICA` — verificar valores contra Atalah et al. 1997 original antes de activar modo gestacional en producción | Alta |
 | UI panel antropometría no implementada — panel, chart evolución y actions pendientes de frontend | Alta — Nutri-N1 |
+
+#### Auditoría de seguridad SEC-1 (2026-07-06)
+
+Auditoría multi-agente detectó 8 vulnerabilidades. Rama `sec-1-fixes` (pendiente de revisión/merge).
+
+| Vuln | Estado |
+|---|---|
+| ~~Fuga cross-tenant PHI en `timeline.ts` (service_role sin filtro cuando idClinica null)~~ | ✅ SEC-1 FIX 1 — guard incondicional + eliminado service_role |
+| ~~Seudonimización PII incompleta hacia Anthropic (solo RUT)~~ | ✅ SEC-1 FIX 2 — `seudonimizarTexto` (nombre/rut/tel/email) |
+| ~~Stored XSS en `fce_evaluaciones.data` (PDF ficha)~~ | ✅ SEC-1 FIX 3 — `sanitizeJsonbStrings` write-path + backstop render |
+| ~~Errores raw de Postgres al cliente (~82 sitios)~~ | ✅ SEC-1 FIX 4 — `dbError()` genérico |
+| ~~CSS breakout en `BrandingInjector`~~ | ✅ SEC-1 FIX 5 — validación `COLOR_RE` por token |
+| ~~Narrativa clínica en console logs~~ | ✅ SEC-1 FIX 6 — `log()` con metadata segura |
+| CSP `unsafe-inline`/`unsafe-eval` en `next.config.ts` | Pendiente — SEC-2 (requiere nonces + testing Turbopack) |
+| Inyección `.or()` PostgREST en catálogos (examenes/medicamentos) | Pendiente — SEC-2 (impacto acotado a catálogos globales) |
+| `middleware.ts` para refresh de sesión Supabase (no existe) | Pendiente — SEC-2 (cambio estructural) |
+| Periograma sin guard `id_clinica` en capa app (solo RLS) | Media — verificar RLS + agregar `.eq(id_clinica)` |
+| `getIdClinica` no filtra `activo=true` (backstopeado por RLS) | Baja — alinear con `requireContext` |
 
 ---
 
