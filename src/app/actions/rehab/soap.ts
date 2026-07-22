@@ -152,15 +152,6 @@ export async function upsertSoapNote(
     }
 
     const cleanSoapData = stripForbidden(soapData as Record<string, unknown>);
-    // DEBUG — remover después de diagnosticar RLS UPDATE
-    console.error("[FCE_DEBUG_SOAP_UPDATE]", JSON.stringify({
-      noteId,
-      idClinica,
-      soapDataKeys: Object.keys(soapData),
-      soapDataHasIdClinica: "id_clinica" in soapData,
-      soapDataHasFirmado: "firmado" in soapData,
-      cleanSoapDataKeys: Object.keys(cleanSoapData),
-    }));
 
     const { error } = await supabase
       .from("fce_notas_soap")
@@ -193,8 +184,6 @@ export async function upsertSoapNote(
       return dbError("soap", (e as Error));
     }
 
-    // DEBUG — remover después de diagnosticar RLS INSERT
-    const { data: { user: debugUser } } = await supabase.auth.getUser();
     const cleanSoapData = stripForbidden(soapData as Record<string, unknown>);
     const insertPayload = {
       ...cleanSoapData,
@@ -203,14 +192,6 @@ export async function upsertSoapNote(
       id_clinica: idClinica,   // después del spread: siempre gana
       firmado: false,
     };
-    console.error("[FCE_DEBUG_SOAP]", JSON.stringify({
-      authUid: debugUser?.id ?? "NULL",
-      idClinicaFromContext: idClinica,
-      idClinicaInPayload: insertPayload.id_clinica,
-      payloadKeys: Object.keys(insertPayload),
-      soapDataKeys: Object.keys(soapData),
-      soapDataHasIdClinica: "id_clinica" in soapData,
-    }));
 
     const { data: created, error } = await supabase
       .from("fce_notas_soap")
