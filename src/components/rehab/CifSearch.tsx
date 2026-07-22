@@ -102,18 +102,6 @@ export function CifSearch({
       <div className="flex items-center gap-2 flex-1">
         <input
           type="text"
-          value={value}
-          readOnly
-          disabled
-          className="w-16 px-2 py-1 text-xs font-mono rounded"
-          style={{
-            color: 'var(--color-kp-primary)',
-            background: 'var(--color-kp-accent-xs)',
-            border: '1px solid color-mix(in srgb, var(--color-kp-accent) 20%, transparent)',
-          }}
-        />
-        <input
-          type="text"
           value={description}
           readOnly
           disabled
@@ -124,38 +112,30 @@ export function CifSearch({
             border: '1px solid var(--color-kp-border)',
           }}
         />
+        <input
+          type="text"
+          value={value}
+          readOnly
+          disabled
+          title="Código CIF"
+          className="w-16 px-2 py-1 text-xs font-mono rounded shrink-0"
+          style={{
+            color: 'var(--color-kp-primary)',
+            background: 'var(--color-kp-accent-xs)',
+            border: '1px solid color-mix(in srgb, var(--color-kp-accent) 20%, transparent)',
+          }}
+        />
       </div>
     );
   }
 
   return (
     <div ref={containerRef} className="flex items-center gap-2 flex-1 relative">
-      {/* Code input */}
-      <input
-        type="text"
-        placeholder={placeholder ?? 'b000'}
-        value={codeInput}
-        onChange={(e) => setCodeInput(e.target.value)}
-        onKeyDown={handleCodeKeyDown}
-        className="w-16 px-2 py-1 text-xs font-mono rounded focus:outline-none"
-        style={{
-          color: 'var(--color-kp-primary)',
-          background: 'var(--color-kp-accent-xs)',
-          border: '1px solid color-mix(in srgb, var(--color-kp-accent) 20%, transparent)',
-          boxShadow: undefined,
-        }}
-        onFocus={(e) =>
-          (e.currentTarget.style.boxShadow =
-            '0 0 0 2px color-mix(in srgb, var(--color-kp-accent) 40%, transparent)')
-        }
-        onBlur={(e) => (e.currentTarget.style.boxShadow = '')}
-      />
-
-      {/* Description input + spinner */}
+      {/* Description input (búsqueda principal) + spinner */}
       <div className="relative flex-1">
         <input
           type="text"
-          placeholder="Descripción del ítem CIF…"
+          placeholder="Buscar por síntoma, actividad o participación…"
           value={descInput}
           onChange={handleDescChange}
           onFocus={() => {
@@ -181,6 +161,28 @@ export function CifSearch({
           />
         )}
       </div>
+
+      {/* Code input (referencia/atajo — opcional para quien ya sabe el código) */}
+      <input
+        type="text"
+        placeholder={placeholder ?? 'b000'}
+        title="Código CIF (opcional — solo si ya lo conoces)"
+        value={codeInput}
+        onChange={(e) => setCodeInput(e.target.value)}
+        onKeyDown={handleCodeKeyDown}
+        className="w-16 px-2 py-1 text-xs font-mono rounded focus:outline-none shrink-0"
+        style={{
+          color: 'var(--color-kp-primary)',
+          background: 'var(--color-kp-accent-xs)',
+          border: '1px solid color-mix(in srgb, var(--color-kp-accent) 20%, transparent)',
+          boxShadow: undefined,
+        }}
+        onFocus={(e) =>
+          (e.currentTarget.style.boxShadow =
+            '0 0 0 2px color-mix(in srgb, var(--color-kp-accent) 40%, transparent)')
+        }
+        onBlur={(e) => (e.currentTarget.style.boxShadow = '')}
+      />
 
       {/* Dropdown */}
       {open && (
