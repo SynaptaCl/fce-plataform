@@ -12,6 +12,7 @@ import {
   Code,
   MoreHorizontal,
   Shield,
+  LogOut,
 } from "lucide-react";
 import { useClinicaSession } from "@/lib/modules/provider";
 import { QuickNoteModal } from "@/components/clinico/QuickNoteModal";
@@ -86,12 +87,17 @@ export function ActionBar({ patientId, paciente, primaryAction }: ActionBarProps
   const puedeExamenes = profesionalActivo?.puede_indicar_examenes ?? false;
   const showCondicionales = (hasM7 && puedePrescribir) || (hasM8 && puedeExamenes);
   const canSeeAudit = ["admin", "director", "superadmin"].includes(rol);
+  const hasM9 = modulosActivos.includes("M9_egresos");
+  const rolPuedeEgresar = ["profesional", "admin", "director", "superadmin"].includes(rol);
+  const estadoClinico = paciente.estado_clinico ?? "activo";
+  const puedeEgresar = hasM9 && rolPuedeEgresar && estadoClinico === "activo";
 
   const overflowItems = [
     { id: "signos-vitales", label: "Signos vitales", Icon: Activity, href: `${base}/anamnesis`, show: hasM2 },
     { id: "exportar-pdf", label: "Exportar PDF", Icon: Download, href: `${base}/exportar-pdf`, show: true },
     { id: "fhir", label: "FHIR", Icon: Code, href: `${base}/fhir`, show: true },
     { id: "auditoria", label: "Auditoría", Icon: Shield, href: `${base}/auditoria`, show: canSeeAudit },
+    { id: "egresar", label: "Egresar paciente", Icon: LogOut, href: `${base}/egreso`, show: puedeEgresar, danger: true },
   ].filter((i) => i.show);
 
   return (
@@ -199,7 +205,7 @@ export function ActionBar({ patientId, paciente, primaryAction }: ActionBarProps
                 boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
               }}
             >
-              {overflowItems.map(({ id, label, Icon, href }) => (
+              {overflowItems.map(({ id, label, Icon, href, danger }) => (
                 <Link
                   key={id}
                   href={href}
@@ -211,7 +217,7 @@ export function ActionBar({ patientId, paciente, primaryAction }: ActionBarProps
                     padding: "7px 10px",
                     borderRadius: 6,
                     fontSize: 12,
-                    color: "var(--color-ink-2, #475569)",
+                    color: danger ? "var(--color-kp-danger, #E53935)" : "var(--color-ink-2, #475569)",
                     textDecoration: "none",
                   }}
                   className="hover:bg-surface-0 hover:text-kp-accent transition-colors"

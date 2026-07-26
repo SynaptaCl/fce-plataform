@@ -9,11 +9,11 @@ import { ActionBar } from "@/components/shared/ActionBar";
 import { ClinicalTimeline } from "@/components/modules/ClinicalTimeline";
 import { SummaryPanel } from "@/components/shared/SummaryPanel";
 import { EncuentroLauncher } from "@/components/shared/EncuentroLauncher";
-import { EgresoLauncher } from "@/components/shared/EgresoLauncher";
 import { ReingresoBanner } from "@/components/shared/ReingresoBanner";
 import { getProfesionalActivo } from "@/lib/fce/profesional";
 import { getEgresosByPaciente } from "@/app/actions/egresos";
 import { ResumenIAButton } from "@/components/modules/ResumenIA";
+import { AlertBanner } from "@/components/ui/AlertBanner";
 import { logAudit } from "@/lib/audit";
 import type { PatientSummary } from "@/app/actions/timeline";
 
@@ -120,8 +120,14 @@ async function _patientDetailPage(
       .filter(Boolean)
       .join(" ") || "Sin nombre";
 
+  // No colapsar success:false al mismo "[]" silencioso que un paciente sin historial —
+  // RLS deniega fila por fila sin error explícito, así que un fallo real de acceso/consulta
+  // debe quedar visible en la UI, no leerse como "sin registros" (ver auditoría RLS 2026-07).
   const entries = timelineResult.success ? timelineResult.data.entries : [];
+  const timelineFailed = !timelineResult.success;
+  const timelineWarning = timelineResult.success ? timelineResult.data.warnings?.[0] : undefined;
   const egresos = egresosResult.success ? egresosResult.data : [];
+  const egresosFailed = !egresosResult.success;
   const egresosFirmados = egresos.filter((e) => e.firmado);
 
   const emptySummary: PatientSummary = {
@@ -171,6 +177,19 @@ async function _patientDetailPage(
 
       {/* Below-header alerts and launchers */}
       <div className="space-y-3 px-5 pt-4">
+        {/* Fallo real de consulta/permiso — distinto de "paciente sin historial" */}
+        {(timelineFailed || egresosFailed) && (
+          <AlertBanner variant="danger" title="No se pudo cargar la información clínica">
+            Ocurrió un problema al consultar el historial de este paciente. No asumas que no
+            tiene registros — recarga la página o contacta a soporte si el problema persiste.
+          </AlertBanner>
+        )}
+        {!timelineFailed && timelineWarning && (
+          <AlertBanner variant="warning" title="Historial incompleto">
+            {timelineWarning}
+          </AlertBanner>
+        )}
+
         {/* Banner de egreso — si el paciente está egresado */}
         {p.estado_clinico === "egresado" && (
           <ReingresoBanner
@@ -179,13 +198,6 @@ async function _patientDetailPage(
             tipoEgreso={egresosFirmados[0]?.tipo_egreso ?? null}
           />
         )}
-
-        {/* Egresar paciente — para roles permitidos con M9 activo */}
-        <EgresoLauncher
-          patientId={id}
-          estadoClinico={p.estado_clinico ?? "activo"}
-          rol={rol}
-        />
 
         {/*
           Grid 2 columnas:
