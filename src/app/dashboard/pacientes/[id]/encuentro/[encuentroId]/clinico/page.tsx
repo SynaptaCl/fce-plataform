@@ -168,10 +168,10 @@ export default async function ClinicoPage({
                 planActivo={planActivo}
               />
             )}
-            {profesional?.puede_prescribir && (
+            {profesional?.puede_prescribir && config?.modulosActivos.includes("M7_prescripciones") && (
               <PrescripcionLauncher patientId={patient.id} encuentroId={encuentroId} paciente={patient} />
             )}
-            {profesional?.puede_indicar_examenes && (
+            {profesional?.puede_indicar_examenes && config?.modulosActivos.includes("M8_examenes") && (
               <OrdenExamenLauncher patientId={patient.id} encuentroId={encuentroId} paciente={patient} />
             )}
           </div>
