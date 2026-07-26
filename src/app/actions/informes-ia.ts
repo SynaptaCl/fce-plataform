@@ -8,6 +8,7 @@ import { requireAccesoFCE } from '@/lib/modules/guards'
 import type { ActionResult } from '@/lib/modules/guards'
 import type { TipoInforme } from '@/types/informe'
 import { logAudit } from '@/lib/audit'
+import { iaRateLimit } from '@/lib/rate-limit'
 import { seudonimizarTexto } from '@/lib/ia/sanitize-pii'
 import { fetchPiiPaciente } from '@/lib/ia/pii-paciente'
 import type { PIIPaciente } from '@/lib/ia/sanitize-pii'
@@ -58,7 +59,13 @@ export async function estructurarInforme(
 
   const idClinica = admin.id_clinica
 
-  // 3. Validar contenido
+  // 3. Rate limit (protege contra loops de UI / abuso con sesión comprometida)
+  const rl = iaRateLimit('informes', user.id, 10, 60_000)
+  if (!rl.allowed) {
+    return { success: false, error: 'Demasiadas solicitudes de informe. Espera un momento e inténtalo de nuevo.' }
+  }
+
+  // 4. Validar contenido
   const contenidoTrimmed = contenido.trim()
   if (!contenidoTrimmed) {
     return { success: false, error: 'Escribe contenido antes de usar el copiloto' }
@@ -70,7 +77,7 @@ export async function estructurarInforme(
     }
   }
 
-  // 4. Si hay encuentro, validar que pertenece a la clínica
+  // 5. Si hay encuentro, validar que pertenece a la clínica
   let idPaciente: string | null = null
   if (idEncuentro) {
     const { data: encuentro, error: encuentroError } = await supabase
@@ -88,7 +95,7 @@ export async function estructurarInforme(
     idPaciente = encuentro.id_paciente
   }
 
-  // 5. Llamada Anthropic
+  // 6. Llamada Anthropic
   // Seudonimizar contenido Y destinatario. Si hay paciente, con su PID; si no, solo genéricos.
   const pii: PIIPaciente = idPaciente ? await fetchPiiPaciente(supabase, idPaciente) : {}
   const tipoLabel = TIPO_LABELS[tipo]
@@ -127,7 +134,7 @@ Responde SOLO con el texto del informe mejorado, sin preámbulos ni comentarios 
     return { success: false, error: 'Error generando el informe. Intenta nuevamente.' }
   }
 
-  // 6. Audit log (service_role para bypasear RLS en logs_auditoria)
+  // 7. Audit log (service_role para bypasear RLS en logs_auditoria)
   const serviceClient = createServiceClient()
   await logAudit({
     supabase: serviceClient,

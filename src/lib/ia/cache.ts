@@ -3,13 +3,27 @@ import { SupabaseClient } from '@supabase/supabase-js'
 import type { ContextoClinico } from './contexto-clinico'
 import type { ReporteIA } from '@/types/resumen-ia'
 
+/**
+ * Serializa las 7 secciones extraídas (no `alertas` — se deriva de las otras, sin query
+ * propia; ver contexto-clinico.ts) con prefijo de versión explícito. El prefijo `v2:`
+ * hace la invalidación de filas cacheadas con el hash viejo (4 campos, sin prefijo) una
+ * decisión intencional, no accidental — auditoría RLS 2026-07, Fase 2 punto C.
+ *
+ * Determinismo: todos los arrays dentro de cada sección vienen de queries con `.order()`
+ * explícito (o de un único row jsonb estable, caso de `anamnesis`), así que el mismo
+ * estado de DB produce siempre el mismo JSON.stringify — ver extraccion/*.ts.
+ */
 export function calcularContextoHash(contexto: ContextoClinico): string {
-  const input = [
-    contexto.evolucion.ultima_sesion ?? '',
-    String(contexto.medicacion.prescripciones_activas.length),
-    String(contexto.examenes.pendientes.length),
-    (contexto.anamnesis.motivo_consulta ?? '').substring(0, 20),
-  ].join('|')
+  const payload = {
+    demografico: contexto.demografico,
+    anamnesis: contexto.anamnesis,
+    signos_vitales: contexto.signos_vitales,
+    medicacion: contexto.medicacion,
+    evolucion: contexto.evolucion,
+    examenes: contexto.examenes,
+    instrumentos: contexto.instrumentos,
+  }
+  const input = 'v2:' + JSON.stringify(payload)
   return createHash('sha256').update(input).digest('hex').substring(0, 16)
 }
 

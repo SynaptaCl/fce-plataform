@@ -171,7 +171,7 @@ type InstrumentoAplicadoRow = {
 
 export async function getPatientTimeline(
   patientId: string
-): Promise<ActionResult<{ entries: TimelineEntry[]; summary: PatientSummary }>> {
+): Promise<ActionResult<{ entries: TimelineEntry[]; summary: PatientSummary; warnings?: string[] }>> {
   const { supabase, user } = await requireAuth();
 
   const idClinica = await getIdClinica(supabase, user.id);
@@ -259,6 +259,33 @@ export async function getPatientTimeline(
       .eq("id_clinica", idClinica)
       .order("created_at", { ascending: false }),
   ]);
+
+  // RLS deniega fila por fila sin lanzar error — pero un fallo real de query (no simplemente
+  // "cero filas") sí devuelve `.error`. Detectarlo evita que una sección bloqueada por
+  // RLS/permiso se muestre indistinguible de "no hay registros" (ver auditoría RLS 2026-07).
+  const subqueries: Array<{ label: string; error: { message?: string } | null }> = [
+    { label: "soap", error: soapRes.error },
+    { label: "evaluaciones", error: evalRes.error },
+    { label: "signos_vitales", error: vitalsRes.error },
+    { label: "consentimientos", error: consentRes.error },
+    { label: "anamnesis", error: anamnesisRes.error },
+    { label: "notas_clinicas", error: notasRes.error },
+    { label: "instrumentos", error: instrumentosRes.error },
+    { label: "prescripciones", error: prescripcionesRes.error },
+    { label: "ordenes_examen", error: ordenesExamenRes.error },
+    { label: "egresos", error: egresosRes.error },
+    { label: "planes_intervencion", error: planesRes.error },
+    { label: "adendas", error: adendaRes.error },
+  ];
+  const failedSections = subqueries.filter((s) => s.error).map((s) => s.label);
+  if (failedSections.length > 0) {
+    log("warn", {
+      action: "timeline_subquery_partial_failure",
+      id_clinica: idClinica,
+      id_paciente: patientId,
+      detail: failedSections.join(","),
+    });
+  }
 
   // Batch-fetch encuentros for SOAP notes AND notas_clinicas to get especialidad
   const soapEncIds = ((soapRes.data ?? []) as SoapNote[])
@@ -798,7 +825,17 @@ export async function getPatientTimeline(
       : null,
   };
 
-  return { success: true, data: { entries, summary } };
+  return {
+    success: true,
+    data: {
+      entries,
+      summary,
+      warnings:
+        failedSections.length > 0
+          ? ["No se pudieron cargar todas las secciones del historial clínico. Intenta de nuevo o contacta a soporte."]
+          : undefined,
+    },
+  };
 }
 
 // ── TimelineEntryClinico ────────────────────────────────────────────────────

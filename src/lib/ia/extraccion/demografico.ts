@@ -1,5 +1,6 @@
 import { differenceInYears } from 'date-fns'
 import { SupabaseClient } from '@supabase/supabase-js'
+import { isRealDbError } from './db-error'
 
 export interface DemograficoResult {
   edad: number | null
@@ -29,6 +30,10 @@ export async function extraerDemografico(
       .limit(1)
       .single(),
   ])
+
+  if (isRealDbError(pacienteRes.error) || isRealDbError(primeraAtencionRes.error)) {
+    throw new Error('extraerDemografico: query failed')
+  }
 
   const p = pacienteRes.data
   if (!p) return { edad: null, sexo: null, prevision: null, fecha_primera_atencion: null }

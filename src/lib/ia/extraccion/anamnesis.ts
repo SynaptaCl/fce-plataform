@@ -1,4 +1,5 @@
 import { SupabaseClient } from '@supabase/supabase-js'
+import { isRealDbError } from './db-error'
 
 export interface AnamnesisResult {
   motivo_consulta: string | null
@@ -13,7 +14,7 @@ export async function extraerAnamnesis(
   idPaciente: string,
   idClinica: string
 ): Promise<AnamnesisResult> {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('fce_anamnesis')
     .select('motivo_consulta, antecedentes_medicos, alergias, farmacologia, habitos')
     .eq('id_paciente', idPaciente)
@@ -21,6 +22,8 @@ export async function extraerAnamnesis(
     .order('created_at', { ascending: false })
     .limit(1)
     .single()
+
+  if (isRealDbError(error)) throw new Error('extraerAnamnesis: query failed')
 
   if (!data) return { motivo_consulta: null, antecedentes_medicos: null, alergias: null, farmacologia_cronica: null, habitos: null }
 

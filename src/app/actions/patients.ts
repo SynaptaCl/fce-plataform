@@ -7,6 +7,7 @@ import { formatRut, cleanRut } from "@/lib/run-validator";
 import type { Patient, PacienteClinico, CitaAgenda } from "@/types";
 import { requireAuth, requireContext } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
+import { log } from "@/lib/logger";
 
 // ── Tipos de respuesta ─────────────────────────────────────────────────────
 
@@ -18,11 +19,17 @@ export type ActionResult<T = void> =
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export async function getIdClinica(supabase: any, userId: string): Promise<string | null> {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("admin_users")
     .select("id_clinica")
     .eq("auth_id", userId)
     .single();
+  // PGRST116 = sin filas — caso legítimo (usuario auth sin admin_users, DB compartida con synapta).
+  // Cualquier otro error es un fallo real de consulta/permiso que debe quedar en Sentry,
+  // no colapsarse silenciosamente al mismo `null` que "sin clínica".
+  if (error && error.code !== "PGRST116") {
+    log("error", { action: "get_id_clinica_query_failed", error });
+  }
   return (data?.id_clinica as string) ?? null;
 }
 

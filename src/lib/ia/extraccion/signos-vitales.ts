@@ -1,4 +1,5 @@
 import { SupabaseClient } from '@supabase/supabase-js'
+import { isRealDbError } from './db-error'
 
 export interface SignosVitalesResult {
   ultimo_registro: string | null
@@ -16,11 +17,13 @@ export async function extraerSignosVitales(
   idPaciente: string,
   idClinica: string
 ): Promise<SignosVitalesResult> {
-  const { data: encuentros } = await supabase
+  const { data: encuentros, error: encuentrosError } = await supabase
     .from('fce_encuentros')
     .select('id')
     .eq('id_paciente', idPaciente)
     .eq('id_clinica', idClinica)
+
+  if (isRealDbError(encuentrosError)) throw new Error('extraerSignosVitales: encuentros query failed')
 
   const encuentroIds = (encuentros ?? []).map((e: { id: string }) => e.id)
 
@@ -28,13 +31,15 @@ export async function extraerSignosVitales(
     return { ultimo_registro: null, fc_promedio: null, pa_sistolica_promedio: null, pa_diastolica_promedio: null, spo2_minimo: null, temp_ultimo: null, total_registros: 0, alertas_vitales: [] }
   }
 
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('fce_signos_vitales')
     .select('presion_arterial, frecuencia_cardiaca, spo2, temperatura, recorded_at')
     .eq('id_paciente', idPaciente)
     .in('id_encuentro', encuentroIds)
     .order('recorded_at', { ascending: false })
     .limit(5)
+
+  if (error) throw new Error('extraerSignosVitales: signos_vitales query failed')
 
   if (!data || data.length === 0) {
     return { ultimo_registro: null, fc_promedio: null, pa_sistolica_promedio: null, pa_diastolica_promedio: null, spo2_minimo: null, temp_ultimo: null, total_registros: 0, alertas_vitales: [] }

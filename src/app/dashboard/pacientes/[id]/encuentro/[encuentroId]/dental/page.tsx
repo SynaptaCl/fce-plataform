@@ -10,6 +10,7 @@ import { getPlanActivo } from "@/app/actions/dental/plan-tratamiento";
 import { getProcedimientosCatalogo } from "@/app/actions/dental/procedimientos";
 import { getPeriograma } from "@/app/actions/dental/periograma";
 import { getOdontograma } from "@/app/actions/dental/odontograma";
+import { AlertBanner } from "@/components/ui/AlertBanner";
 
 function calcularDenticion(fechaNacimiento: string | null): "adulto" | "nino" | "mixta" {
   if (!fechaNacimiento) return "adulto";
@@ -73,6 +74,13 @@ export default async function DentalPage({
   const planInicial = planResult.success ? planResult.data : null;
   const catalogo = catalogoResult.success ? catalogoResult.data : [];
   const piezasIniciales = piezasResult.success ? piezasResult.data : [];
+  // No colapsar un fallo de consulta al mismo estado vacío que "sin registro dental aún" —
+  // en este workspace un falso "vacío" puede llevar a sobrescribir un odontograma/plan existente.
+  const hasLoadFailures =
+    !notaResult.success ||
+    !periogramaResult.success ||
+    !planResult.success ||
+    !piezasResult.success;
   const encuentroFinalizado = encuentro.status === "finalizado";
   const readOnly = encuentroFinalizado || (nota?.firmado ?? false);
   const denticionInicial = calcularDenticion(patient.fecha_nacimiento ?? null);
@@ -80,6 +88,14 @@ export default async function DentalPage({
   return (
     <div className="space-y-4">
       <PatientHeader patient={patient} hasConsent={false} patientId={id} />
+
+      {hasLoadFailures && (
+        <AlertBanner variant="danger" title="No se pudo cargar todo el registro dental">
+          Falló la carga de una o más secciones (nota, periograma, plan de tratamiento u
+          odontograma). No asumas que están vacías — recarga antes de continuar para evitar
+          sobrescribir información existente.
+        </AlertBanner>
+      )}
 
       <DentalWorkspace
         paciente={patient}

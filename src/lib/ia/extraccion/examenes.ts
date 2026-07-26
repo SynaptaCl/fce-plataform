@@ -1,5 +1,6 @@
 import { SupabaseClient } from '@supabase/supabase-js'
 import { differenceInDays } from 'date-fns'
+import { isRealDbError } from './db-error'
 
 export interface ExamenesResult {
   pendientes: Array<{
@@ -22,13 +23,15 @@ export async function extraerExamenes(
   idPaciente: string,
   idClinica: string
 ): Promise<ExamenesResult> {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('fce_ordenes_examen')
     .select('examenes, estado_resultados, created_by, created_at')
     .eq('id_paciente', idPaciente)
     .eq('id_clinica', idClinica)
     .eq('firmado', true)
     .order('created_at', { ascending: false })
+
+  if (isRealDbError(error)) throw new Error('extraerExamenes: query failed')
 
   if (!data || data.length === 0) {
     return { pendientes: [], completados_count: 0 }

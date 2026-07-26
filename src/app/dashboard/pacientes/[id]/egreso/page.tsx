@@ -4,6 +4,7 @@ import { getClinicaConfigFromSession } from "@/lib/modules/config";
 import { getEgresosByPaciente } from "@/app/actions/egresos";
 import { getPatientById } from "@/app/actions/patients";
 import { EgresoForm } from "@/components/shared/EgresoForm";
+import { AlertBanner } from "@/components/ui/AlertBanner";
 
 export default async function EgresoPage({
   params,
@@ -44,6 +45,13 @@ export default async function EgresoPage({
             : "Nuevo egreso clínico"}
         </p>
       </div>
+
+      {!egresoResult.success && (
+        <AlertBanner variant="danger" title="No se pudo verificar el estado de egreso">
+          No se pudo consultar si ya existe un egreso en curso para este paciente — no asumas
+          que no lo hay. Recarga la página antes de continuar para evitar registros duplicados.
+        </AlertBanner>
+      )}
 
       <EgresoForm patientId={id} egresoExistente={egresoActivo} />
     </div>

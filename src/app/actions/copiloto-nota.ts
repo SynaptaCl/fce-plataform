@@ -11,6 +11,7 @@ import type { ActionResult } from '@/lib/modules/guards'
 import type { EstructurarNotaInput, BorradorNota } from '@/lib/ia/copiloto-nota/types'
 import { logAudit } from '@/lib/audit'
 import { log } from '@/lib/logger'
+import { iaRateLimit } from '@/lib/rate-limit'
 import { seudonimizarTexto } from '@/lib/ia/sanitize-pii'
 import { fetchPiiPaciente } from '@/lib/ia/pii-paciente'
 
@@ -45,7 +46,13 @@ export async function estructurarNota(
     return { success: false, error: 'Sin permiso para acceder a la FCE' }
   }
 
-  // 3. Validar bullets
+  // 3. Rate limit (protege contra loops de UI / abuso con sesión comprometida)
+  const rl = iaRateLimit('copiloto', user.id, 10, 60_000)
+  if (!rl.allowed) {
+    return { success: false, error: 'Demasiadas solicitudes al copiloto. Espera un momento e inténtalo de nuevo.' }
+  }
+
+  // 4. Validar bullets
   const bulletsTrimmed = bullets.trim()
   if (!bulletsTrimmed) {
     return { success: false, error: 'Escribe algunos apuntes antes de usar el copiloto' }
@@ -54,7 +61,7 @@ export async function estructurarNota(
     return { success: false, error: `Los apuntes superan el máximo permitido (${MAX_BULLETS_LENGTH} caracteres)` }
   }
 
-  // 4. Leer encuentro: especialidad + validar status + validar clínica
+  // 5. Leer encuentro: especialidad + validar status + validar clínica
   const { data: encuentro, error: encuentroError } = await supabase
     .from('fce_encuentros')
     .select('id, id_paciente, especialidad, status, id_clinica')
@@ -71,7 +78,7 @@ export async function estructurarNota(
     return { success: false, error: 'El encuentro ya no está en progreso' }
   }
 
-  // 5. Llamada Anthropic
+  // 6. Llamada Anthropic
   // Choke point: seudonimizar los apuntes con la PII del paciente del encuentro antes de salir.
   const pii = await fetchPiiPaciente(supabase, encuentro.id_paciente)
   const bulletsSeguros = seudonimizarTexto(bulletsTrimmed, pii)
@@ -119,7 +126,7 @@ export async function estructurarNota(
     return { success: false, error: 'Error generando la nota. Intenta nuevamente.' }
   }
 
-  // 6. Audit log (service_role para bypasear RLS en logs_auditoria)
+  // 7. Audit log (service_role para bypasear RLS en logs_auditoria)
   const serviceClient = createServiceClient()
   await logAudit({
     supabase: serviceClient,

@@ -2,6 +2,7 @@ import { SupabaseClient } from '@supabase/supabase-js'
 import { differenceInDays } from 'date-fns'
 import { stripHtml } from '@/lib/utils'
 import { sanitizeRutFromText } from '@/lib/ia/sanitize-pii'
+import { isRealDbError } from './db-error'
 
 export interface EvolucionResult {
   total_sesiones: number
@@ -47,6 +48,10 @@ export async function extraerEvolucion(
       .order('created_at', { ascending: false })
       .limit(10),
   ])
+
+  if (isRealDbError(encuentrosRes.error) || isRealDbError(notasClinicasRes.error) || isRealDbError(notasSoapRes.error)) {
+    throw new Error('extraerEvolucion: query failed')
+  }
 
   const encuentros = encuentrosRes.data ?? []
   const total_sesiones = encuentros.length

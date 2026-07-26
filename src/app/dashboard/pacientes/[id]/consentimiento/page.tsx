@@ -7,6 +7,7 @@ import { getClinicaConfigFromSession } from "@/lib/modules/config";
 import { getPatientById } from "@/app/actions/patients";
 import { getConsentimientos } from "@/app/actions/consentimiento";
 import { Card } from "@/components/ui/Card";
+import { AlertBanner } from "@/components/ui/AlertBanner";
 import { ConsentManager } from "@/components/shared/ConsentManager";
 import { calculateAge, formatRut } from "@/lib/utils";
 
@@ -80,6 +81,13 @@ export default async function ConsentimientoPage({
           </p>
         </div>
       </div>
+
+      {!consentResult.success && (
+        <AlertBanner variant="danger" title="No se pudieron cargar los consentimientos">
+          Esto no significa que el paciente no tenga consentimientos registrados — ocurrió un
+          problema al consultarlos. Recarga la página o contacta a soporte.
+        </AlertBanner>
+      )}
 
       {/* Módulo */}
       <Card className="p-6">

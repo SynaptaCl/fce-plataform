@@ -1,4 +1,5 @@
 import { SupabaseClient } from '@supabase/supabase-js'
+import { isRealDbError } from './db-error'
 
 export interface MedicacionResult {
   prescripciones_activas: Array<{
@@ -25,13 +26,15 @@ export async function extraerMedicacion(
   idPaciente: string,
   idClinica: string
 ): Promise<MedicacionResult> {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('fce_prescripciones')
     .select('medicamentos, firmado_at, prof_nombre_snapshot')
     .eq('id_paciente', idPaciente)
     .eq('id_clinica', idClinica)
     .eq('firmado', true)
     .order('created_at', { ascending: false })
+
+  if (isRealDbError(error)) throw new Error('extraerMedicacion: query failed')
 
   if (!data || data.length === 0) {
     return { prescripciones_activas: [], prescripciones_historicas_count: 0 }

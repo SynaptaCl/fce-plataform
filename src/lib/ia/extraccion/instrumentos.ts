@@ -1,4 +1,5 @@
 import { SupabaseClient } from '@supabase/supabase-js'
+import { isRealDbError } from './db-error'
 
 export interface InstrumentosResult {
   aplicaciones: Array<{
@@ -22,12 +23,14 @@ export async function extraerInstrumentos(
   idPaciente: string,
   idClinica: string
 ): Promise<InstrumentosResult> {
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from('instrumentos_aplicados')
     .select('id_instrumento, puntaje_total, interpretacion, aplicado_at, instrumentos_valoracion(nombre)')
     .eq('id_paciente', idPaciente)
     .eq('id_clinica', idClinica)
     .order('aplicado_at', { ascending: true })
+
+  if (isRealDbError(error)) throw new Error('extraerInstrumentos: query failed')
 
   if (!data || data.length === 0) return { aplicaciones: [] }
 
