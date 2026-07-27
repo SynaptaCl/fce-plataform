@@ -61,11 +61,13 @@ const nextConfig: NextConfig = {
 };
 
 export default withSentryConfig(nextConfig, {
-  org: "synapta",
-  project: "fce-plataform",
+  org: process.env.SENTRY_ORG ?? "synapta-spa",
+  project: process.env.SENTRY_PROJECT ?? "fce-plataform",
   silent: !process.env.CI,
   widenClientFileUpload: true,
   sourcemaps: {
     deleteSourcemapsAfterUpload: true,
+    // Si no hay token, no se intenta subir (evita que un build caiga por token caduco).
+    ...(process.env.SENTRY_AUTH_TOKEN ? {} : { disable: true }),
   },
 });
