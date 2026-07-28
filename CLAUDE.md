@@ -1,6 +1,6 @@
 # CLAUDE.md — FCE Platform (fce-plataform)
 
-> Última actualización: 2026-07-03 (Estándar next/image obligatorio para imágenes de UI)
+> Última actualización: 2026-07-27 (SEC-1 mergeado, proxy.ts con CSP nonce, sprints A0/A1 adendas, DX1/DX2 diagnóstico condicional, Sentry org slug)
 > Este documento es la fuente de verdad para Claude Code. Leerlo antes de cualquier cambio.
 
 ---
@@ -34,7 +34,7 @@
 
 | Paquete | Versión |
 |---|---|
-| Next.js (Turbopack) | 16.2.3 |
+| Next.js (Turbopack) | 16.2.6 |
 | React | 19.2.4 |
 | TypeScript | strict |
 | Tailwind | v4 |
@@ -76,6 +76,10 @@ Deploy: Vercel. Supabase project: `vigyhfpwyxihrjiygfsa` (sa-east-1).
 18. **Personalización por especialidad = `getEspecialidadConfig(esp)`** — NUNCA `if (especialidad === '...')` en componentes. La fuente única de verdad es `src/lib/modules/especialidad-config.ts`.
 19. **Validar especialidad antes de INSERT/UPDATE en `profesionales`** — usar `crearProfesional`/`actualizarProfesional` de `src/app/actions/profesionales.ts` que validan contra `especialidades_catalogo` DB.
 20. **Toda imagen de UI usa `next/image`** — nunca `<img>` crudo, salvo PdfViews (html2pdf.js incompatible) y firma dataURL. Ver sección 9 "Imágenes — next/image obligatorio".
+21. **`proxy.ts` (Next 16, antes `middleware.ts`)** — setea CSP con nonce por-request, headers de seguridad (HSTS, X-Frame-Options DENY, X-Content-Type-Options, Referrer-Policy, Permissions-Policy) y gate optimista de auth para `/dashboard`. El nonce + CSP deben inyectarse en los **request headers** (`NextResponse.next({ request: { headers } })`) para que Next.js los aplique a los scripts de hidratación — si solo van en el response, React no se hidrata y los `<form>` se envían como GET nativo.
+22. **Server Actions usan `requireContext()` / `requireAuth()` de `src/lib/auth.ts`** — NUNCA duplicar inline. Toda escritura loguea con `logAudit()` de `src/lib/audit.ts` (que hace el INSERT directo y lleva `tipoEvento` semántico).
+23. **`logAudit()` nunca lanza** — fire-and-forget con fallback a `console.error("[FCE] audit log failed:", ...)`. Los errores de audit no deben romper el flujo clínico. PII prohibido en logs (solo UUIDs).
+24. **`getIdClinica()` de `patients.ts` está deprecado** — usar `requireContext()` que retorna `idClinica` (+ rol + profesionalId + especialidad) en una sola llamada. Ver sección 9 "Auth/Context — requireContext()".
 
 ---
 
@@ -141,7 +145,8 @@ El workspace dental vive en `/encuentro/[encuentroId]/dental/page.tsx` y usa `De
 | M9_egresos | `fce_egresos` | beta | no |
 | M10_plan_intervencion | `fce_planes_intervencion`, `fce_plan_objetivos`, `fce_plan_progreso`, `plantillas_dominios` | beta | no |
 | M11_presupuestos | `fce_presupuestos`, `fce_presupuesto_items` | beta | no |
-| M12_informes | `fce_informes` | beta | no |
+| M12_informes | `fce_informes` | estable | no |
+| M13_adendas | `fce_adendas` | beta | no |
 
 ---
 
@@ -167,7 +172,13 @@ Para columnas exactas consultar `docs/schema-real.md` o MCP Supabase.
 
 **Foreign keys**: siempre español con prefijo `id_` (id_paciente, id_encuentro, id_clinica — NO patient_id)
 
-**`logs_auditoria` campos**: actor_id, actor_tipo, accion, tabla_afectada, registro_id, id_clinica (nullable), id_paciente (nullable)
+**`logs_auditoria` campos**: actor_id, actor_tipo, accion, tabla_afectada, registro_id, id_clinica (nullable), id_paciente (nullable). **Sprint A0 (2026-06-14)** extendió la tabla: `tipo_evento` (enum semántico: create/update/delete/sign/read_ficha/export_pdf/export_epicrisis/create_adenda/create_errata/create_anulacion/errata_post_ventana/login/ia_copiloto/ia_resumen/ia_informe/config_update), `session_id` (correlación de visita), índices `idx_audit_actor_fecha` + `idx_audit_tipo_evento`.
+
+**`fce_adendas`** (Sprint A0, 2026-06-14) — tabla polimórfica para adendas/erratas/anulaciones de cualquier documento firmable (soap, nota_clinica, periograma, egreso, prescripcion, orden_examen, consentimiento). Columnas: id, id_clinica, id_paciente, id_encuentro, `tipo_documento` + `id_documento` (ref polimórfica), `tipo_adenda` (adenda|errata|anulacion), motivo, contenido, `override_director` + `override_motivo` + `override_por` (errata >72h o anulación), firmado/firmado_at/firmado_por, created_by/created_at/updated_at. RLS + trigger `trg_block_update_signed_adenda` (inmutable post-firma). Ver sección 24 "Adendas".
+
+**`fce_notas_soap`** (Sprint A0) — agregadas `created_by uuid` (profesionales.id del autor) y `updated_at timestamptz`. La data pre-A0 fue truncada por `20260614_04` — no requiere backfill.
+
+**`fce_consentimientos`** (Sprint A0) — agregada `updated_at` + trigger `trg_block_update_signed_consent` (inmutabilidad post-firma, antes faltaba).
 
 ---
 
@@ -178,6 +189,41 @@ Para columnas exactas consultar `docs/schema-real.md` o MCP Supabase.
 const { data: { user } } = await supabase.auth.getUser(); // ✅
 // supabase.auth.getSession() ← ❌ no valida JWT
 ```
+
+### Auth/Context — requireContext() + logAudit() (Sprint A0, 2026-07)
+Los helpers centrales viven en `src/lib/auth.ts` y `src/lib/audit.ts`. **Nunca duplicar inline**.
+```typescript
+import { requireAuth, requireContext } from "@/lib/auth";
+import { logAudit, type TipoEvento } from "@/lib/audit";
+
+// Action de lectura simple:
+const { supabase, user } = await requireAuth();
+
+// Action clínica (necesita clínica + rol + profesional):
+const { supabase, user, idClinica, rol, profesionalId, especialidad } = await requireContext();
+
+// Toda escritura loguea — tipoEvento semántico obligatorio:
+await logAudit({
+  supabase, actorId: user.id, accion: "firmar_nota_clinica",
+  tipoEvento: "sign", tablaAfectada: "fce_notas_clinicas",
+  registroId: nota.id, idClinica, idPaciente: nota.id_paciente,
+});
+```
+`requireContext()` reemplaza el patrón de 5 pasos (getUser → admin_users → getProfesionalActivo → ...) que estaba duplicado en ~23 actions. `logAudit()` hace el INSERT directo (el helper anterior solo construía el objeto) y es fire-and-forget.
+
+### Proxy / CSP nonce (Next 16, antes middleware)
+`src/proxy.ts` es el proxy de Next 16 (convención que reemplaza `middleware.ts`). Tres responsabilidades: refresh de sesión Supabase, gate optimista de auth (`/dashboard` sin cookie `sb-*` → redirect `/login`), y CSP con nonce por-request.
+```typescript
+// CRÍTICO: el nonce + CSP deben viajar en los REQUEST headers para que
+// Next.js los aplique a scripts de hidratación durante el SSR.
+const requestHeaders = new Headers(request.headers);
+requestHeaders.set("x-nonce", nonce);
+requestHeaders.set("Content-Security-Policy", csp);
+let response = NextResponse.next({ request: { headers: requestHeaders } });
+// ... y también en el response final:
+response.headers.set("Content-Security-Policy", csp);
+```
+Si el CSP se setea solo en el response, los scripts de Next.js quedan sin nonce, el CSP los bloquea, React no se hidrata y los `<form>` se envían como GET nativo (bug real detectado 2026-07-27 en el login). Headers de seguridad estáticos (HSTS, X-Frame-Options DENY, etc.) viven en `next.config.ts` `headers()`.
 
 ### Rol autoritativo desde admin_users, nunca profesionales
 ```typescript
@@ -223,8 +269,10 @@ const instrumentosSugeridos = servicioCtx?.instrumentosSugeridos ?? espConfig.in
 ```typescript
 interface EspecialidadConfig {
   // ... campos anteriores ...
-  tieneCalculoIMC?: boolean;  // Si true: NotaClinicaForm calcula IMC automático desde peso_kg/talla_cm
-  secciones: SeccionNota[];   // Secciones estructuradas por especialidad (P2: campos tipados)
+  tieneCalculoIMC?: boolean;    // Si true: NotaClinicaForm calcula IMC automático desde peso_kg/talla_cm
+  tieneAntropometria?: boolean; // Si true: AntropometriaPanel embebido en workspace (N1: solo Nutrición)
+  diagnostico?: DiagnosticoConfig;  // DX1/DX2: bloque ICD-11 condicional por especialidad
+  secciones: SeccionNota[];     // Secciones estructuradas por especialidad (P2: campos tipados)
 }
 
 // SeccionNota — tipo extendido en P2
@@ -394,6 +442,8 @@ src/app/dashboard/pacientes/[id]/encuentro/[encuentroId]/
 
 src/app/actions/
   ├── patients.ts, anamnesis.ts, consentimiento.ts, auditoria.ts
+  ├── adendas.ts         → crearAdenda + getAdendasDeDocumento (A1: adenda/errata/anulacion,
+  │                       ventana 72h, override director)
   ├── encuentros.ts       → createEncuentro + getEncuentroContext (P1: resuelve nombre servicio)
   ├── egresos.ts, timeline.ts, resumen-ia.ts
   ├── exportar-pdf.ts     → exportarFichaCompletaPdf (ficha completa Decreto 41/Ley 20.584,
@@ -484,7 +534,10 @@ src/lib/
   │   │                  alertas.ts, evolucion.ts, examenes.ts, instrumentos.ts
   │   └── copiloto-nota/ → types.ts, prompt.ts, parser.ts
   ├── supabase/       → client.ts, server.ts, service.ts (service_role), types.ts
-  └── (raíz)         → audit.ts, constants.ts, fhir-mapper.ts, validations.ts, run-validator.ts,
+  └── (raíz)         → auth.ts (requireAuth + requireContext — Sprint A0),
+                        audit.ts (logAudit con INSERT directo + tipoEvento — Sprint A0),
+                        logger.ts (log() niveles info/warn/error → Sentry),
+                        constants.ts, fhir-mapper.ts, validations.ts, run-validator.ts,
                         sanitize.ts (sprint RTE: sanitizeRichText + isRichTextHtml),
                         utils.ts (cn, formatRut/CLP/Date, calculateAge,
                           escapeHtml/stripHtml/textoPlanoAHtml — sprint RTE)
@@ -503,6 +556,18 @@ supabase/migrations/
   → 20260602_03_seed_instrumentos_nutricion.sql   (P2: pendiente validación clínica — MNA/MUST/SGA)
   → 20260606_01_version_get_clinica_ids_for_user.sql (aplicada — versiona función RLS que faltaba en repo)
   → 20260606_02_fix_rls_tenant_isolation_5_policies.sql (aplicada — 5 políticas RLS corregidas post-auditoría)
+  → 20260606_03_add_id_clinica_soap_evaluaciones.sql (aplicada — id_clinica directa en fce_notas_soap y fce_evaluaciones)
+  → 20260610_01_m11_presupuestos.sql              (M11: fce_presupuestos + fce_presupuesto_items)
+  → 20260610_02_m12_informes_clinicos.sql         (M12: fce_informes)
+  → 20260612_01_fce_antropometria.sql             (Nutri-N1: tabla fce_antropometria — aplicada)
+  → 20260612_02_fce_anamnesis_embarazo.sql        (Nutri-N2: columnas gestacionales en fce_anamnesis — aplicada)
+  → 20260612_03_antrop_edad_snapshot.sql          (snapshot de edad al aplicar antropometría)
+  → 20260614_01_uniformar_contrato_firmables.sql  (A0: created_by/updated_at en soap, trigger consentimientos)
+  → 20260614_02_refactor_logs_auditoria.sql       (A0: tipo_evento + session_id + índices en logs_auditoria)
+  → 20260614_03_create_fce_adendas.sql            (A0: tabla fce_adendas polimórfica + RLS + trigger)
+  → 20260614_04_truncate_clinical_test_data.sql   (A0: limpia data clínica de prueba; NO toca catálogos)
+  → 20260617_01_seed_instrumentos_obstetricia.sql (OB-1: 13 instrumentos obstétricos/ginecológicos + 2 especialidades)
+  → 20260618_01_fix_soap_update_withcheck_sign.sql (hotfix: separa USING/WITH CHECK en policy UPDATE de fce_notas_soap — permite firmar)
 
 scripts/
   → test-sprint-n1.ts        (smoke test manual M10)
@@ -522,17 +587,21 @@ clinics/{nuvident,renata,cenupsi}/CLAUDE.md
 npm run dev              # Desarrollo (Turbopack)
 npm run build            # Build (0 errores obligatorio)
 npm run lint             # Linting
-npm run test:sprint-r7   # Tests regresión (33 checks)
-npm run test:sprint-icd1 # Tests ICD-11 (7 checks)
-npx tsx scripts/test-sprint-n1.ts      # Smoke test M10 (requiere IDs de prueba)
-npx tsx scripts/test-sprint-p2-f1.ts  # P2-F1: códigos instrumentos en config (45 checks)
-npx tsx scripts/test-sprint-p2-f2.ts  # P2-F2: secciones estructuradas + IMC (65 checks)
-npx tsx scripts/test-sprint-p2-f3.ts  # P2-F3: TerapiaOcupacionalEval + registry (10 checks)
-npx tsx scripts/test-sprint-p2-f4.ts  # P2-F4: seed nutricional + antropometría (43 checks)
-npm run test:sprint-rte               # RTE: sanitize/stripHtml/textoPlanoAHtml (41 checks)
+npm run test:sprint-n1              # Smoke test M10 (requiere IDs de prueba)
+npm run test:sprint-p2-f1           # P2-F1: códigos instrumentos en config (45 checks)
+npm run test:sprint-p2-f2           # P2-F2: secciones estructuradas + IMC (65 checks)
+npm run test:sprint-p2-f3           # P2-F3: TerapiaOcupacionalEval + registry (10 checks)
+npm run test:sprint-p2-f4           # P2-F4: seed nutricional + antropometría (43 checks)
+npm run test:sprint-rte             # RTE: sanitize/stripHtml/textoPlanoAHtml (41 checks)
+npm run test:sprint-sec1            # SEC-1: seudonimizarTexto + sanitizeJsonbStrings (puras, sin DB)
+npm run test:sprint-n1-nutricion    # Nutri-N1: antropometría adulto
+npm run test:sprint-n2-nutricion    # Nutri-N2: z-score OMS + Atalah gestacional
+npm run test:sprint-o1-f1           # O1-F1: onboarding templates
+npm run test:sprint-o1-f2           # O1-F2: validador pre go-live
+npm run test:sprint-o1-f5           # O1-F5: self-service director
+npm run onboard:clinica             # CLI onboarding de clínica
+npm run test:resumen-ia-parcial     # Extracción de contexto clínico (sin llamada Anthropic)
 ```
-
-Otros scripts en package.json: `test:sprint-1`, `test:sprint-3`, `test:profesional`, `test:sprint-r9`, `test:sprint-r10`, `test:sprint-r11`.
 
 ---
 
@@ -597,6 +666,14 @@ Actualmente **ninguna clínica tiene fce-plataform en producción** — el repo 
 | Nutri-N1 | Antropometría adulto: tabla `fce_antropometria`, server actions, panel UI, pliegues (Durnin-Womersley/JP/Faulkner), chart evolución. Tipos TS + validaciones Zod |
 | Nutri-N2 | Z-score OMS pediátrico + curva Atalah gestacional: `zscore.ts`, `atalah.ts`, 4 datasets LMS JSON (PENDIENTE_CLINICA), columnas gestacionales en `fce_anamnesis`, modo pediátrico/gestacional en panel |
 | RTE | Rich Text Editor transversal: `RichTextEditor` (Tiptap v3) + `lib/sanitize.ts` (sanitizeRichText/isRichTextHtml) + helpers `stripHtml`/`textoPlanoAHtml`/`escapeHtml` en `utils.ts`. Campos narrativos SOAP (S/O/P/tareas) + nota clínica (contenido/plan) + secciones `texto_largo` guardan HTML sanitizado server-side (sin migration). Render HTML-aware en Timeline + PDF ficha completa; IA recibe texto plano. Test `test:sprint-rte` (41 checks) |
+| SEC-1 | Hardening de seguridad (8 vulns de auditoría multi-agente, mergeado a main 2026-07-06): guard incondicional cross-tenant en `timeline.ts`, seudonimización PII determinística (`seudonimizarTexto`), `sanitizeJsonbStrings` write-path (XSS en `fce_evaluaciones.data`), errores DB genéricos vía `dbError()`, validación estricta de tokens en `BrandingInjector`, `log()` sin narrativa clínica. Test `test:sprint-sec1` |
+| A0 | Base de auditoría + adendas: migrations `20260614_01..04` (contrato uniforme firmables, `logs_auditoria.tipo_evento`+`session_id`, tabla `fce_adendas`, truncate data de prueba). Helpers `src/lib/auth.ts` (`requireAuth`/`requireContext`) + `src/lib/audit.ts` (`logAudit` con INSERT directo). Cableado en ~23 actions |
+| A1 | UI de adendas: `actions/adendas.ts` (crearAdenda + getAdendasDeDocumento), matriz de permisos (adenda/errata/anulacion), ventana 72h, override director. Alcance A1: `soap` + `nota_clinica` (resto en A1.2) |
+| DX1 | Diagnóstico condicional por especialidad: `DiagnosticoConfig` en `especialidad-config.ts`, bloque ICD-11 visible solo a Medicina General y Odontología, fallback readonly para notas firmadas históricas |
+| DX2 | Filtro ICD-11 por capítulo WHO: `chaptersFilter` en `DiagnosticoConfig` (Psicología → cap 06 salud mental). Pasado por `buscarDiagnostico` → `searchDiagnosticos` → `DiagnosticoSearch` con fallback client-side por prefijo de código |
+| OB-1 | Seed instrumentos obstétricos/ginecológicos: `20260617_01` — 13 instrumentos (epds, bishop, epsa, vif, mrs, audit_c, lactancia_obs, atalah, alarcon_pinares, eedp, graffar) + 2 especialidades nuevas en catálogo |
+| Sentry | Integración `@sentry/nextjs`: `instrumentation.ts` + `sentry.{client,server,edge}.config.ts` + `withSentryConfig` en `next.config.ts`. Org `synapta-spa`, sourcemaps gateados por `SENTRY_AUTH_TOKEN`. `log()` en `lib/logger.ts` envía `error` a Sentry |
+| Proxy/CSP | `src/proxy.ts` (Next 16, antes middleware) con CSP nonce por-request + headers de seguridad + gate optimista auth. Bug histórico (2026-07-27): el nonce debe viajar en **request headers** para que Next.js aplique a scripts de hidratación |
 
 ### Pendientes
 
@@ -645,11 +722,11 @@ Actualmente **ninguna clínica tiene fce-plataform en producción** — el repo 
 | Sección "Contexto" de `TerapiaOcupacionalEval` sin campo `observaciones_contexto` — agregar si se reporta por la clínica | Baja |
 | Datasets OMS LMS (`oms-lms/*.json`) en `PENDIENTE_CLINICA` — verificar contra tablas mensuales WHO antes de activar modo pediátrico en producción | Alta |
 | Bandas Atalah en `atalah.ts` en `PENDIENTE_CLINICA` — verificar valores contra Atalah et al. 1997 original antes de activar modo gestacional en producción | Alta |
-| UI panel antropometría no implementada — panel, chart evolución y actions pendientes de frontend | Alta — Nutri-N1 |
+| ~~UI panel antropometría no implementada~~ | ✅ RESUELTO — `AntropometriaPanel.tsx` + `AntropometriaChart.tsx` + `actions/clinico/antropometria.ts`. Embebido en workspace vía `getEspecialidadConfig(esp).tieneAntropometria` (N1: solo Nutrición) |
 
-#### Auditoría de seguridad SEC-1 (2026-07-06)
+#### Auditoría de seguridad SEC-1 (2026-07-06) — mergeado a main
 
-Auditoría multi-agente detectó 8 vulnerabilidades. Rama `sec-1-fixes` (pendiente de revisión/merge).
+Auditoría multi-agente detectó 8 vulnerabilidades. **Mergeado a `main` en commits 2026-07-06** (be02047, 84dc8be, 784e478, 77dc989, f035b24, 791081c).
 
 | Vuln | Estado |
 |---|---|
@@ -659,11 +736,20 @@ Auditoría multi-agente detectó 8 vulnerabilidades. Rama `sec-1-fixes` (pendien
 | ~~Errores raw de Postgres al cliente (~82 sitios)~~ | ✅ SEC-1 FIX 4 — `dbError()` genérico |
 | ~~CSS breakout en `BrandingInjector`~~ | ✅ SEC-1 FIX 5 — validación `COLOR_RE` por token |
 | ~~Narrativa clínica en console logs~~ | ✅ SEC-1 FIX 6 — `log()` con metadata segura |
-| CSP `unsafe-inline`/`unsafe-eval` en `next.config.ts` | Pendiente — SEC-2 (requiere nonces + testing Turbopack) |
-| Inyección `.or()` PostgREST en catálogos (examenes/medicamentos) | Pendiente — SEC-2 (impacto acotado a catálogos globales) |
-| `middleware.ts` para refresh de sesión Supabase (no existe) | Pendiente — SEC-2 (cambio estructural) |
+| ~~CSP `unsafe-inline`/`unsafe-eval` en `next.config.ts`~~ | ✅ RESUELTO — `src/proxy.ts` con CSP nonce por-request (elimina `unsafe-inline`) |
+| ~~`middleware.ts` para refresh de sesión Supabase (no existe)~~ | ✅ RESUELTO — `src/proxy.ts` (Next 16) hace refresh + gate auth + CSP |
+| Inyección `.or()` PostgREST en catálogos (examenes/medicamentos) | Pendiente — impacto acotado a catálogos globales |
 | Periograma sin guard `id_clinica` en capa app (solo RLS) | Media — verificar RLS + agregar `.eq(id_clinica)` |
-| `getIdClinica` no filtra `activo=true` (backstopeado por RLS) | Baja — alinear con `requireContext` |
+| ~~`getIdClinica` no filtra `activo=true`~~ | ✅ RESUELTO — `requireContext()` (A0) reemplaza el patrón; `getIdClinica` deprecado |
+
+#### Auditoría HTTP (2026-06-10) — `clinics/INFORME-SEGURIDAD-HTTP-FCE-2026-06-10.md`
+
+| Hallazgo | Estado |
+|---|---|
+| ~~0 de 7 headers de seguridad configurados~~ | ✅ RESUELTO — `next.config.ts` `headers()` + `src/proxy.ts` (HSTS, X-Frame-Options DENY, X-Content-Type-Options, Referrer-Policy, Permissions-Policy, CSP nonce) |
+| Source maps / secretos en cliente | ✅ OK (sin hallazgos — `productionBrowserSourceMaps` default false, Sentry borra `.map` tras upload) |
+| Rate limiting inexistente (3 acciones IA + ICD sin auth) | Pendiente — riesgo financiero IA (~US$2.100/h en loop); ICD ya no es anónimo-crítico pero sin throttle |
+| Server Actions ICD (`diagnostico.ts`, `cif.ts`) sin auth | Pendiente — requieren auth + límite por usuario |
 
 ---
 
@@ -1017,7 +1103,7 @@ SENTRY_AUTH_TOKEN=...             # Solo CI/Vercel — upload source maps
 ## 22. OBSERVABILIDAD
 
 ### Sentry
-Configurado en `sentry.client.config.ts`, `sentry.server.config.ts`, `sentry.edge.config.ts`. DSN en `NEXT_PUBLIC_SENTRY_DSN`. `withSentryConfig` en `next.config.ts`. `tracesSampleRate`: 0.1 en prod, 1.0 en dev.
+Configurado en `sentry.client.config.ts`, `sentry.server.config.ts`, `sentry.edge.config.ts` + `instrumentation.ts` (`register()` + `onRequestError`). DSN en `NEXT_PUBLIC_SENTRY_DSN`. `withSentryConfig` en `next.config.ts`: org `synapta-spa` (corregido desde `synapta` el 2026-07-26, commit dce2dfa), project `fce-plataform`. `tracesSampleRate`: 0.1 en prod, 1.0 en dev. Sourcemaps gateados por `SENTRY_AUTH_TOKEN` (si falta, `disable: true` — evita que un build caiga por token caduco) y `deleteSourcemapsAfterUpload: true` (no se despliegan `.map` al público).
 
 ### Logger estructurado
 Usar `log()` de `src/lib/logger.ts` en Server Actions — **nunca** `console.error` directo.
@@ -1049,3 +1135,80 @@ log("warn", { action: "cross_tenant_attempt", id_clinica: idClinica, detail: "qu
 - Repo hermano: `synapta` (landing + admin + agenda + chatbot)
 - Modelos IA: `claude-haiku-4-5-20251001` (Resumen IA) · `claude-sonnet-4-6` (Copiloto Escritura)
 - Clínicas: `clinics/nuvident/CLAUDE.md`, `clinics/renata/CLAUDE.md`, `clinics/cenupsi/CLAUDE.md`
+
+---
+
+## 24. MÓDULO ADENDAS (Sprints A0 + A1)
+
+Permite corregir o complementar una nota firmada **sin alterar la original** (Ley 20.584 / Decreto 41). Todo aditivo, todo auditable, todo visible en Timeline y PDF.
+
+### Tabla `fce_adendas` (polimórfica)
+
+Referencia cualquier documento firmable via `tipo_documento` + `id_documento`:
+`soap` · `nota_clinica` · `periograma` · `egreso` · `prescripcion` · `orden_examen` · `consentimiento`.
+
+`tipo_adenda`: `adenda` (complementar) · `errata` (corregir error) · `anulacion` (invalidar). Inmutable post-firma (`trg_block_update_signed_adenda`).
+
+### Matriz de permisos (inviolable)
+
+| Tipo | Quién puede | Ventana | Requiere `override_motivo` |
+|---|---|---|---|
+| **adenda** | Cualquier profesional con acceso al paciente | Siempre | No |
+| **errata** | Autor original | ≤72h desde `firmado_at` | No |
+| **errata** | Director / admin / superadmin | >72h | **Sí** |
+| **anulacion** | Solo director / admin / superadmin | Siempre | **Sí** |
+
+La nota original **NUNCA** se edita ni borra. La anulación marca visualmente la nota pero el contenido sigue visible.
+
+### Server action `src/app/actions/adendas.ts`
+
+```typescript
+crearAdenda({ tipoDocumento, idDocumento, idPaciente, tipoAdenda, motivo, contenido, overrideMotivo? })
+getAdendasDeDocumento(tipoDocumento, idDocumento)
+```
+
+Valida firma del original, autoría (`original.created_by === profesionalId`), rol autorizador (`ROLES_AUTORIZADORES = ["director","admin","superadmin"]`) y ventana 72h con `Date.now() - firmadoAt`. El cálculo de 72h en cliente es **solo UX** — el server revalida siempre.
+
+### Alcance A1 (actual)
+
+Cubierto: `soap` + `nota_clinica` (botón en `SoapExpandedCard` + `NotaClinicaExpandedCard`, modal `AdendaModal`, entries en Timeline, render en PDF ficha completa). Pendiente **A1.2**: extender a periograma, egreso, prescripción, orden_examen, consentimiento (la tabla ya los soporta). Pendiente **A2**: `/dashboard/auditoria` con filtros + export PDF firmado.
+
+### `tipoEvento` de auditoría
+
+`create_adenda` · `create_errata` · `create_anulacion` · `errata_post_ventana` (errata >72h con override).
+
+---
+
+## 25. DIAGNÓSTICO CONDICIONAL POR ESPECIALIDAD (Sprints DX1 + DX2)
+
+### DX1 — Bloque ICD-11 condicional
+
+El bloque de diagnóstico ICD-11 / CIE-10 **solo** se muestra a especialidades que legalmente diagnostican. Controlado por `DiagnosticoConfig` en `especialidad-config.ts`, **nunca** por `if (especialidad === '...')`.
+
+```typescript
+export interface DiagnosticoConfig {
+  tipo: 'icd11_mms' | 'ninguno';
+  label: string;
+  mostrarCIE10?: boolean;
+  chaptersFilter?: string;  // DX2: capítulos WHO separados por ";"
+}
+export interface EspecialidadConfig {
+  // ...
+  diagnostico?: DiagnosticoConfig;
+}
+```
+
+| Especialidad | `diagnostico` |
+|---|---|
+| Medicina General | `{ tipo: 'icd11_mms', label: 'Diagnóstico (ICD-11)', mostrarCIE10: true }` |
+| Odontología | `{ tipo: 'icd11_mms', label: 'Diagnóstico (ICD-11)', mostrarCIE10: true }` |
+| Psicología | `{ tipo: 'icd11_mms', chaptersFilter: '06', ... }` (DX2) |
+| Enfermería / Nutrición / demás | `undefined` → no muestra bloque ICD |
+
+En `NotaClinicaForm`: `const mostrarICD = diagnosticoConfig?.tipo === 'icd11_mms'`. Backwards-compat: si una nota firmada tiene `icd_codigos` pero la especialidad ahora es `ninguno`, se muestran como chips readonly con label "Diagnóstico registrado (histórico)". El submit **no** envía campos ICD vacíos cuando `mostrarICD === false` (evita pisar datos históricos).
+
+### DX2 — Filtro por capítulo WHO
+
+`chaptersFilter` viaja: `especialidad-config.ts` → `NotaClinicaForm` → `DiagnosticoSearch` (prop) → `searchDiagnosticos` (server action) → `buscarDiagnostico` (lib/icd) → WHO API param `chaptersFilter`.
+
+**Fallback client-side**: si la API ignora el param, `buscarDiagnostico` filtra resultados por prefijo de código (cap 06 → códigos que empiezan con `6`). Psicología busca solo en salud mental (6A00-6E8Z). Extensible a cualquier capítulo (dermatología `14`, cardiología `11`, etc.) solo tocando config.
