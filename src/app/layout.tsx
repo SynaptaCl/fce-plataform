@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import { DM_Sans, DM_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -25,11 +26,18 @@ export const metadata: Metadata = {
     "Ficha Clínica Electrónica multi-tenant — fce-plataform",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Leer headers() fuerza dynamic rendering: requisito de Next.js para que el
+  // nonce de CSP (generado por-request en src/proxy.ts) se inyecte en los
+  // <script> del framework. Sin esto, rutas sin otra fuente de dynamism
+  // (ej. /login, que no lee cookies) se prerenderizan estáticas sin nonce,
+  // el CSP bloquea el JS y React nunca hidrata.
+  await headers();
+
   return (
     <html
       lang="es-CL"
