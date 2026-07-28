@@ -6,13 +6,16 @@ import type { ICDSearchResult, ICDEntity } from "@/lib/icd/types";
 import { log } from "@/lib/logger";
 import { buscarDiagnostico } from "@/lib/icd/search";
 import { obtenerEntidad } from "@/lib/icd/entity";
+import { checkRateLimit } from "@/lib/rate-limit";
 
 /**
  * Verifica sesión + pertenencia a clínica activa antes de usar las credenciales
  * de la plataforma contra la API de la OMS. Sin esto, las actions eran un proxy
  * abierto consumible por anónimos.
  */
-async function requireClinicMember(): Promise<{ ok: true } | { ok: false; error: string }> {
+async function requireClinicMember(): Promise<
+  { ok: true; userId: string } | { ok: false; error: string }
+> {
   const supabase = await createClient();
   const { data: { user }, error } = await supabase.auth.getUser();
   if (error || !user) return { ok: false, error: "No autenticado" };
@@ -27,7 +30,7 @@ async function requireClinicMember(): Promise<{ ok: true } | { ok: false; error:
   if (!admin?.id_clinica) {
     return { ok: false, error: "Sin acceso a esta clínica" };
   }
-  return { ok: true };
+  return { ok: true, userId: user.id };
 }
 
 export async function searchDiagnosticos(
@@ -36,6 +39,11 @@ export async function searchDiagnosticos(
 ): Promise<ActionResult<ICDSearchResult[]>> {
   const auth = await requireClinicMember();
   if (!auth.ok) return { success: false, error: auth.error };
+
+  const rl = checkRateLimit(`icd:search:${auth.userId}`, 30, 60_000);
+  if (!rl.allowed) {
+    return { success: false, error: "Demasiadas búsquedas. Espera un momento e inténtalo de nuevo." };
+  }
 
   try {
     const results = await buscarDiagnostico(query, 'es', chaptersFilter);
@@ -49,6 +57,11 @@ export async function searchDiagnosticos(
 export async function getEntityDetail(entityId: string): Promise<ActionResult<ICDEntity>> {
   const auth = await requireClinicMember();
   if (!auth.ok) return { success: false, error: auth.error };
+
+  const rl = checkRateLimit(`icd:entity:${auth.userId}`, 30, 60_000);
+  if (!rl.allowed) {
+    return { success: false, error: "Demasiadas solicitudes. Espera un momento e inténtalo de nuevo." };
+  }
 
   try {
     const entity = await obtenerEntidad(entityId);
