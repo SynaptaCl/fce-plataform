@@ -41,7 +41,7 @@ export async function searchCIF(
     return { success: true, data: [] };
   }
 
-  const rl = checkRateLimit(`icd:cif:${auth.userId}`, 30, 60_000);
+  const rl = await checkRateLimit(`icd:cif:${auth.userId}`, 30, 60_000);
   if (!rl.allowed) {
     return { success: false, error: 'Demasiadas búsquedas. Espera un momento e inténtalo de nuevo.' };
   }

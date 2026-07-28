@@ -60,7 +60,7 @@ export async function estructurarInforme(
   const idClinica = admin.id_clinica
 
   // 3. Rate limit (protege contra loops de UI / abuso con sesión comprometida)
-  const rl = iaRateLimit('informes', user.id, 10, 60_000)
+  const rl = await iaRateLimit('informes', user.id, 10, 60_000)
   if (!rl.allowed) {
     return { success: false, error: 'Demasiadas solicitudes de informe. Espera un momento e inténtalo de nuevo.' }
   }

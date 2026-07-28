@@ -1,35 +1,48 @@
+import { Redis } from "@upstash/redis";
+import { Ratelimit } from "@upstash/ratelimit";
+
 /**
- * Rate limiter in-memory (sliding window) para Server Actions que consumen
- * recursos caros (Anthropic, OMS). Primera capa contra loops accidentales o
- * abuso por sesión comprometida.
+ * Rate limiter distribuido (Upstash Redis) para Server Actions que consumen
+ * recursos caros (Anthropic, OMS). Reemplaza el limiter in-memory original:
+ * ese vivía en memoria del proceso, así que en Vercel serverless
+ * multi-instancia cada instancia warm tenía su propio contador y el límite
+ * real quedaba multiplicado por el nº de instancias. Con Redis compartido
+ * el conteo es el mismo sin importar qué instancia atienda el request.
  *
- * LIMITACIÓN: el estado vive en el proceso servidor. En serverless multi-instancia
- * (Vercel) cada instancia tiene su propio contador, por lo que el límite real se
- * multiplica por el nº de instancias warm. Para un límite estricto y distribuido,
- * migrar a Upstash Ratelimit (Redis) o Vercel KV. Esta implementación ya bloquea
- * ráfagas dentro de una misma instancia, que cubre el caso típico de loop de UI.
+ * Fail-open por diseño: si Redis no responde en 5s (timeout default de la
+ * SDK), la llamada se permite — no queremos que un blip de infra bloquee
+ * el flujo clínico.
  */
 
-interface Bucket {
-  timestamps: number[];
+let _redis: Redis | null = null;
+
+function getRedis(): Redis {
+  if (!_redis) {
+    _redis = new Redis({
+      url: process.env.KV_REST_API_URL!,
+      token: process.env.KV_REST_API_TOKEN!,
+    });
+  }
+  return _redis;
 }
 
-const buckets = new Map<string, Bucket>();
+// Cachea un Ratelimit por combinación (limit, windowMs) — evita recrearlo
+// en cada invocación de Server Action.
+const limiters = new Map<string, Ratelimit>();
 
-// Limpieza periódica de buckets expirados para evitar crecimiento de memoria.
-const CLEANUP_INTERVAL_MS = 5 * 60 * 1000;
-let lastCleanup = Date.now();
-
-function cleanup(now: number, windowMs: number): void {
-  if (now - lastCleanup < CLEANUP_INTERVAL_MS) return;
-  lastCleanup = now;
-  const cutoff = now - windowMs;
-  for (const [key, bucket] of buckets) {
-    bucket.timestamps = bucket.timestamps.filter((t) => t > cutoff);
-    if (bucket.timestamps.length === 0) {
-      buckets.delete(key);
-    }
+function getLimiter(limit: number, windowMs: number): Ratelimit {
+  const cacheKey = `${limit}:${windowMs}`;
+  let limiter = limiters.get(cacheKey);
+  if (!limiter) {
+    limiter = new Ratelimit({
+      redis: getRedis(),
+      limiter: Ratelimit.slidingWindow(limit, `${Math.round(windowMs / 1000)} s`),
+      prefix: "fce-rl",
+      analytics: false,
+    });
+    limiters.set(cacheKey, limiter);
   }
+  return limiter;
 }
 
 export interface RateLimitResult {
@@ -46,43 +59,25 @@ export interface RateLimitResult {
  * @param limit  Máximo de llamadas permitidas en la ventana.
  * @param windowMs Tamaño de la ventana en ms.
  */
-export function checkRateLimit(
+export async function checkRateLimit(
   key: string,
   limit: number,
   windowMs: number
-): RateLimitResult {
-  const now = Date.now();
-  cleanup(now, windowMs);
-
-  const bucket = buckets.get(key) ?? { timestamps: [] };
-  const cutoff = now - windowMs;
-  bucket.timestamps = bucket.timestamps.filter((t) => t > cutoff);
-
-  if (bucket.timestamps.length >= limit) {
-    const oldest = bucket.timestamps[0] ?? now;
-    return {
-      allowed: false,
-      remaining: 0,
-      retryAfterMs: Math.max(0, oldest + windowMs - now),
-    };
-  }
-
-  bucket.timestamps.push(now);
-  buckets.set(key, bucket);
-
+): Promise<RateLimitResult> {
+  const { success, remaining, reset } = await getLimiter(limit, windowMs).limit(key);
   return {
-    allowed: true,
-    remaining: limit - bucket.timestamps.length,
-    retryAfterMs: 0,
+    allowed: success,
+    remaining,
+    retryAfterMs: Math.max(0, reset - Date.now()),
   };
 }
 
 /** Conveniencia para acciones IA: prefija el key por namespace + userId. */
-export function iaRateLimit(
+export async function iaRateLimit(
   action: string,
   userId: string,
   limit = 8,
   windowMs = 60_000
-): RateLimitResult {
+): Promise<RateLimitResult> {
   return checkRateLimit(`ia:${action}:${userId}`, limit, windowMs);
 }

@@ -40,7 +40,7 @@ export async function searchDiagnosticos(
   const auth = await requireClinicMember();
   if (!auth.ok) return { success: false, error: auth.error };
 
-  const rl = checkRateLimit(`icd:search:${auth.userId}`, 30, 60_000);
+  const rl = await checkRateLimit(`icd:search:${auth.userId}`, 30, 60_000);
   if (!rl.allowed) {
     return { success: false, error: "Demasiadas búsquedas. Espera un momento e inténtalo de nuevo." };
   }
@@ -58,7 +58,7 @@ export async function getEntityDetail(entityId: string): Promise<ActionResult<IC
   const auth = await requireClinicMember();
   if (!auth.ok) return { success: false, error: auth.error };
 
-  const rl = checkRateLimit(`icd:entity:${auth.userId}`, 30, 60_000);
+  const rl = await checkRateLimit(`icd:entity:${auth.userId}`, 30, 60_000);
   if (!rl.allowed) {
     return { success: false, error: "Demasiadas solicitudes. Espera un momento e inténtalo de nuevo." };
   }

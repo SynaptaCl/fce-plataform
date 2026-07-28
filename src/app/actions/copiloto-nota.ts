@@ -47,7 +47,7 @@ export async function estructurarNota(
   }
 
   // 3. Rate limit (protege contra loops de UI / abuso con sesión comprometida)
-  const rl = iaRateLimit('copiloto', user.id, 10, 60_000)
+  const rl = await iaRateLimit('copiloto', user.id, 10, 60_000)
   if (!rl.allowed) {
     return { success: false, error: 'Demasiadas solicitudes al copiloto. Espera un momento e inténtalo de nuevo.' }
   }

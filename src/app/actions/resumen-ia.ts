@@ -46,7 +46,7 @@ export async function generarResumenIA(
   }
 
   // 3. Rate limit (resumen es la llamada más cara: contexto clínico completo)
-  const rl = iaRateLimit('resumen', user.id, 6, 60_000)
+  const rl = await iaRateLimit('resumen', user.id, 6, 60_000)
   if (!rl.allowed) {
     return { success: false, error: 'Demasiadas solicitudes de resumen. Espera un momento e inténtalo de nuevo.' }
   }
