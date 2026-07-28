@@ -34,33 +34,12 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(loginUrl)
   }
 
-  let supabaseResponse = NextResponse.next({ request })
-
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll()
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) =>
-            request.cookies.set(name, value)
-          )
-          supabaseResponse = NextResponse.next({ request })
-          cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
-          )
-        },
-      },
-    }
-  )
-
-  // Refresca el token sin leer data del usuario — patrón correcto para proxy
-  await supabase.auth.getUser()
-
   // ── 2. CSP con nonce por-request ──────────────────────────────────────────
+  // El nonce y el CSP deben viajar en los REQUEST headers para que Next.js
+  // extraiga el nonce durante el SSR y lo aplique automáticamente a sus scripts
+  // de hidratación. Si solo se setean en el response, los scripts quedan sin
+  // nonce, el CSP los bloquea y React no se hidrata (los <form> se envían como
+  // GET nativo). Ver: node_modules/next/dist/docs/.../content-security-policy.md
   const nonce = buildNonce()
   const isDev = process.env.NODE_ENV === 'development'
 
@@ -82,8 +61,46 @@ export async function proxy(request: NextRequest) {
     `upgrade-insecure-requests`,
   ].join('; ')
 
-  // El nonce viaja en el header de request para que Next.js lo aplique a sus
-  // scripts/estilos inline durante el SSR.
+  // Clonar los headers del request e inyectar nonce + CSP. Estos headers
+  // llegan al renderizador de Next.js, que extrae el nonce del CSP y lo aplica
+  // a framework scripts, bundles de página y scripts/estilos inline.
+  const requestHeaders = new Headers(request.headers)
+  requestHeaders.set('x-nonce', nonce)
+  requestHeaders.set('Content-Security-Policy', csp)
+
+  let supabaseResponse = NextResponse.next({
+    request: { headers: requestHeaders },
+  })
+
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll()
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value }) =>
+            request.cookies.set(name, value)
+          )
+          // Al reconstruir el response hay que conservar los request headers
+          // modificados, de lo contrario el nonce se pierde para esta petición.
+          supabaseResponse = NextResponse.next({
+            request: { headers: requestHeaders },
+          })
+          cookiesToSet.forEach(({ name, value, options }) =>
+            supabaseResponse.cookies.set(name, value, options)
+          )
+        },
+      },
+    }
+  )
+
+  // Refresca el token sin leer data del usuario — patrón correcto para proxy
+  await supabase.auth.getUser()
+
+  // El CSP también debe estar en el response para que el navegador lo reciba.
   supabaseResponse.headers.set('x-nonce', nonce)
   supabaseResponse.headers.set('Content-Security-Policy', csp)
 
