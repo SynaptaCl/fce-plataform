@@ -28,7 +28,7 @@ export async function getInformes(
 
   const { data, error } = await supabase
     .from("fce_informes")
-    .select("*, profesional:profesionales(nombre, especialidad)")
+    .select("*, profesional:id_profesional(nombre, especialidad)")
     .eq("id_paciente", idPaciente)
     .eq("id_clinica", idClinica)
     .order("created_at", { ascending: false });
@@ -59,7 +59,7 @@ export async function getInforme(
 
   const { data, error } = await supabase
     .from("fce_informes")
-    .select("*, profesional:profesionales(nombre, especialidad)")
+    .select("*, profesional:id_profesional(nombre, especialidad)")
     .eq("id", id)
     .eq("id_clinica", idClinica)
     .single();
@@ -111,7 +111,7 @@ export async function crearInforme(
       titulo: data.titulo,
       contenido: data.contenido,
     })
-    .select("*, profesional:profesionales(nombre, especialidad)")
+    .select("*, profesional:id_profesional(nombre, especialidad)")
     .single();
 
   if (insertError || !informe) {
@@ -178,7 +178,7 @@ export async function actualizarInforme(
     })
     .eq("id", id)
     .eq("id_clinica", idClinica)
-    .select("*, profesional:profesionales(nombre, especialidad)")
+    .select("*, profesional:id_profesional(nombre, especialidad)")
     .single();
 
   if (updateError || !updated) {
@@ -252,7 +252,7 @@ export async function firmarInforme(
     })
     .eq("id", id)
     .eq("id_clinica", idClinica)
-    .select("*, profesional:profesionales(nombre, especialidad)")
+    .select("*, profesional:id_profesional(nombre, especialidad)")
     .single();
 
   if (updateError || !updated) {
