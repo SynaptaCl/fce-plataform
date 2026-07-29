@@ -42,28 +42,43 @@ export async function requireAuth(): Promise<AuthResult> {
 export async function requireContext(): Promise<FCEContext> {
   const { supabase, user } = await requireAuth();
 
-  const { data: adminRow } = await supabase
+  // admin_users puede tener varias filas (UNIQUE(auth_id, id_clinica) → multi-clínica).
+  // Traemos todas las activas SIN .single(): .single() crashea (PGRST116/>1 fila) en
+  // usuarios multi-clínica o con filas activas+inactivas.
+  const { data: adminRows, error } = await supabase
     .from("admin_users")
     .select("id_clinica, rol")
     .eq("auth_id", user.id)
     .eq("activo", true)
-    .single();
+    .order("created_at", { ascending: true });
 
-  if (!adminRow?.id_clinica) {
+  if (error) throw error;
+  if (!adminRows || adminRows.length === 0) {
     throw new Error("Usuario no asignado a ninguna clínica activa");
   }
 
-  const profesional = await getProfesionalActivo(
-    supabase,
-    user.id,
-    adminRow.id_clinica
-  );
+  // Perfil profesional activo (respeta cookie id_profesional_activo). Se consulta sin
+  // acotar por clínica para que, en multi-clínica, la cookie elija la clínica correcta.
+  const profesional = await getProfesionalActivo(supabase, user.id);
+
+  // Clínica activa = la del profesional si coincide con un admin_users activo;
+  // si no (p.ej. recepcionista/director sin perfil, o profesional en clínica inactiva),
+  // cae a la primera admin_users activa (determinista por created_at).
+  let idClinica = adminRows[0].id_clinica;
+  let rol = adminRows[0].rol;
+  if (profesional) {
+    const match = adminRows.find((r) => r.id_clinica === profesional.id_clinica);
+    if (match) {
+      idClinica = match.id_clinica;
+      rol = match.rol;
+    }
+  }
 
   return {
     supabase,
     user,
-    idClinica: adminRow.id_clinica,
-    rol: adminRow.rol,
+    idClinica,
+    rol,
     profesionalId: profesional?.id ?? null,
     especialidad: profesional?.especialidad ?? null,
   };

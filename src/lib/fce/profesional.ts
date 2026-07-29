@@ -1,4 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
+import { log } from '@/lib/logger';
 
 export interface ProfesionalPerfil {
   id: string;
@@ -68,6 +69,18 @@ export async function getProfesionalActivo(
     }
   } catch {
     // Si next/headers no está disponible (edge, test), caer al primero
+  }
+
+  // Guard de trazabilidad (Ley 20.584): con N>1 perfiles y sin cookie que resuelva,
+  // se atribuye al primero (created_at ASC). Se registra para auditoría — la selección
+  // explícita (modal al primer ingreso) es deuda trackeada en CLAUDE.md.
+  if (perfiles.length > 1) {
+    log("warn", {
+      action: "profesional_activo_ambiguo",
+      auth_id: authId,
+      perfiles: perfiles.length,
+      resuelto: perfiles[0].id,
+    });
   }
 
   return perfiles[0];

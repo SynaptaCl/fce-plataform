@@ -41,23 +41,27 @@ export async function estructurarInforme(
   const { data: { user }, error: authError } = await supabase.auth.getUser()
   if (authError || !user) return { success: false, error: 'No autenticado' }
 
-  // 2. Autorización — deriva idClinica desde admin_users
-  const { data: admin } = await supabase
+  // 2. Autorización — admin_users puede tener varias filas (UNIQUE(auth_id, id_clinica),
+  // multi-clínica). Set-membership en vez de .single().
+  const { data: adminRows } = await supabase
     .from('admin_users')
-    .select('id_clinica, rol, activo')
+    .select('id_clinica, rol')
     .eq('auth_id', user.id)
     .eq('activo', true)
-    .single()
 
-  if (!admin) return { success: false, error: 'Sin acceso a esta clínica' }
+  if (!adminRows || adminRows.length === 0) {
+    return { success: false, error: 'Sin acceso a esta clínica' }
+  }
 
   try {
-    requireAccesoFCE(admin.rol)
+    requireAccesoFCE(adminRows[0].rol)
   } catch {
     return { success: false, error: 'Sin permiso para acceder a la FCE' }
   }
 
-  const idClinica = admin.id_clinica
+  const clinicaIds = adminRows.map((r) => r.id_clinica)
+  // Para el audit log: la clínica del encuentro si lo hay, si no la primera activa.
+  let idClinica: string = adminRows[0].id_clinica
 
   // 3. Rate limit (protege contra loops de UI / abuso con sesión comprometida)
   const rl = await iaRateLimit('informes', user.id, 10, 60_000)
@@ -89,9 +93,10 @@ export async function estructurarInforme(
     if (encuentroError || !encuentro) {
       return { success: false, error: 'Encuentro no encontrado' }
     }
-    if (encuentro.id_clinica !== idClinica) {
+    if (!clinicaIds.includes(encuentro.id_clinica)) {
       return { success: false, error: 'Sin acceso a este encuentro' }
     }
+    idClinica = encuentro.id_clinica
     idPaciente = encuentro.id_paciente
   }
 

@@ -115,12 +115,16 @@ export async function getClinicaConfigFromSession(): Promise<{
     return { config: null, userId: null, idClinica: null, rol: null };
   }
 
+  // .limit(1).maybeSingle(): UNIQUE(auth_id, id_clinica) permite varias filas por usuario
+  // (multi-clínica) — .single() crashearía. Tomamos la primera (determinista) sin lanzar.
   const { data: adminRow } = await supabase
     .from("admin_users")
-    .select("id_clinica, rol, activo")
+    .select("id_clinica, rol")
     .eq("auth_id", user.id)
     .eq("activo", true)
-    .single();
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
 
   const idClinica = adminRow?.id_clinica ?? null;
   const rol = adminRow?.rol ?? null;

@@ -2,7 +2,7 @@
 
 import { dbError } from "@/lib/modules/guards";
 import { revalidatePath } from "next/cache";
-import { requireAuth, requireContext } from "@/lib/auth";
+import { requireContext } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import { z } from "zod";
 import { getProfesionalActivo } from "@/lib/fce/profesional";
@@ -47,16 +47,15 @@ const antropometriaSchema = z.object({
 export async function getAntropometriaByPaciente(
   idPaciente: string,
 ): Promise<ActionResult<AntropometriaRecord[]>> {
-  const { supabase, user } = await requireAuth();
-
-  const { data: adminRow } = await supabase
-    .from("admin_users")
-    .select("id_clinica")
-    .eq("auth_id", user.id)
-    .eq("activo", true)
-    .single();
-  const idClinica: string | null = adminRow?.id_clinica ?? null;
-  if (!idClinica) return { success: false, error: "Clínica no encontrada." };
+  let supabase: Awaited<ReturnType<typeof requireContext>>["supabase"];
+  let idClinica: string;
+  try {
+    const ctx = await requireContext();
+    supabase = ctx.supabase;
+    idClinica = ctx.idClinica;
+  } catch {
+    return { success: false, error: "Clínica no encontrada." };
+  }
 
   const { data, error } = await supabase
     .from("fce_antropometria")

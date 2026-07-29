@@ -130,21 +130,21 @@ export async function createAndSignOrdenExamen(input: {
 export async function getOrdenesExamenByPatient(
   patientId: string
 ): Promise<ActionResult<OrdenExamen[]>> {
-  const { supabase, user } = await requireAuth();
-
-  const { data: adminRow } = await supabase
-    .from("admin_users")
-    .select("id_clinica")
-    .eq("auth_id", user.id)
-    .eq("activo", true)
-    .single();
-  if (!adminRow?.id_clinica) return { success: false, error: "No se pudo determinar la clínica" };
+  let supabase: Awaited<ReturnType<typeof requireContext>>["supabase"];
+  let idClinica: string;
+  try {
+    const ctx = await requireContext();
+    supabase = ctx.supabase;
+    idClinica = ctx.idClinica;
+  } catch {
+    return { success: false, error: "No se pudo determinar la clínica" };
+  }
 
   const { data, error } = await supabase
     .from("fce_ordenes_examen")
     .select("*")
     .eq("id_paciente", patientId)
-    .eq("id_clinica", adminRow.id_clinica)
+    .eq("id_clinica", idClinica)
     .order("created_at", { ascending: false });
 
   if (error) return dbError("ordenes-examen", error);
@@ -156,21 +156,21 @@ export async function getOrdenesExamenByPatient(
 export async function getOrdenExamenById(
   ordenId: string
 ): Promise<ActionResult<OrdenExamen>> {
-  const { supabase, user } = await requireAuth();
-
-  const { data: adminRow } = await supabase
-    .from("admin_users")
-    .select("id_clinica")
-    .eq("auth_id", user.id)
-    .eq("activo", true)
-    .single();
-  if (!adminRow?.id_clinica) return { success: false, error: "No se pudo determinar la clínica" };
+  let supabase: Awaited<ReturnType<typeof requireContext>>["supabase"];
+  let idClinica: string;
+  try {
+    const ctx = await requireContext();
+    supabase = ctx.supabase;
+    idClinica = ctx.idClinica;
+  } catch {
+    return { success: false, error: "No se pudo determinar la clínica" };
+  }
 
   const { data, error } = await supabase
     .from("fce_ordenes_examen")
     .select("*")
     .eq("id", ordenId)
-    .eq("id_clinica", adminRow.id_clinica)
+    .eq("id_clinica", idClinica)
     .single();
 
   if (error || !data) {

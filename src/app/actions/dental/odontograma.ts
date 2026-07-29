@@ -2,28 +2,17 @@
 
 import { dbError } from "@/lib/modules/guards";
 import { revalidatePath } from "next/cache";
-import { createClient } from "@/lib/supabase/server";
 import { requireAuth, requireContext } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import { getProfesionalActivo } from "@/lib/fce/profesional";
-import type { ActionResult } from "@/app/actions/patients";
+import { getIdClinica, type ActionResult } from "@/app/actions/patients";
 import type { OdontogramaEntry, OdontogramaHistorial, EstadoPieza, SuperficieDental } from "@/types";
-
-async function getClinica(supabase: Awaited<ReturnType<typeof createClient>>, authId: string) {
-  const { data } = await supabase
-    .from("admin_users")
-    .select("id_clinica")
-    .eq("auth_id", authId)
-    .eq("activo", true)
-    .single();
-  return data?.id_clinica ?? null;
-}
 
 export async function getOdontograma(
   patientId: string
 ): Promise<ActionResult<OdontogramaEntry[]>> {
   const { supabase, user } = await requireAuth();
-  const idClinica = await getClinica(supabase, user.id);
+  const idClinica = await getIdClinica(supabase, user.id);
   if (!idClinica) return { success: false, error: "Sin clínica activa" };
 
   const { data, error } = await supabase
@@ -134,7 +123,7 @@ export async function getHistorialPieza(
   pieza: number
 ): Promise<ActionResult<HistorialPiezaEntry[]>> {
   const { supabase, user } = await requireAuth();
-  const idClinica = await getClinica(supabase, user.id);
+  const idClinica = await getIdClinica(supabase, user.id);
   if (!idClinica) return { success: false, error: "Sin clínica activa" };
 
   const { data, error } = await supabase

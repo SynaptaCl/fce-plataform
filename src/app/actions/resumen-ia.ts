@@ -27,15 +27,16 @@ export async function generarResumenIA(
   const { data: { user }, error: authError } = await supabase.auth.getUser()
   if (authError || !user) return { success: false, error: 'No autenticado' }
 
-  // 2. Autorización
-  const { data: admin } = await supabase
+  // 2. Autorización — UNIQUE(auth_id, id_clinica) permite multi-clínica:
+  // buscamos la fila de la clínica solicitada (set-membership) en vez de .single().
+  const { data: adminRows } = await supabase
     .from('admin_users')
-    .select('id_clinica, rol, activo')
+    .select('id_clinica, rol')
     .eq('auth_id', user.id)
     .eq('activo', true)
-    .single()
 
-  if (!admin || admin.id_clinica !== idClinica) {
+  const admin = adminRows?.find((r) => r.id_clinica === idClinica)
+  if (!admin) {
     return { success: false, error: 'Sin acceso a esta clínica' }
   }
 

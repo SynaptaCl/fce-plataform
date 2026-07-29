@@ -2,7 +2,7 @@
 
 import { dbError } from "@/lib/modules/guards";
 import { revalidatePath } from "next/cache";
-import { requireAuth, requireContext } from "@/lib/auth";
+import { requireContext } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import { notaClinicaSchema } from "@/lib/validations";
 import { getProfesionalActivo } from "@/lib/fce/profesional";
@@ -43,16 +43,15 @@ function sanitizeSeccionesEstructuradas(
 export async function getNotaClinica(
   encuentroId: string,
 ): Promise<ActionResult<NotaClinica | null>> {
-  const { supabase, user } = await requireAuth();
-
-  const { data: adminRow } = await supabase
-    .from("admin_users")
-    .select("id_clinica")
-    .eq("auth_id", user.id)
-    .eq("activo", true)
-    .single();
-  const idClinica: string | null = adminRow?.id_clinica ?? null;
-  if (!idClinica) return { success: false, error: "No se encontró la clínica asociada al usuario." };
+  let supabase: Awaited<ReturnType<typeof requireContext>>["supabase"];
+  let idClinica: string;
+  try {
+    const ctx = await requireContext();
+    supabase = ctx.supabase;
+    idClinica = ctx.idClinica;
+  } catch {
+    return { success: false, error: "No se encontró la clínica asociada al usuario." };
+  }
 
   const { data, error } = await supabase
     .from("fce_notas_clinicas")

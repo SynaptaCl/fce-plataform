@@ -23,7 +23,12 @@ export async function getIdClinica(supabase: any, userId: string): Promise<strin
     .from("admin_users")
     .select("id_clinica")
     .eq("auth_id", userId)
-    .single();
+    .eq("activo", true)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  // .limit(1).maybeSingle() → a lo sumo 1 fila: no crashea en multi-clínica
+  // (UNIQUE(auth_id, id_clinica) permite N filas por usuario).
   // PGRST116 = sin filas — caso legítimo (usuario auth sin admin_users, DB compartida con synapta).
   // Cualquier otro error es un fallo real de consulta/permiso que debe quedar en Sentry,
   // no colapsarse silenciosamente al mismo `null` que "sin clínica".
@@ -41,7 +46,12 @@ export async function getProfesionalId(supabase: any, authId: string): Promise<s
     .from("profesionales")
     .select("id")
     .eq("auth_id", authId)
+    .eq("activo", true)
+    .order("created_at", { ascending: true })
+    .limit(1)
     .maybeSingle();
+  // profesionales.auth_id NO es UNIQUE (1 auth_id → N profesionales): .limit(1) evita
+  // el error de múltiples filas y queda determinista por created_at.
   return (data?.id as string) ?? null;
 }
 
