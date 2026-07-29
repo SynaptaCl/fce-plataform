@@ -17,9 +17,15 @@ export type ViaAdministracion =
   | "otra";
 
 export interface MedicamentoPrescrito {
+  /** FK histórica hacia el catálogo de medicamentos — apunta a medicamentos.id (mismo id preservado en el cutover) */
   id_medicamento_catalogo: string | null;
+  /** FK hacia medicamentos_presentaciones.id — marca/laboratorio elegida, null si se prescribió solo por DCI */
+  id_presentacion: string | null;
   principio_activo: string;
   nombre_comercial: string | null;
+  laboratorio: string | null;
+  /** snapshot al momento de prescribir — null = no aplica o sin dato verificado, NUNCA "no bioequivalente" */
+  bioequivalente: boolean | null;
   presentacion: string;
   via: ViaAdministracion;
   dosis: string;

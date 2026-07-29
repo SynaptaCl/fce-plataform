@@ -46,7 +46,12 @@ export type {
   TipoPrescripcion,
   ViaAdministracion,
 } from "./prescripcion";
-export type { MedicamentoCatalogo } from "./medicamento";
+export type {
+  Medicamento,
+  MedicamentoPresentacion,
+  MedicamentoConPresentaciones,
+  TipoComercialPresentacion,
+} from "./medicamento";
 export type { ExamenCatalogo, ExamenIndicado, OrdenExamen } from "./orden-examen";
 export type { Egreso, TipoEgreso } from "./egreso";
 export { TIPOS_EGRESO } from "./egreso";

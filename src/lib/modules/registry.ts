@@ -218,7 +218,7 @@ export const MODULE_REGISTRY: Record<ModuleId, ModuleDefinition> = {
       "Emisión de recetas farmacológicas e indicaciones generales con firma del profesional. Permiso individual por campo puede_prescribir en profesionales.",
     obligatorio: false,
     dependeDe: ["M1_identificacion"],
-    tablasSupabase: ["fce_prescripciones", "medicamentos_catalogo"],
+    tablasSupabase: ["fce_prescripciones", "medicamentos", "medicamentos_presentaciones"],
     rutasApp: ["/dashboard/pacientes/[id]/prescripciones"],
     componentes: ["PrescripcionForm", "IndicacionForm"],
     requiereEspecialidad: false,

@@ -11,7 +11,7 @@ import type { ActionResult } from "@/lib/modules/guards";
 import { log } from "@/lib/logger";
 import type { Rol } from "@/lib/modules/registry";
 import type { Prescripcion, MedicamentoPrescrito, ModoFirma, TipoPrescripcion } from "@/types/prescripcion";
-import type { MedicamentoCatalogo } from "@/types/medicamento";
+import type { MedicamentoConPresentaciones } from "@/types/medicamento";
 import { requireAuth, requireContext } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import { getPerfilPrescripcion } from "@/lib/prescripciones/perfiles";
@@ -21,12 +21,15 @@ import { getPerfilPrescripcion } from "@/lib/prescripciones/perfiles";
 export async function getPrescripcionesByPatient(
   patientId: string
 ): Promise<ActionResult<Prescripcion[]>> {
-  const { supabase, user } = await requireAuth();
-
-  const { data: adminRow } = await supabase
-    .from("admin_users").select("id_clinica").eq("auth_id", user.id).eq("activo", true).single();
-  const idClinica: string | null = adminRow?.id_clinica ?? null;
-  if (!idClinica) return { success: false, error: "No se encontró la clínica asociada al usuario." };
+  let supabase: Awaited<ReturnType<typeof requireContext>>["supabase"];
+  let idClinica: string;
+  try {
+    const ctx = await requireContext();
+    supabase = ctx.supabase;
+    idClinica = ctx.idClinica;
+  } catch {
+    return { success: false, error: "No se encontró la clínica asociada al usuario." };
+  }
 
   const { data, error } = await supabase
     .from("fce_prescripciones")
@@ -44,12 +47,15 @@ export async function getPrescripcionesByPatient(
 export async function getPrescripcionById(
   prescripcionId: string
 ): Promise<ActionResult<Prescripcion>> {
-  const { supabase, user } = await requireAuth();
-
-  const { data: adminRow } = await supabase
-    .from("admin_users").select("id_clinica").eq("auth_id", user.id).eq("activo", true).single();
-  const idClinica: string | null = adminRow?.id_clinica ?? null;
-  if (!idClinica) return { success: false, error: "No se encontró la clínica asociada al usuario." };
+  let supabase: Awaited<ReturnType<typeof requireContext>>["supabase"];
+  let idClinica: string;
+  try {
+    const ctx = await requireContext();
+    supabase = ctx.supabase;
+    idClinica = ctx.idClinica;
+  } catch {
+    return { success: false, error: "No se encontró la clínica asociada al usuario." };
+  }
 
   const { data, error } = await supabase
     .from("fce_prescripciones")
@@ -68,7 +74,7 @@ export async function getPrescripcionById(
 
 export async function searchMedicamentos(
   query: string
-): Promise<ActionResult<MedicamentoCatalogo[]>> {
+): Promise<ActionResult<MedicamentoConPresentaciones[]>> {
   const { supabase, user, idClinica } = await requireContext();
 
   const profesional = await getProfesionalActivo(supabase, user.id, idClinica);
@@ -140,7 +146,7 @@ export async function createAndSignPrescripcion(input: {
     const nombresPrescritos = input.medicamentos.map((m) => m.principio_activo);
 
     const { data: autorizados } = await supabase
-      .from("medicamentos_catalogo")
+      .from("medicamentos")
       .select("principio_activo")
       .eq("activo", true)
       .contains("perfiles_autorizados", [perfil])

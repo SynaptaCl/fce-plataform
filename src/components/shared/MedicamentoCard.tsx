@@ -27,14 +27,24 @@ export function MedicamentoCard({ medicamento, onUpdate, onRemove }: Props) {
             {medicamento.dosis && ` · ${medicamento.dosis}`}
             {medicamento.frecuencia && ` · ${medicamento.frecuencia}`}
           </p>
-          {!medicamento.id_medicamento_catalogo && (
-            <span
-              className="text-xs px-1.5 py-0.5 rounded"
-              style={{ background: "#fef9c3", color: "#854d0e" }}
-            >
-              Manual
-            </span>
-          )}
+          <div className="flex items-center gap-1 mt-0.5">
+            {!medicamento.id_medicamento_catalogo && (
+              <span
+                className="text-xs px-1.5 py-0.5 rounded"
+                style={{ background: "#fef9c3", color: "#854d0e" }}
+              >
+                Manual
+              </span>
+            )}
+            {medicamento.bioequivalente === true && (
+              <span
+                className="text-xs px-1.5 py-0.5 rounded"
+                style={{ background: "#dcfce7", color: "#166534" }}
+              >
+                Bioequivalente
+              </span>
+            )}
+          </div>
         </div>
         <div className="flex items-center gap-1 ml-2">
           <button onClick={() => setExpanded(!expanded)} className="p-1 rounded hover:bg-gray-100">

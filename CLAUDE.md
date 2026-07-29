@@ -1,6 +1,6 @@
 # CLAUDE.md — FCE Platform (fce-plataform)
 
-> Última actualización: 2026-07-27 (SEC-1 mergeado, proxy.ts con CSP nonce, sprints A0/A1 adendas, DX1/DX2 diagnóstico condicional, Sentry org slug)
+> Última actualización: 2026-07-28 (cutover código M7 a medicamentos/medicamentos_presentaciones, SEC-1 mergeado, proxy.ts con CSP nonce, sprints A0/A1 adendas, DX1/DX2 diagnóstico condicional, Sentry org slug)
 > Este documento es la fuente de verdad para Claude Code. Leerlo antes de cualquier cambio.
 
 ---
@@ -162,7 +162,13 @@ Para columnas exactas consultar `docs/schema-real.md` o MCP Supabase.
 
 **`fce_anamnesis` columnas gestacionales (Nutri-N2)**: `embarazo_activo boolean NOT NULL DEFAULT false`, `fur date`, `semana_gestacional_base int`, `fecha_eval_gestacional date`. Permitir null en las tres últimas — embarazo puede desactivarse.
 
-**Catálogos globales**: especialidades_catalogo, instrumentos_valoracion, medicamentos_catalogo, examenes_catalogo, plantillas_dominios
+**Catálogos globales**: especialidades_catalogo, instrumentos_valoracion, medicamentos, medicamentos_presentaciones, examenes_catalogo, plantillas_dominios
+
+**`medicamentos`** (sprint cutover 2026-07-28, reemplaza `medicamentos_catalogo` en el código) — nivel clínico (DCI). Columnas: id, principio_activo, forma_farmaceutica, concentracion, via_administracion, dosis_adulto_sugerida, dosis_pediatrica_sugerida, indicaciones_comunes[], contraindicaciones_clave[], advertencias_importantes[], grupo_terapeutico, codigo_atc, es_controlado, requiere_receta, especialidades_comunes[], perfiles_autorizados[] (default `{medico}`), origen, id_clinica (NULL=global), activo, `validado_clinicamente boolean DEFAULT false` (contenido sin revisión médica/QF formal — no bloquea prescripción, se muestra como aviso en UI), notas. RLS: SELECT `authenticated` con `id_clinica IS NULL OR id_clinica = clínica del usuario`; INSERT/UPDATE/DELETE superadmin (global) o admin/director/superadmin (clínica propia).
+
+**`medicamentos_presentaciones`** — nivel comercial (marca/laboratorio), N:1 con `medicamentos` via `id_medicamento` (ON DELETE CASCADE). Columnas: id, id_medicamento, nombre_comercial, laboratorio, presentacion, es_generico, `bioequivalente boolean` (NULL = no aplica o sin dato verificado — **nunca** tratar como "no bioequivalente"; true = certificado ISP), tipo_comercial (`referente`|`bioequivalente_marca`|`bioequivalente_generico`, nullable), registro_isp, fuente_url, `estado` (`vigente`|`descontinuado`, default vigente — excluir `descontinuado` de búsquedas), activo, notas. UNIQUE(id_medicamento, nombre_comercial, laboratorio). RLS hereda visibilidad via join a `medicamentos`.
+
+**`medicamentos_catalogo`** — LEGACY, ya no se lee desde código de la app (queda intacta en DB, baja pendiente en sprint aparte una vez validado en producción).
 
 **De otros repos (SOLO READ)**: citas, disponibilidad, pagos, conversaciones — nunca INSERT/UPDATE desde este repo.
 
@@ -674,6 +680,7 @@ Actualmente **ninguna clínica tiene fce-plataform en producción** — el repo 
 | OB-1 | Seed instrumentos obstétricos/ginecológicos: `20260617_01` — 13 instrumentos (epds, bishop, epsa, vif, mrs, audit_c, lactancia_obs, atalah, alarcon_pinares, eedp, graffar) + 2 especialidades nuevas en catálogo |
 | Sentry | Integración `@sentry/nextjs`: `instrumentation.ts` + `sentry.{client,server,edge}.config.ts` + `withSentryConfig` en `next.config.ts`. Org `synapta-spa`, sourcemaps gateados por `SENTRY_AUTH_TOKEN`. `log()` en `lib/logger.ts` envía `error` a Sentry |
 | Proxy/CSP | `src/proxy.ts` (Next 16, antes middleware) con CSP nonce por-request + headers de seguridad + gate optimista auth. Bug histórico (2026-07-27): el nonce debe viajar en **request headers** para que Next.js aplique a scripts de hidratación |
+| Cutover medicamentos | Código de M7 migrado a leer `medicamentos` + `medicamentos_presentaciones` (2026-07-28): `buscarMedicamentos()` con DCI como entidad principal y marcas embebidas, validación server-side de `perfiles_autorizados` contra tabla nueva, `MedicamentoSelector`/`MedicamentoCard` con badges de bioequivalencia ISP y validación clínica pendiente, tipos `Medicamento`/`MedicamentoPresentacion`/`MedicamentoConPresentaciones`. `medicamentos_catalogo` queda legacy sin referencias en código |
 
 ### Pendientes
 
@@ -723,6 +730,8 @@ Actualmente **ninguna clínica tiene fce-plataform en producción** — el repo 
 | Datasets OMS LMS (`oms-lms/*.json`) en `PENDIENTE_CLINICA` — verificar contra tablas mensuales WHO antes de activar modo pediátrico en producción | Alta |
 | Bandas Atalah en `atalah.ts` en `PENDIENTE_CLINICA` — verificar valores contra Atalah et al. 1997 original antes de activar modo gestacional en producción | Alta |
 | ~~UI panel antropometría no implementada~~ | ✅ RESUELTO — `AntropometriaPanel.tsx` + `AntropometriaChart.tsx` + `actions/clinico/antropometria.ts`. Embebido en workspace vía `getEspecialidadConfig(esp).tieneAntropometria` (N1: solo Nutrición) |
+| `medicamentos_catalogo` (legacy) sigue existiendo en DB tras el cutover a `medicamentos`/`medicamentos_presentaciones` — decidir baja (DROP) en sprint aparte una vez validado en producción | Baja |
+| ~206 medicamentos migrados desde `medicamentos_catalogo` sin `validado_clinicamente` con intención clínica formal (tratar como `false` en UI) — falta pasada de validación masiva por QF/médico | Media |
 
 #### Auditoría de seguridad SEC-1 (2026-07-06) — mergeado a main
 

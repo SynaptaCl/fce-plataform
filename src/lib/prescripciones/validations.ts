@@ -2,8 +2,11 @@ import { z } from "zod";
 
 export const MedicamentoPrescritoSchema = z.object({
   id_medicamento_catalogo: z.string().uuid().nullable(),
+  id_presentacion: z.string().uuid().nullable(),
   principio_activo: z.string().min(2, "Principio activo requerido"),
   nombre_comercial: z.string().nullable(),
+  laboratorio: z.string().nullable(),
+  bioequivalente: z.boolean().nullable(),
   presentacion: z.string().min(2, "Presentación requerida"),
   via: z.enum([
     "oral", "topica", "intramuscular", "endovenosa", "subcutanea",

@@ -1,10 +1,19 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { MedicamentoCatalogo } from "@/types/medicamento";
+import type { MedicamentoConPresentaciones } from "@/types/medicamento";
 import type { PerfilPrescripcion } from "@/lib/prescripciones/perfiles";
+import { log } from "@/lib/logger";
+
+const MEDICAMENTO_SELECT = "*, medicamentos_presentaciones(*)";
+
+/** Sanea el término antes de interpolarlo en un filtro .or() de PostgREST — evita romper el parser de filtros con ',' '(' ')'. */
+function sanitizeSearchTerm(term: string): string {
+  return term.replace(/[,()]/g, " ").trim();
+}
 
 /**
- * Busca medicamentos en el catálogo por término de búsqueda.
- * Busca en principio_activo + nombre_comercial via ilike.
+ * Busca medicamentos en `medicamentos` (DCI, entidad principal) con sus
+ * `medicamentos_presentaciones` (marca/laboratorio) embebidas.
+ * Busca por principio_activo O por nombre_comercial de alguna presentación vigente.
  * RLS garantiza que el resultado incluye solo el catálogo global (id_clinica=null)
  * más el catálogo privado de la clínica del usuario.
  *
@@ -18,18 +27,41 @@ export async function buscarMedicamentos(
   query: string,
   perfilPrescripcion?: PerfilPrescripcion,
   limit = 20
-): Promise<MedicamentoCatalogo[]> {
+): Promise<MedicamentoConPresentaciones[]> {
   if (!query || query.trim().length < 2) return [];
 
-  const searchTerm = query.trim();
+  const searchTerm = sanitizeSearchTerm(query);
+  if (searchTerm.length < 2) return [];
+
+  // Coincidencias por marca comercial (nivel presentación) — solo vigentes/activas.
+  const { data: presentacionesMatch, error: presError } = await supabase
+    .from("medicamentos_presentaciones")
+    .select("id_medicamento")
+    .eq("activo", true)
+    .eq("estado", "vigente")
+    .ilike("nombre_comercial", `%${searchTerm}%`)
+    .limit(50);
+
+  if (presError) {
+    log("error", { action: "buscar_medicamentos_presentaciones", error: presError });
+  }
+
+  const idsPorMarca = Array.from(
+    new Set((presentacionesMatch ?? []).map((p) => p.id_medicamento))
+  );
 
   let q = supabase
-    .from("medicamentos_catalogo")
-    .select("*")
+    .from("medicamentos")
+    .select(MEDICAMENTO_SELECT)
     .eq("activo", true)
-    .or(
-      `principio_activo.ilike.%${searchTerm}%,nombre_comercial.ilike.%${searchTerm}%`
-    );
+    .eq("medicamentos_presentaciones.activo", true)
+    .eq("medicamentos_presentaciones.estado", "vigente");
+
+  const orClauses = [`principio_activo.ilike.%${searchTerm}%`];
+  if (idsPorMarca.length > 0) {
+    orClauses.push(`id.in.(${idsPorMarca.join(",")})`);
+  }
+  q = q.or(orClauses.join(","));
 
   if (perfilPrescripcion) {
     q = q.contains("perfiles_autorizados", [perfilPrescripcion]);
@@ -40,31 +72,33 @@ export async function buscarMedicamentos(
     .limit(limit);
 
   if (error) {
-    console.error("[FCE] Error buscando medicamentos:", error);
+    log("error", { action: "buscar_medicamentos", error });
     return [];
   }
 
-  return (data ?? []) as MedicamentoCatalogo[];
+  return (data ?? []) as unknown as MedicamentoConPresentaciones[];
 }
 
 /**
- * Obtiene un medicamento por ID exacto.
+ * Obtiene un medicamento por ID exacto, con sus presentaciones vigentes embebidas.
  */
 export async function getMedicamentoPorId(
   supabase: SupabaseClient,
   id: string
-): Promise<MedicamentoCatalogo | null> {
+): Promise<MedicamentoConPresentaciones | null> {
   const { data, error } = await supabase
-    .from("medicamentos_catalogo")
-    .select("*")
+    .from("medicamentos")
+    .select(MEDICAMENTO_SELECT)
     .eq("id", id)
     .eq("activo", true)
+    .eq("medicamentos_presentaciones.activo", true)
+    .eq("medicamentos_presentaciones.estado", "vigente")
     .maybeSingle();
 
   if (error) {
-    console.error("[FCE] Error obteniendo medicamento:", error);
+    log("error", { action: "obtener_medicamento", error });
     return null;
   }
 
-  return data as MedicamentoCatalogo | null;
+  return data as unknown as MedicamentoConPresentaciones | null;
 }
