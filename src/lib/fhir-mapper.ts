@@ -562,6 +562,96 @@ export function mapNotaClinicaToConditions(nota: DbNotaClinica): FhirCondition[]
   return [];
 }
 
+// ── DbPrescripcion / mapPrescripcionToFhir ─────────────────────────────────────
+
+export interface FhirMedicationRequest {
+  resourceType: "MedicationRequest";
+  meta: { profile: string[] };
+  status: "active" | "draft";
+  intent: "order";
+  medicationCodeableConcept: { text: string };
+  subject: { reference: string };
+  authoredOn?: string;
+  requester?: { reference: string };
+  dosageInstruction?: Array<{
+    text: string;
+    route?: { text: string };
+  }>;
+  dispenseRequest?: {
+    quantity?: { text: string };
+  };
+  note?: Array<{ text: string }>;
+}
+
+export interface DbMedicamentoPrescrito {
+  principio_activo: string;
+  nombre_comercial?: string | null;
+  presentacion?: string | null;
+  via?: string | null;
+  dosis?: string | null;
+  frecuencia?: string | null;
+  duracion?: string | null;
+  cantidad_total?: string | null;
+  instrucciones?: string | null;
+}
+
+export interface DbPrescripcion {
+  id: string;
+  id_paciente: string;
+  tipo: "farmacologica" | "indicacion_general";
+  medicamentos?: DbMedicamentoPrescrito[] | null;
+  firmado?: boolean;
+  firmado_at?: string | null;
+  firmado_por?: string | null;
+  created_at: string;
+}
+
+/**
+ * Mapea las líneas farmacológicas de una prescripción a MedicationRequest.
+ * `indicacion_general` (texto libre, no farmacológico) no genera MedicationRequest —
+ * no hay medicamento estructurado que mapear.
+ */
+export function mapPrescripcionToFhir(presc: DbPrescripcion): FhirMedicationRequest[] {
+  if (presc.tipo !== "farmacologica" || !presc.medicamentos?.length) return [];
+
+  const status = presc.firmado ? "active" : "draft";
+
+  return presc.medicamentos.map((med) => {
+    const medicationText = [med.principio_activo, med.nombre_comercial, med.presentacion]
+      .filter(Boolean)
+      .join(" — ");
+
+    const dosageText = [med.dosis, med.frecuencia, med.duracion]
+      .filter(Boolean)
+      .join(", ");
+
+    return {
+      resourceType: "MedicationRequest" as const,
+      meta: { profile: [`${FHIR_BASE}/MedicationRequestCL`] },
+      status,
+      intent: "order" as const,
+      medicationCodeableConcept: { text: medicationText || med.principio_activo },
+      subject: { reference: `Patient/${presc.id_paciente}` },
+      authoredOn: presc.firmado_at ?? presc.created_at,
+      requester: presc.firmado_por
+        ? { reference: `Practitioner/${presc.firmado_por}` }
+        : undefined,
+      dosageInstruction: dosageText
+        ? [
+            {
+              text: dosageText,
+              route: med.via ? { text: med.via } : undefined,
+            },
+          ]
+        : undefined,
+      dispenseRequest: med.cantidad_total
+        ? { quantity: { text: med.cantidad_total } }
+        : undefined,
+      note: med.instrucciones ? [{ text: med.instrucciones }] : undefined,
+    };
+  });
+}
+
 // ── mapSoapToCarePlan ─────────────────────────────────────────────────────────
 
 export function mapSoapToCarePlan(soap: DbSoapNote): FhirCarePlan {

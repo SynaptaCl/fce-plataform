@@ -8,9 +8,10 @@ import type {
   FhirObservation,
   FhirCondition,
   FhirCarePlan,
+  FhirMedicationRequest,
 } from "@/lib/fhir-mapper";
 
-type TabId = "patient" | "encounter" | "condition" | "observation" | "careplan";
+type TabId = "patient" | "encounter" | "condition" | "observation" | "careplan" | "medication";
 
 interface Tab {
   id: TabId;
@@ -23,6 +24,7 @@ interface FhirPreviewProps {
   observations: FhirObservation[];
   conditions: FhirCondition[];
   carePlan: FhirCarePlan | null;
+  medicationRequests?: FhirMedicationRequest[];
 }
 
 const TABS: Tab[] = [
@@ -31,6 +33,7 @@ const TABS: Tab[] = [
   { id: "condition",   label: "Condition" },
   { id: "observation", label: "Observation" },
   { id: "careplan",    label: "CarePlan" },
+  { id: "medication",  label: "MedicationRequest" },
 ];
 
 /**
@@ -99,6 +102,7 @@ export function FhirPreview({
   observations,
   conditions,
   carePlan,
+  medicationRequests = [],
 }: FhirPreviewProps) {
   const [activeTab, setActiveTab] = useState<TabId>("patient");
 
@@ -108,11 +112,13 @@ export function FhirPreview({
     observation: observations.length > 0 ? observations : null,
     condition:   conditions.length > 0 ? conditions : null,
     careplan:    carePlan,
+    medication:  medicationRequests.length > 0 ? medicationRequests : null,
   };
 
   const tabCounts: Partial<Record<TabId, number>> = {
     observation: observations.length,
     condition:   conditions.length,
+    medication:  medicationRequests.length,
   };
 
   return (

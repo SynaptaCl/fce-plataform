@@ -9,8 +9,10 @@ import {
   mapVitalsToFhir,
   mapSoapToConditions,
   mapSoapToCarePlan,
+  mapPrescripcionToFhir,
   type DbEncounter,
   type DbSoapNote,
+  type DbPrescripcion,
 } from "@/lib/fhir-mapper";
 import { FhirPreview } from "@/components/shared/FhirPreview";
 import type { VitalSigns } from "@/types";
@@ -36,8 +38,8 @@ export default async function FhirPage({
 
   const patient = patientResult.data;
 
-  // Fetch último encuentro, últimos signos vitales, última nota SOAP — en paralelo
-  const [encounterRes, vitalsRes, soapRes] = await Promise.all([
+  // Fetch último encuentro, últimos signos vitales, última nota SOAP, última prescripción — en paralelo
+  const [encounterRes, vitalsRes, soapRes, prescripcionRes] = await Promise.all([
     supabase
       .from("fce_encuentros")
       .select(
@@ -63,6 +65,15 @@ export default async function FhirPage({
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle(),
+    supabase
+      .from("fce_prescripciones")
+      .select(
+        "id, id_paciente, tipo, medicamentos, firmado, firmado_at, firmado_por, created_at"
+      )
+      .eq("id_paciente", id)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle(),
   ]);
 
   // Mapear a FHIR
@@ -79,6 +90,9 @@ export default async function FhirPage({
   const fhirCarePlan     = soapRes.data
     ? mapSoapToCarePlan(soapRes.data as DbSoapNote)
     : null;
+  const fhirMedicationRequests = prescripcionRes.data
+    ? mapPrescripcionToFhir(prescripcionRes.data as DbPrescripcion)
+    : [];
 
   const fullName =
     [patient.nombre, patient.apellido_paterno, patient.apellido_materno]
@@ -142,6 +156,7 @@ export default async function FhirPage({
           { label: "Condition",   desc: "Diagnósticos CIF del SOAP" },
           { label: "Observation", desc: "CoreObservacionCL · Signos vitales" },
           { label: "CarePlan",    desc: "Plan e intervenciones SOAP" },
+          { label: "MedicationRequest", desc: "Última prescripción farmacológica" },
         ].map(({ label, desc }) => (
           <div
             key={label}
@@ -162,6 +177,7 @@ export default async function FhirPage({
         observations={fhirObservations}
         conditions={fhirConditions}
         carePlan={fhirCarePlan}
+        medicationRequests={fhirMedicationRequests}
       />
     </div>
   );

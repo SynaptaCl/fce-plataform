@@ -1,6 +1,6 @@
 # CLAUDE.md — FCE Platform (fce-plataform)
 
-> Última actualización: 2026-07-31 (auditoría staleness: conteos módulos/especialidades §6, aclaración M13 §7, migrations recientes §10, deuda §14, id_clinica fce_notas_soap §16). Anterior: 2026-07-28 (cutover código M7 a medicamentos/medicamentos_presentaciones, SEC-1 mergeado, proxy.ts con CSP nonce, sprints A0/A1 adendas, DX1/DX2 diagnóstico condicional, Sentry org slug)
+> Última actualización: 2026-08-01 (LEGAL1: corrección trigger `block_update_signed_nota_clinica` §20, migration `20260801_01` aplicada §10, ICD rate-limit marcado resuelto §14). Anterior: 2026-07-31 (auditoría staleness: conteos módulos/especialidades §6, aclaración M13 §7, migrations recientes §10, deuda §14, id_clinica fce_notas_soap §16). Anterior: 2026-07-28 (cutover código M7 a medicamentos/medicamentos_presentaciones, SEC-1 mergeado, proxy.ts con CSP nonce, sprints A0/A1 adendas, DX1/DX2 diagnóstico condicional, Sentry org slug)
 > Este documento es la fuente de verdad para Claude Code. Leerlo antes de cualquier cambio.
 
 ---
@@ -577,6 +577,7 @@ supabase/migrations/
   → 20260618_01_fix_soap_update_withcheck_sign.sql (hotfix: separa USING/WITH CHECK en policy UPDATE de fce_notas_soap — permite firmar)
   → 20260728_01_force_rls_tablas_criticas.sql (SEC-1: fuerza RLS en admin_users/profesionales/admin_user_profesionales)
   → 20260729_01_seed_examenes_catalogo.sql (115 exámenes en examenes_catalogo — sin codigo_fonasa/nivel_fonasa aún, ver deuda §14)
+  → 20260801_01_fix_trigger_inmutabilidad_notas_clinicas.sql (LEGAL1 — aplicada; cierra gap de `block_update_signed_nota_clinica` que no cubría icd_codigos/icd_version/secciones_estructuradas)
 
 scripts/
   → test-sprint-n1.ts        (smoke test manual M10)
@@ -760,8 +761,8 @@ Auditoría multi-agente detectó 8 vulnerabilidades. **Mergeado a `main` en comm
 |---|---|
 | ~~0 de 7 headers de seguridad configurados~~ | ✅ RESUELTO — `next.config.ts` `headers()` + `src/proxy.ts` (HSTS, X-Frame-Options DENY, X-Content-Type-Options, Referrer-Policy, Permissions-Policy, CSP nonce) |
 | Source maps / secretos en cliente | ✅ OK (sin hallazgos — `productionBrowserSourceMaps` default false, Sentry borra `.map` tras upload) |
-| Rate limiting inexistente (3 acciones IA + ICD sin auth) | Pendiente — riesgo financiero IA (~US$2.100/h en loop); ICD ya no es anónimo-crítico pero sin throttle |
-| Server Actions ICD (`diagnostico.ts`, `cif.ts`) sin auth | Pendiente — requieren auth + límite por usuario |
+| Rate limiting inexistente en 3 acciones IA (`resumen-ia.ts`, `copiloto-nota.ts`, `informes-ia.ts`) | Pendiente — riesgo financiero IA (~US$2.100/h en loop). Tienen auth (`requireContext`) pero no `checkRateLimit()` |
+| ~~Server Actions ICD (`diagnostico.ts`, `cif.ts`) sin auth~~ | ✅ RESUELTO (verificado LEGAL1, 2026-08-01) — ambos tienen `requireClinicMember()` + `checkRateLimit()` (Redis/Upstash, ver `src/lib/rate-limit.ts`) |
 
 ---
 
@@ -1038,7 +1039,7 @@ secciones_estructuradas: {
 ```
 Ver sección 19 — "Shape de `secciones_estructuradas`" para la regla de consumo.
 
-**Trigger de inmutabilidad**: `trg_block_update_signed_nota` (función `block_update_signed_nota_clinica`) bloquea UPDATE de `secciones_estructuradas` en notas firmadas. Ya estaba activo antes de P2.
+**Trigger de inmutabilidad**: `trg_block_update_signed_nota` (función `block_update_signed_nota_clinica`) bloquea UPDATE de `secciones_estructuradas` en notas firmadas. **Corrección (LEGAL1, 2026-08-01)**: esto NO era cierto hasta la migration `20260801_01_fix_trigger_inmutabilidad_notas_clinicas` — el trigger original (20260421_03, previo a P2) solo cubría `contenido`/`motivo_consulta`/`diagnostico`/`plan`. `icd_codigos`/`icd_version`/`secciones_estructuradas` quedaron sin cubrir por la función hasta esa migration (aplicada). La capa app (`nota-clinica.ts`) sí bloqueaba el UPDATE completo desde siempre — el gap era solo defensa en profundidad a nivel DB.
 
 **Especialidades con secciones configuradas** (P2):
 - **Medicina General**: Motivo · Anamnesis próxima + Examen físico · Plan

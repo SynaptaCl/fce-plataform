@@ -3,6 +3,7 @@
 import { dbError } from "@/lib/modules/guards";
 import { requireContext } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
+import { log } from "@/lib/logger";
 import type { ActionResult } from "@/app/actions/patients";
 
 /**
@@ -19,7 +20,10 @@ async function validarEspecialidad(supabase: any, especialidad: string): Promise
     .eq("activa", true)
     .maybeSingle();
 
-  if (error) return `Error validando especialidad: ${error.message}`;
+  if (error) {
+    log("error", { action: "validar_especialidad", error, detail: especialidad });
+    return "No se pudo validar la especialidad. Intenta nuevamente.";
+  }
   if (!data) return `Especialidad inválida: "${especialidad}". Debe coincidir exactamente con el catálogo (incluyendo tildes).`;
   return null;
 }
