@@ -58,6 +58,7 @@ export interface Anamnesis {
 export interface VitalSigns {
   id: string;
   id_paciente: string;
+  id_clinica: string | null;
   id_encuentro: string | null;
   presion_arterial: string;
   frecuencia_cardiaca: number;

@@ -79,13 +79,14 @@ export async function exportarFichaCompletaPdf(
       .eq("id_paciente", idPaciente)
       .eq("id_clinica", idClinica)
       .order("started_at", { ascending: true }),
-    // fce_signos_vitales no tiene id_clinica directa — el paciente ya está tenant-guarded
+    // fce_signos_vitales tiene id_clinica (migration 20260415024540) — filtro defense-in-depth
     supabase
       .from("fce_signos_vitales")
       .select(
         "recorded_at, presion_arterial, frecuencia_cardiaca, spo2, temperatura, frecuencia_respiratoria"
       )
       .eq("id_paciente", idPaciente)
+      .eq("id_clinica", idClinica)
       .order("recorded_at", { ascending: true }),
     supabase
       .from("fce_notas_soap")

@@ -1,6 +1,6 @@
 # CLAUDE.md — FCE Platform (fce-plataform)
 
-> Última actualización: 2026-07-28 (cutover código M7 a medicamentos/medicamentos_presentaciones, SEC-1 mergeado, proxy.ts con CSP nonce, sprints A0/A1 adendas, DX1/DX2 diagnóstico condicional, Sentry org slug)
+> Última actualización: 2026-07-31 (auditoría staleness: conteos módulos/especialidades §6, aclaración M13 §7, migrations recientes §10, deuda §14, id_clinica fce_notas_soap §16). Anterior: 2026-07-28 (cutover código M7 a medicamentos/medicamentos_presentaciones, SEC-1 mergeado, proxy.ts con CSP nonce, sprints A0/A1 adendas, DX1/DX2 diagnóstico condicional, Sentry org slug)
 > Este documento es la fuente de verdad para Claude Code. Leerlo antes de cualquier cambio.
 
 ---
@@ -100,7 +100,7 @@ Tokens dinámicos inyectados por clínica (ejemplos): `--color-kp-primary`, `--c
 ## 6. ARQUITECTURA MULTI-TENANT
 
 ```
-1. CATÁLOGO (código)          → src/lib/modules/registry.ts — 10 módulos, 11 especialidades, modelos
+1. CATÁLOGO (código)          → src/lib/modules/registry.ts — 12 módulos (M1–M12), 13 especialidades (12 clínicas + Administración), modelos
 2. CONFIG POR ESPECIALIDAD    → src/lib/modules/especialidad-config.ts — FUENTE ÚNICA DE VERDAD
                                   qué ve cada especialidad: instrumentos, launchers, secciones, IA
 3. CONFIG POR SERVICIO        → src/lib/modules/servicio-config.ts — instrumentos sugeridos por tipo de cita
@@ -146,7 +146,8 @@ El workspace dental vive en `/encuentro/[encuentroId]/dental/page.tsx` y usa `De
 | M10_plan_intervencion | `fce_planes_intervencion`, `fce_plan_objetivos`, `fce_plan_progreso`, `plantillas_dominios` | beta | no |
 | M11_presupuestos | `fce_presupuestos`, `fce_presupuesto_items` | beta | no |
 | M12_informes | `fce_informes` | estable | no |
-| M13_adendas | `fce_adendas` | beta | no |
+
+> **Nota**: `M13_adendas` (tabla `fce_adendas`, ver §24) es un flujo/tabla transversal de corrección de documentos firmables. **NO es un `ModuleId`** en `registry.ts` (el tipo `ModuleId` solo incluye M1–M12), por eso no aparece en la tabla de arriba ni se activa vía `clinicas_fce_config`. Es siempre transversal cuando existen documentos firmables.
 
 ---
 
@@ -574,6 +575,8 @@ supabase/migrations/
   → 20260614_04_truncate_clinical_test_data.sql   (A0: limpia data clínica de prueba; NO toca catálogos)
   → 20260617_01_seed_instrumentos_obstetricia.sql (OB-1: 13 instrumentos obstétricos/ginecológicos + 2 especialidades)
   → 20260618_01_fix_soap_update_withcheck_sign.sql (hotfix: separa USING/WITH CHECK en policy UPDATE de fce_notas_soap — permite firmar)
+  → 20260728_01_force_rls_tablas_criticas.sql (SEC-1: fuerza RLS en admin_users/profesionales/admin_user_profesionales)
+  → 20260729_01_seed_examenes_catalogo.sql (115 exámenes en examenes_catalogo — sin codigo_fonasa/nivel_fonasa aún, ver deuda §14)
 
 scripts/
   → test-sprint-n1.ts        (smoke test manual M10)
@@ -707,7 +710,7 @@ Actualmente **ninguna clínica tiene fce-plataform en producción** — el repo 
 | ~~SQL P1 pendiente~~: RLS hotfix (`fce_notas_soap`, `fce_evaluaciones`, `profesionales`) — reemplazado por 20260606_02 | 2026-06-01 |
 | Fix RLS tenant isolation (5 policies) + versionar `get_clinica_ids_for_user` + defense-in-depth en 13 Server Actions | 2026-06-06 |
 | Add `id_clinica` a `fce_notas_soap` y `fce_evaluaciones` + RLS directo sin JOIN | 2026-06-06 |
-| **SQL O1 pendiente**: onboarding cenupsi — `20260604_onboard_cenupsi.sql` (activa 10 módulos + 5 especialidades) | 2026-06-04 |
+| ~~**SQL O1 pendiente**: onboarding cenupsi~~ — `20260604_onboard_cenupsi.sql` (activa 10 módulos + 5 especialidades) **APLICADA** (verificado en DB 2026-07-31) | 2026-06-04 |
 | **SQL P2 pendiente**: seed instrumentos nutricionales MNA/MUST/SGA — requiere validación clínica por nutricionista | 2026-06-02 |
 | `fce_antropometria` (tabla nueva Nutri-N1) + columnas gestacionales en `fce_anamnesis` (Nutri-N2): `20260612_01_fce_antropometria` + `20260612_02_fce_anamnesis_embarazo` — **aplicadas en producción** | 2026-06-12 |
 
@@ -718,11 +721,11 @@ Actualmente **ninguna clínica tiene fce-plataform en producción** — el repo 
 | ~~Migración RLS pendiente 20260601_01~~ — reemplazada por `20260606_02_fix_rls_tenant_isolation_5_policies.sql` (aplicada) | ~~Resuelta~~ |
 | Gestión `puede_prescribir` / `puede_indicar_examenes` en panel clínica | Media |
 | Modal de selección de perfil al primer ingreso (cuando N>1 perfiles, sin cookie) | Media |
-| Instrumentos con `validado: false` en seed (8 de 10) | Media |
+| Instrumentos con `validado: false` — catálogo creció a **35** instrumentos (verificado en DB 2026-07-31); el conteo "8 de 10" era de seed inicial. Revisar proporción real sin validación clínica | Media |
 | Seed medicamentos incompleto (faltan odonto, psiquiatría, suplementos) | Media |
-| Seed examenes_catalogo vacío — poblar antes de activar en producción | Media |
+| `examenes_catalogo` sembrado (2026-07-29, `20260729_01_seed_examenes_catalogo.sql`, 115 filas) sin `codigo_fonasa`/`nivel_fonasa`/`valores_referencia`/`indicaciones_comunes` — requiere carga desde arancel FONASA vigente y revisión de profesional clínico antes de producción | Alta |
 | `estado_resultados` de órdenes de examen siempre `pendiente` | Baja |
-| `04-criterios-tecnicos.md` desactualizado post-R13 | Media |
+| ~~`04-criterios-tecnicos.md` desactualizado post-R13~~ | ✅ RESUELTO — actualizado 2026-07-31 (24 reglas, patrones reales requireContext/dbError/proxy/rate-limit, 3 modelos, M11-M13) |
 | `renderEval()` en `rehab/page.tsx` usa `if (especialidad === '...')` preexistente — mover a `getEspecialidadConfig` con campo `evalComponente` | Media — R1 |
 | Umbrales circunferencia cintura en `antropometria.ts` son ATP-III/OMS caucásicos — calibrar para población latinoamericana con nutricionista | Media |
 | Seed MNA/MUST/SGA requiere validación clínica formal antes de activar en producción | Alta |
@@ -731,7 +734,7 @@ Actualmente **ninguna clínica tiene fce-plataform en producción** — el repo 
 | Bandas Atalah en `atalah.ts` en `PENDIENTE_CLINICA` — verificar valores contra Atalah et al. 1997 original antes de activar modo gestacional en producción | Alta |
 | ~~UI panel antropometría no implementada~~ | ✅ RESUELTO — `AntropometriaPanel.tsx` + `AntropometriaChart.tsx` + `actions/clinico/antropometria.ts`. Embebido en workspace vía `getEspecialidadConfig(esp).tieneAntropometria` (N1: solo Nutrición) |
 | `medicamentos_catalogo` (legacy) sigue existiendo en DB tras el cutover a `medicamentos`/`medicamentos_presentaciones` — decidir baja (DROP) en sprint aparte una vez validado en producción | Baja |
-| ~206 medicamentos migrados desde `medicamentos_catalogo` sin `validado_clinicamente` con intención clínica formal (tratar como `false` en UI) — falta pasada de validación masiva por QF/médico | Media |
+| **~210 medicamentos** (verificado en DB 2026-07-31) + 360 presentaciones migrados desde `medicamentos_catalogo` sin `validado_clinicamente` con intención clínica formal (tratar como `false` en UI) — falta pasada de validación masiva por QF/médico | Media |
 
 #### Auditoría de seguridad SEC-1 (2026-07-06) — mergeado a main
 
@@ -847,8 +850,12 @@ const MODEL = 'claude-haiku-4-5-20251001'  // NO cambiar sin revisión médica d
 // Cache usa service_role (bypasea RLS en fce_resumenes_ia)
 import { createServiceClient } from '@/lib/supabase/service'
 
-// fce_signos_vitales NO tiene id_clinica directa — filtrar via JOIN a fce_encuentros
-// fce_notas_soap NO tiene id_clinica — filtrar via id_encuentro en fce_encuentros
+// fce_signos_vitales SÍ tiene id_clinica (migration 20260415024540, NULLABLE — rows legacy pueden ser NULL)
+//   timeline.ts filtra directa por id_clinica (correcto). ⚠ El tipo TS VitalSigns (anamnesis.ts) y el
+//   comentario en exportar-pdf.ts están STALE (dicen que no existe) — actualizar. Ojo: por ser nullable,
+//   .eq("id_clinica", X) excluye rows legacy sin id_clinica (gap de datos, no crash).
+// fce_notas_soap SÍ tiene id_clinica (migration 20260606_03, NOT NULL) — se filtra directa en timeline.ts;
+//   la extracción IA (evolucion.ts) aún usa JOIN via id_encuentro por compatibilidad
 // fce_prescripciones.medicamentos es jsonb — leer ahí, NO join a catálogo
 ```
 

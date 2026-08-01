@@ -1,11 +1,19 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useState } from "react";
+import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Activity, Lock, Mail, ShieldCheck, AlertCircle } from "lucide-react";
+import {
+  Activity,
+  Lock,
+  Mail,
+  ShieldCheck,
+  AlertCircle,
+  CheckCircle2,
+} from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 const loginSchema = z.object({
@@ -15,9 +23,13 @@ const loginSchema = z.object({
 
 type LoginFormData = z.infer<typeof loginSchema>;
 
-export default function LoginPage() {
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [serverError, setServerError] = useState<string | null>(null);
+
+  const resetOk = searchParams.get("reset") === "ok";
+  const recoveryError = searchParams.get("error") === "recovery_link_invalido";
 
   const {
     register,
@@ -83,6 +95,25 @@ export default function LoginPage() {
           className="px-8 py-7 space-y-5"
           noValidate
         >
+          {/* Aviso: contraseña restablecida con éxito */}
+          {resetOk && (
+            <div className="flex items-start gap-2.5 bg-kp-success-lt border border-kp-success/20 text-kp-success rounded-lg px-4 py-3 text-sm">
+              <CheckCircle2 className="w-4 h-4 mt-0.5 shrink-0" />
+              <span>Contraseña actualizada. Ya puedes iniciar sesión.</span>
+            </div>
+          )}
+
+          {/* Aviso: link de recuperación vencido/inválido */}
+          {recoveryError && (
+            <div className="flex items-start gap-2.5 bg-kp-warning-lt border border-kp-warning/20 text-kp-warning rounded-lg px-4 py-3 text-sm">
+              <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+              <span>
+                El enlace de recuperación venció o ya fue usado. Solicita uno
+                nuevo.
+              </span>
+            </div>
+          )}
+
           {/* Error de servidor */}
           {serverError && (
             <div className="flex items-start gap-2.5 bg-kp-danger-lt border border-kp-danger/20 text-kp-danger rounded-lg px-4 py-3 text-sm">
@@ -117,12 +148,20 @@ export default function LoginPage() {
 
           {/* Password */}
           <div className="space-y-1.5">
-            <label
-              htmlFor="password"
-              className="text-xs font-semibold text-ink-2 uppercase tracking-wide"
-            >
-              Contraseña
-            </label>
+            <div className="flex items-center justify-between">
+              <label
+                htmlFor="password"
+                className="text-xs font-semibold text-ink-2 uppercase tracking-wide"
+              >
+                Contraseña
+              </label>
+              <Link
+                href="/forgot-password"
+                className="text-xs text-kp-accent hover:underline"
+              >
+                ¿Olvidaste tu contraseña?
+              </Link>
+            </div>
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-4 pointer-events-none" />
               <input
@@ -160,5 +199,13 @@ export default function LoginPage() {
         Acceso restringido a personal autorizado de {"Synapta FCE"}
       </p>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginForm />
+    </Suspense>
   );
 }
