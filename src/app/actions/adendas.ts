@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { requireContext } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
+import { log } from "@/lib/logger";
 import type {
   TipoDocumentoFirmable,
   TipoAdenda,
@@ -189,7 +190,7 @@ export async function crearAdenda(
 
     return { success: true, data: { id: adenda.id } };
   } catch (err) {
-    console.error("[FCE] crearAdenda error:", err);
+    log("error", { action: "crear_adenda", error: err });
     return { success: false, error: "Error inesperado al crear la adenda" };
   }
 }
@@ -253,7 +254,7 @@ export async function getAdendasDeDocumento(
 
     return { success: true, data: result };
   } catch (err) {
-    console.error("[FCE] getAdendasDeDocumento error:", err);
+    log("error", { action: "get_adendas_de_documento", error: err });
     return { success: false, error: "Error inesperado al cargar las adendas" };
   }
 }

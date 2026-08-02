@@ -8,6 +8,7 @@ import { requireAccesoFCE } from '@/lib/modules/guards'
 import type { ActionResult } from '@/lib/modules/guards'
 import type { TipoInforme } from '@/types/informe'
 import { logAudit } from '@/lib/audit'
+import { log } from '@/lib/logger'
 import { iaRateLimit } from '@/lib/rate-limit'
 import { seudonimizarTexto } from '@/lib/ia/sanitize-pii'
 import { fetchPiiPaciente } from '@/lib/ia/pii-paciente'
@@ -135,7 +136,7 @@ Responde SOLO con el texto del informe mejorado, sin preámbulos ni comentarios 
       return { success: false, error: 'El modelo no devolvió contenido' }
     }
   } catch (e) {
-    console.error('[FCE][INFORMES-IA] Error llamando a Anthropic:', e)
+    log('error', { action: 'informes_ia_llamada_anthropic', error: e })
     return { success: false, error: 'Error generando el informe. Intenta nuevamente.' }
   }
 

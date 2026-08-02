@@ -214,7 +214,8 @@
       "mcp__plugin_supabase_supabase__list_tables",
       "mcp__plugin_supabase_supabase__execute_sql",
       "mcp__plugin_supabase_supabase__apply_migration",
-      "mcp__plugin_supabase_supabase__get_advisors"
+      "mcp__plugin_supabase_supabase__get_advisors",
+      "mcp__plugin_supabase_supabase__list_migrations"
     ]
   },
   "mcpServers": {

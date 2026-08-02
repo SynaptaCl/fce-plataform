@@ -1,7 +1,7 @@
 # Marco Legal FCE — Referencia de Cumplimiento Normativo
 
-> Generado: 2026-07-31. Uso: referencia para Claude Code al auditar cumplimiento legal del repo `fce-plataform`. No reemplaza asesoría legal — items `[LEGAL]` requieren confirmación de abogado, no son verificables por código.
-> Mantener actualizado: revisar cuando MINSAL publique el reglamento de Ley 21.668 (pendiente a esta fecha) o cambie el estado de implementación de Ley 21.719.
+> Generado: 2026-07-31. Actualizado: 2026-08-01. Uso: referencia para Claude Code al auditar cumplimiento legal del repo `fce-plataform`. No reemplaza asesoría legal — items `[LEGAL]` requieren confirmación de abogado, no son verificables por código.
+> Mantener actualizado: revisar cuando MINSAL publique el reglamento de Ley 21.668 (pendiente a esta fecha), cambie el estado de implementación de Ley 21.719, se resuelva el Consejo Directivo de la Agencia de Protección de Datos, o ANCI emita resoluciones de calificación OIV relevantes al sector salud (Ley 21.663).
 
 ## Cómo usar este documento
 
@@ -43,7 +43,7 @@ La ficha no se altera una vez firmada; toda corrección queda trazada, no reempl
 
 ## 2. Ley 21.668 — Interoperabilidad de Fichas Clínicas (modifica Ley 20.584)
 
-Publicada 28-may-2024. MINSAL debe actualizar el reglamento del art. 13 (estándar técnico) en 18 meses desde la entrada en vigencia. **A la fecha de este documento, el reglamento sigue sin publicarse formalmente.** El estándar más probable es HL7 FHIR R4, pero no está confirmado oficialmente — no tratar como definitivo.
+Publicada 28-may-2024. MINSAL debe actualizar el reglamento del art. 13 (estándar técnico) en 18 meses desde la entrada en vigencia. **A la fecha de este documento, el reglamento sigue sin publicarse formalmente** (confirmado 2026-08-01). El estándar más probable es HL7 FHIR R4, pero no está confirmado oficialmente — no tratar como definitivo.
 
 ### 2.1 Capacidad de interoperar
 - `[CÓDIGO]` `src/lib/fhir-mapper.ts` + ruta `/dashboard/pacientes/[id]/fhir`. Confirmar qué resources cubre (mínimo esperado internacionalmente: Patient, Encounter, Observation, Condition, MedicationRequest).
@@ -62,7 +62,9 @@ Igual a 1.4 (15 años).
 
 ## 3. Ley 21.719 — Protección de Datos Personales
 
-Publicada 13-dic-2024. **Entra en vigencia plena el 1-dic-2026.** Datos de salud son categoría especial (protección reforzada). PYMEs tienen 12 meses de gracia post-vigencia (amonestación, no multa) — `[LEGAL]` confirmar si Synapta y/o las clínicas-cliente califican como PYME bajo Ley 20.416.
+Publicada 13-dic-2024. **Entra en vigencia plena el 1-dic-2026.** Datos de salud son categoría especial (protección reforzada). PYMEs tienen 12 meses de gracia post-vigencia (amonestación, no multa) — es una facultad discrecional de la Agencia, no una prórroga automática de las obligaciones: la amonestación queda igual inscrita en el registro público de sanciones. `[LEGAL]` confirmar si Synapta y/o las clínicas-cliente califican como PYME bajo Ley 20.416.
+
+- `[VERIFICAR]` **Riesgo institucional de timing:** el Consejo Directivo de la Agencia de Protección de Datos Personales (3 consejeros, nominados por el Presidente, ratificados por el Senado) aún no está constituido — el Senado rechazó la terna propuesta por falta de quórum. A esta fecha no hay certeza de que la Agencia esté operativa para fiscalizar, recibir RAT, o resolver reclamos ARCO+ cuando la ley entre en vigencia el 1-dic-2026. Esto no reduce las obligaciones de Synapta (siguen vigentes desde esa fecha), pero es señal para no bloquear trabajo en procesos que asuman una Agencia ya funcionando (ej. canal formal de solicitudes ARCO+ puede construirse igual, pero sin fecha de "primera fiscalización" confiable). Revisar estado del nombramiento periódicamente.
 
 ### 3.1 Principios generales
 Licitud, finalidad, proporcionalidad, calidad del dato, seguridad, responsabilidad demostrada (accountability).
@@ -103,10 +105,10 @@ Obligatoria para tratamientos de alto riesgo — datos sensibles a escala y uso 
 | Portabilidad | Parcial — export/vista FHIR | Confirmar que el formato exportado es realmente estructurado y reutilizable, no solo visual |
 
 ### 3.8 Notificación de brechas de seguridad
-Notificar a la Agencia de Protección de Datos y a los afectados dentro de plazos definidos por reglamento.
+Ley 21.719 exige notificar a la Agencia de Protección de Datos y a los afectados "por el medio más expedito posible y sin dilación indebida" — **no fija un plazo numérico rígido**. El "72 horas" que circula en muchas guías de mercado no viene de esta ley: viene de la Ley 21.663 (ver sección 4 nueva más abajo). No mezclar ambos plazos al construir el runbook.
 
 - `[CÓDIGO]` Sentry captura errores técnicos, pero no existe un flujo "esto califica como brecha → iniciar notificación".
-- `[LEGAL]` `[CÓDIGO]` Definir criterio de qué constituye brecha reportable y un runbook (aunque sea manual) para el equipo.
+- `[LEGAL]` `[CÓDIGO]` Definir criterio de qué constituye brecha reportable y un runbook (aunque sea manual) para el equipo — debe distinguir explícitamente si el incidente activa solo 21.719 (Agencia de Protección de Datos) o también 21.663 (ANCI/CSIRT, ver sección 4).
 
 ### 3.9 Menores de edad
 Tratamiento de datos de menores requiere consentimiento de representante legal.
@@ -119,11 +121,22 @@ Organizaciones que traten datos de forma significativa deben designar DPO — ap
 - `[LEGAL]` Decisión organizacional, no de código. El sistema debería exponer un punto de contacto visible para solicitudes de titulares (ej. sección en configuración o footer legal).
 
 ### 3.11 Sanciones (contexto de riesgo)
-Multas hasta 20.000 UTM o 4% de ingresos anuales en reincidencia. PYMEs: solo amonestación en los primeros 12 meses (1-dic-2026 a 1-dic-2027).
+Multas hasta 20.000 UTM o 4% de ingresos anuales en reincidencia. PYMEs: solo amonestación en los primeros 12 meses (1-dic-2026 a 1-dic-2027), a discreción de la Agencia.
 
 ---
 
-## 4. Matriz resumen para auditoría de Claude Code
+## 4. Ley 21.663 — Marco de Ciberseguridad (NUEVO — no cubierto en la versión inicial de este doc)
+
+Publicada abril 2024, artículos clave vigentes desde 1-mar-2025. Fiscalizada por ANCI (Agencia Nacional de Ciberseguridad), autoridad **distinta** de la Agencia de Protección de Datos Personales de la sección 3. Aplica a organismos del Estado y a operadores privados de "servicios esenciales" — **hospitales, clínicas, laboratorios y prestadores médicos están explícitamente listados como servicio esencial**, dado que tratan datos sensibles y una interrupción tiene consecuencia directa en seguridad del paciente.
+
+- `[LEGAL]` `[VERIFICAR]` Confirmar si alguna clínica-cliente de Synapta ha sido calificada por ANCI como Operador de Importancia Vital (OIV) mediante resolución — la calificación es caso a caso, no automática por pertenecer al sector salud. Si una clínica-cliente es OIV, Synapta como proveedor de su sistema clínico queda expuesta indirectamente a sus obligaciones de gobernanza y reporte.
+- `[LEGAL]` Si aplica calificación OIV: notificación de incidente significativo al CSIRT Nacional en **3 horas** (alerta temprana) + reporte completo en **72 horas** — plazo más agresivo y con destinatario distinto al de la sección 3.8. Requiere runbook propio, no reutilizar el de 21.719 sin adaptarlo.
+- `[CÓDIGO]` Si se confirma exposición a esta ley: revisar si el incident-response actual (hoy apoyado solo en Sentry, ver 3.8) puede escalar en el plazo de 3h de alerta temprana, o si se necesita un proceso manual documentado aparte.
+- Riesgo de scope: no construir cumplimiento formal de 21.663 (gobernanza, reporte a ANCI) hasta confirmar con abogado si alguna clínica-cliente concreta está o probablemente estará calificada como OIV. Mantener como `[VERIFICAR]` activo, no como ítem cerrado.
+
+---
+
+## 5. Matriz resumen para auditoría de Claude Code
 
 | # | Requisito | Ley | Dónde revisar | Tipo |
 |---|---|---|---|---|
@@ -139,19 +152,21 @@ Multas hasta 20.000 UTM o 4% de ingresos anuales en reincidencia. PYMEs: solo am
 | 10 | DPIA de módulos IA | 21.719 | no existe — crear | LEGAL |
 | 11 | Flujo de rectificación de datos no-clínicos | 21.719 | no existe | CÓDIGO |
 | 12 | Excepción de cancelación declarada | 21.719 vs 20.584 | no existe | LEGAL |
-| 13 | Runbook de notificación de brechas | 21.719 | no existe | LEGAL+CÓDIGO |
+| 13 | Runbook de notificación de brechas (21.719 + 21.663 si aplica) | 21.719 / 21.663 | no existe | LEGAL+CÓDIGO |
 | 14 | Consentimiento de representante (menores) | 21.719 | flujo de paciente pediátrico | VERIFICAR |
 | 15 | Cifrado en reposo confirmado | 21.719 | configuración Supabase | VERIFICAR |
+| 16 | Calificación OIV de clínicas-cliente por ANCI | 21.663 | no existe — confirmar con abogado | VERIFICAR |
 
 ---
 
-## 5. Fuera de alcance de este documento
+## 6. Fuera de alcance de este documento
 - DPA con proveedores (Anthropic, Supabase, Vercel, Sentry) — gestión contractual, no técnica.
 - Designación formal de DPO — decisión organizacional de Synapta.
 - Si Synapta actúa como "encargado" o "responsable" del tratamiento frente a cada clínica-cliente — determina quién firma qué con quién. Requiere abogado.
 
-## 6. Registro de cambios de este documento
+## 7. Registro de cambios de este documento
 
 | Fecha | Cambio |
 |---|---|
 | 2026-07-31 | Versión inicial — cobertura 20.584/Decreto 41 + 21.668 + 21.719 |
+| 2026-08-01 | Agregada sección 4 (Ley 21.663, Marco de Ciberseguridad — no cubierta antes). Corregida sección 3.8: plazo "sin dilación indebida" de 21.719 vs. 72h de 21.663, evitar mezclarlos. Agregada nota de riesgo institucional en sección 3: Consejo Directivo de la Agencia de Protección de Datos aún no nombrado (terna rechazada por el Senado por falta de quórum). Confirmado sin cambios: reglamento art. 13 de Ley 21.668 sigue sin publicar; vigencia de 21.719 el 1-dic-2026; gracia PYME de 12 meses. Item #16 agregado a la matriz. |

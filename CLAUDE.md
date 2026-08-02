@@ -1,6 +1,6 @@
 # CLAUDE.md — FCE Platform (fce-plataform)
 
-> Última actualización: 2026-08-01 (LEGAL1: corrección trigger `block_update_signed_nota_clinica` §20, migration `20260801_01` aplicada §10, ICD rate-limit marcado resuelto §14). Anterior: 2026-07-31 (auditoría staleness: conteos módulos/especialidades §6, aclaración M13 §7, migrations recientes §10, deuda §14, id_clinica fce_notas_soap §16). Anterior: 2026-07-28 (cutover código M7 a medicamentos/medicamentos_presentaciones, SEC-1 mergeado, proxy.ts con CSP nonce, sprints A0/A1 adendas, DX1/DX2 diagnóstico condicional, Sentry org slug)
+> Última actualización: 2026-08-02 (LEGAL2 — auditoría de cumplimiento verificada contra DB real vía MCP Supabase: mecanismo RLS `tiene_acceso_clinico()` documentado §9, triggers de inmutabilidad reales de soap/egresos/periograma/orden_examen añadidos §4 regla 8 y §8, migrations reconstruidas §10, fix aplicado a `block_update_signed_periograma()` — bloqueaba TODO UPDATE a `fce_periograma` por referenciar columna inexistente `firmado_en`, corregido y verificado en prod §14). Anterior: 2026-08-01 (LEGAL1: corrección trigger `block_update_signed_nota_clinica` §20, migration `20260801_01` aplicada §10, ICD rate-limit marcado resuelto §14). Anterior: 2026-07-31 (auditoría staleness: conteos módulos/especialidades §6, aclaración M13 §7, migrations recientes §10, deuda §14, id_clinica fce_notas_soap §16). Anterior: 2026-07-28 (cutover código M7 a medicamentos/medicamentos_presentaciones, SEC-1 mergeado, proxy.ts con CSP nonce, sprints A0/A1 adendas, DX1/DX2 diagnóstico condicional, Sentry org slug)
 > Este documento es la fuente de verdad para Claude Code. Leerlo antes de cualquier cambio.
 
 ---
@@ -63,7 +63,7 @@ Deploy: Vercel. Supabase project: `vigyhfpwyxihrjiygfsa` (sa-east-1).
 5. **Filtrar por `id_clinica`** en toda query. Usar `getIdClinica(supabase, user.id)`
 6. **Audit log** en toda operación de escritura (`logs_auditoria`)
 7. **Contenido médico nunca se inventa** — datos confirmados o `[PENDIENTE]`
-8. **Documentos firmados = inmutables** — SOAP, nota clínica, consentimiento, prescripción, orden de examen. Triggers en DB bloquean UPDATE post-firma
+8. **Documentos firmados = inmutables** — SOAP, nota clínica, consentimiento, prescripción, orden de examen, egreso, periograma, informe. Triggers en DB bloquean UPDATE post-firma en las 8 (verificado vía MCP Supabase 2026-08-02 — ver §8 y §9 "RLS — tiene_acceso_clinico()"). `fce_presupuestos` es la única excepción documentada: sin trigger, bloqueo solo en application layer
 9. **Hard-stop contraindicaciones** en especialidades con `tieneContraindicaciones: true`
 10. **Server Components por defecto**, `'use client'` solo cuando necesario
 11. **Seguir sprints en orden**. No saltar. No mezclar
@@ -159,6 +159,22 @@ Para columnas exactas consultar `docs/schema-real.md` o MCP Supabase.
 
 **`fce_informes`** tiene trigger `trg_block_update_signed_informe` — inmutabilidad post-firma (igual que SOAP, consentimientos, prescripciones). `fce_presupuestos` NO tiene trigger de inmutabilidad — el firmado bloquea via application layer, no DB trigger.
 
+**Triggers de inmutabilidad — inventario completo (verificado vía MCP Supabase 2026-08-02).** El repo históricamente no tenía migration para varios de estos — quedaron aplicados directo en prod sin archivo. Reconstruidos como `supabase/migrations/20260415_01_*`, `20260425_03_*`, `20260427_02_*`, `20260429_03_*` (histórico, ya aplicados, no re-ejecutar):
+
+| Tabla | Trigger | Función |
+|---|---|---|
+| `fce_notas_soap` | `trg_fce_soap_inmutable` | `fn_fce_soap_inmutable()` |
+| `fce_notas_clinicas` | `trg_block_update_signed_nota` | `block_update_signed_nota_clinica()` |
+| `fce_prescripciones` | `trg_block_update_signed_presc` | `block_update_signed_prescripcion()` |
+| `fce_consentimientos` | `trg_block_update_signed_consent` | `block_update_signed_consentimiento()` |
+| `fce_informes` | `trg_block_update_signed_informe` | `block_update_signed_informe()` |
+| `fce_adendas` | `trg_block_update_signed_adenda` | `block_update_signed_adenda()` |
+| `fce_egresos` | `trg_block_update_signed_egreso` | `block_update_signed_egreso()` |
+| `fce_periograma` | `trg_block_update_signed_periograma` | `block_update_signed_periograma()` |
+| `fce_ordenes_examen` | `trg_block_update_signed_orden` | `block_update_signed_orden_examen()` |
+
+**Bug corregido 2026-08-02 (`20260802_01_fix_trigger_periograma_columna_inexistente`, aplicada):** `block_update_signed_periograma()` referenciaba `OLD.firmado_en`, columna que nunca existió (la real es `firmado boolean` + `firmado_at`). Al ser trigger `BEFORE UPDATE` sin condición de guarda, **todo `UPDATE` a `fce_periograma` fallaba en producción** (firmado o no) — `savePeriograma()`/`signPeriograma()` en `src/app/actions/dental/periograma.ts` estaban rotos salvo el INSERT inicial. Corregido y verificado end-to-end con datos reales.
+
 **`fce_antropometria`** — tabla nutricional (Nutri-N1/N2, 2026-06-12). Modelo `clinico_general`, especialidad Nutrición. **Dato vivo, NO inmutable** — sin trigger de bloqueo post-firma. RLS: `id_clinica NOT NULL` + policy `get_clinica_ids_for_user()`. Columnas clave: `modo` (adulto|pediatrico|gestacional), `peso_kg`, `talla_cm`, `imc`, `clasificacion`, `zscore_imc`, `zscore_peso`, `zscore_talla`, `percentil_imc`, `circ_cintura_cm`, `circ_cadera_cm`, `riesgo_cintura`, `pliegues jsonb`, `formula_grasa`, `perc_grasa`, `masa_magra_kg`, `semana_gestacional`, `imc_pregestacional`, `rango_ganancia_min`, `rango_ganancia_max`, `observaciones`.
 
 **`fce_anamnesis` columnas gestacionales (Nutri-N2)**: `embarazo_activo boolean NOT NULL DEFAULT false`, `fur date`, `semana_gestacional_base int`, `fecha_eval_gestacional date`. Permitir null en las tres últimas — embarazo puede desactivarse.
@@ -239,6 +255,18 @@ const { data: admin } = await supabase.from("admin_users")
   .eq("auth_id", userId).eq("activo", true).single();
 const rol = admin.rol; // ✅ fuente autoritativa
 ```
+
+### RLS — tiene_acceso_clinico() (verificado 2026-08-02)
+Desde `20260724051046_crear_funcion_tiene_acceso_clinico` (aplicada, reconstruida como `supabase/migrations/20260724_01_crear_funcion_tiene_acceso_clinico.sql`), la mayoría de tablas clínicas usa esta función en vez del patrón `get_clinica_ids_for_user()` documentado hasta ahora:
+```sql
+tiene_acceso_clinico(p_id_clinica uuid) -- true si admin_users.rol IN (director,admin,superadmin)
+                                         -- de esa clínica, O si tiene fila en admin_user_profesionales
+```
+Tablas en `tiene_acceso_clinico()`: `fce_notas_soap`, `fce_egresos`, `fce_periograma`, `fce_ordenes_examen`, `fce_consentimientos`, `fce_notas_clinicas`, `fce_evaluaciones`, `fce_prescripciones`, `fce_informes`, `fce_adendas`.
+
+**Inconsistencia detectada, sin resolver**: `pacientes` (la tabla más central) **sigue en `get_clinica_ids_for_user()`** (policy `pacientes_by_clinica`) — no fue migrada. Dos primitivas de control de acceso conviven; no confirmado si es intencional. No tocar sin decidir cuál es la fuente de verdad.
+
+Todas las tablas `fce_*` clínicas tienen `relforcerowsecurity = false` (solo `admin_users`/`profesionales`/`admin_user_profesionales` tienen `FORCE ROW LEVEL SECURITY`, desde `20260728_01_force_rls_tablas_criticas`) — un rol dueño de tabla o `service_role` puede saltarse RLS en las clínicas. Es el mismo mecanismo que usa `createServiceClient()` deliberadamente; no es un hallazgo nuevo, solo documentar la asimetría frente a las 3 tablas forzadas.
 
 ### Especialidad — NO normalizar antes de escribir a DB
 ```typescript
@@ -578,6 +606,12 @@ supabase/migrations/
   → 20260728_01_force_rls_tablas_criticas.sql (SEC-1: fuerza RLS en admin_users/profesionales/admin_user_profesionales)
   → 20260729_01_seed_examenes_catalogo.sql (115 exámenes en examenes_catalogo — sin codigo_fonasa/nivel_fonasa aún, ver deuda §14)
   → 20260801_01_fix_trigger_inmutabilidad_notas_clinicas.sql (LEGAL1 — aplicada; cierra gap de `block_update_signed_nota_clinica` que no cubría icd_codigos/icd_version/secciones_estructuradas)
+  → 20260415_01_fce_soap_inmutable_trigger.sql (reconstruida 2026-08-02 vía MCP — ya aplicada 2026-04-15, no existía en repo)
+  → 20260425_03_fce_ordenes_examen.sql (reconstruida 2026-08-02 vía MCP — ya aplicada 2026-04-24/25, no existía en repo)
+  → 20260427_02_fce_egresos_trigger_snapshot.sql (reconstruida 2026-08-02 vía MCP — ya aplicada 2026-04-27, no existía en repo)
+  → 20260429_03_create_fce_periograma.sql (reconstruida 2026-08-02 vía MCP — ya aplicada 2026-04-29, no existía en repo; incluye fidelidad histórica del bug `firmado_en`)
+  → 20260724_01_crear_funcion_tiene_acceso_clinico.sql (reconstruida 2026-08-02 vía MCP — ya aplicada 2026-07-24, no existía en repo)
+  → 20260802_01_fix_trigger_periograma_columna_inexistente.sql (LEGAL2 — **aplicada 2026-08-02**, verificada end-to-end contra datos reales; corrige `block_update_signed_periograma()` que bloqueaba todo UPDATE a `fce_periograma`)
 
 scripts/
   → test-sprint-n1.ts        (smoke test manual M10)
@@ -714,6 +748,8 @@ Actualmente **ninguna clínica tiene fce-plataform en producción** — el repo 
 | ~~**SQL O1 pendiente**: onboarding cenupsi~~ — `20260604_onboard_cenupsi.sql` (activa 10 módulos + 5 especialidades) **APLICADA** (verificado en DB 2026-07-31) | 2026-06-04 |
 | **SQL P2 pendiente**: seed instrumentos nutricionales MNA/MUST/SGA — requiere validación clínica por nutricionista | 2026-06-02 |
 | `fce_antropometria` (tabla nueva Nutri-N1) + columnas gestacionales en `fce_anamnesis` (Nutri-N2): `20260612_01_fce_antropometria` + `20260612_02_fce_anamnesis_embarazo` — **aplicadas en producción** | 2026-06-12 |
+| Migración de RLS de `get_clinica_ids_for_user()` a `tiene_acceso_clinico()` en soap/egresos/periograma/ordenes_examen/consentimientos/notas_clinicas/evaluaciones/prescripciones/informes/adendas (`pacientes` queda fuera, ver §9) — **verificado aplicado en prod, sin migration en repo hasta la reconstrucción 2026-08-02** | 2026-07-24 |
+| Fix `block_update_signed_periograma()` — referenciaba columna inexistente `firmado_en`, bloqueaba todo UPDATE a `fce_periograma`. **Aplicada y verificada end-to-end 2026-08-02** | 2026-08-02 |
 
 ### Deuda técnica
 

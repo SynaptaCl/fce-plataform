@@ -123,7 +123,7 @@ export async function estructurarNota(
       especialidad: encuentro.especialidad,
     }
   } catch (e) {
-    console.error('[FCE][COPILOTO] Error llamando a Anthropic:', e)
+    log('error', { action: 'copiloto_nota_llamada_anthropic', error: e })
     return { success: false, error: 'Error generando la nota. Intenta nuevamente.' }
   }
 

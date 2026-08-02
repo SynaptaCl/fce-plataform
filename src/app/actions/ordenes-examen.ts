@@ -181,17 +181,25 @@ export async function getOrdenExamenById(
 
 // ── searchExamenes ─────────────────────────────────────────────────────────
 
+/** Sanea el término antes de interpolarlo en un filtro .or() de PostgREST — evita romper el parser de filtros con ',' '(' ')'. */
+function sanitizeSearchTerm(term: string): string {
+  return term.replace(/[,()]/g, " ").trim();
+}
+
 export async function searchExamenes(
   query: string,
   categoria?: string
 ): Promise<ActionResult<ExamenCatalogo[]>> {
   const { supabase } = await requireAuth();
 
+  const searchTerm = sanitizeSearchTerm(query);
+  if (searchTerm.length < 1) return { success: true, data: [] };
+
   let q = supabase
     .from("examenes_catalogo")
     .select("*")
     .eq("activo", true)
-    .or(`nombre.ilike.%${query}%,codigo.ilike.%${query}%`)
+    .or(`nombre.ilike.%${searchTerm}%,codigo.ilike.%${searchTerm}%`)
     .limit(20);
 
   if (categoria) {

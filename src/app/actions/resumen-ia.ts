@@ -57,7 +57,7 @@ export async function generarResumenIA(
   try {
     contexto = await buildContextoClinico(supabase, idPaciente, idClinica)
   } catch (e) {
-    console.error('[FCE][IA] Error extrayendo contexto:', e)
+    log('error', { action: 'resumen_ia_extraer_contexto', error: e })
     return { success: false, error: 'Error al extraer datos clínicos' }
   }
 
@@ -175,7 +175,7 @@ export async function generarResumenIA(
     )
     await Promise.all(tareas)
   } catch (e) {
-    console.error('[FCE][IA] Error llamando a Anthropic:', e)
+    log('error', { action: 'resumen_ia_llamada_anthropic', error: e })
     return { success: false, error: 'Error generando el resumen. Intenta nuevamente.' }
   }
 
