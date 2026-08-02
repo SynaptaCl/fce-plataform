@@ -1,6 +1,6 @@
 # Marco Legal FCE — Referencia de Cumplimiento Normativo
 
-> Generado: 2026-07-31. Actualizado: 2026-08-01. Uso: referencia para Claude Code al auditar cumplimiento legal del repo `fce-plataform`. No reemplaza asesoría legal — items `[LEGAL]` requieren confirmación de abogado, no son verificables por código.
+> Generado: 2026-07-31. Actualizado: 2026-08-02. Uso: referencia para Claude Code al auditar cumplimiento legal del repo `fce-plataform`. No reemplaza asesoría legal — items `[LEGAL]` requieren confirmación de abogado, no son verificables por código.
 > Mantener actualizado: revisar cuando MINSAL publique el reglamento de Ley 21.668 (pendiente a esta fecha), cambie el estado de implementación de Ley 21.719, se resuelva el Consejo Directivo de la Agencia de Protección de Datos, o ANCI emita resoluciones de calificación OIV relevantes al sector salud (Ley 21.663).
 
 ## Cómo usar este documento
@@ -17,9 +17,10 @@ Cada requisito tiene una etiqueta:
 ### 1.1 Confidencialidad y acceso restringido
 Solo accede a la ficha el paciente, su representante, profesionales tratantes, y terceros autorizados por ley (tribunales, fiscalía, autoridad sanitaria).
 
-- `[CÓDIGO]` RLS en toda tabla `fce_*` filtrando por `id_clinica` / relación profesional-paciente. Ver `supabase/migrations/20260606_02_fix_rls_tenant_isolation_5_policies.sql` y policies posteriores.
-- `[CÓDIGO]` Recepcionista sin acceso a FCE — `requireAccesoFCE(rol)` en `guards.ts`, no el `permissions.ts` legacy.
-- Deuda conocida: inyección `.or()` en catálogos (`examenes_catalogo`/`medicamentos`) y periograma sin guard `id_clinica` a nivel app (solo RLS) — ambos pendientes en CLAUDE.md §14.
+- `[CÓDIGO]` RLS en toda tabla `fce_*` filtrando por `id_clinica` / relación profesional-paciente. Ver `supabase/migrations/20260606_02_fix_rls_tenant_isolation_5_policies.sql` y policies posteriores. **Verificado contra DB real 2026-08-02**: la mayoría de tablas clínicas migró al mecanismo `tiene_acceso_clinico(id_clinica)` (2026-07-24, sin migration en repo hasta esa fecha) — `pacientes` sigue en el mecanismo anterior `get_clinica_ids_for_user()`, inconsistencia sin resolver (ver CLAUDE.md §9).
+- `[CÓDIGO]` Recepcionista sin acceso a FCE — `requireAccesoFCE(rol)` en `guards.ts`, no el `permissions.ts` legacy (confirmado 2026-08: `permissions.ts`/`canAccessFCE` tiene 0 referencias en el código, está muerto).
+- ✅ **Resuelto 2026-08-02**: inyección `.or()` en `medicamentos` ya tenía sanitización; `examenes_catalogo` (`searchExamenes` en `ordenes-examen.ts`) no la tenía — corregido con el mismo patrón (`sanitizeSearchTerm`).
+- Deuda conocida sin resolver: periograma sin guard `id_clinica` explícito a nivel app (`getPeriograma`/`savePeriograma` en `src/app/actions/dental/periograma.ts` dependen solo de RLS). El RLS de respaldo es sólido (`tiene_acceso_clinico()`, verificado), pero sigue siendo defensa única, no en profundidad.
 
 ### 1.2 Contenido mínimo de la ficha
 Identificación del paciente, anamnesis, evolución, diagnósticos, tratamientos, consentimientos.
@@ -31,7 +32,8 @@ La ficha no se altera una vez firmada; toda corrección queda trazada, no reempl
 
 - `[CÓDIGO]` Triggers `trg_block_update_signed_*` en soap, nota_clinica, periograma, consentimiento, prescripción, orden de examen.
 - `[CÓDIGO]` Sistema de adendas/erratas/anulaciones (`fce_adendas`, sprints A0/A1) — nunca edita el original, todo aditivo.
-- `[VERIFICAR]` Nota de coherencia pendiente en CLAUDE.md: confirmar si el trigger de `fce_notas_clinicas` cubre `icd_codigos` y `secciones_estructuradas` (agregadas después del trigger original) — riesgo de edición post-firma no bloqueada.
+- ✅ **Resuelto y verificado 2026-08-02** vía MCP Supabase contra la DB real (no solo el archivo de migration): `block_update_signed_nota_clinica()` en producción ya cubre `icd_codigos`/`icd_version`/`secciones_estructuradas`. El archivo `20260801_01_fix_trigger_inmutabilidad_notas_clinicas.sql` decía "pendiente de aprobación" en su propio comentario — contradecía a CLAUDE.md, que decía "aplicada". Se confirmó con `pg_proc.prosrc` en vivo que CLAUDE.md tenía razón: el fix ya está aplicado.
+- **Hallazgo adicional de la misma verificación (2026-08-02):** `fce_notas_soap`, `fce_egresos`, `fce_periograma` y `fce_ordenes_examen` sí tienen trigger de inmutabilidad DB (`trg_fce_soap_inmutable`, `trg_block_update_signed_egreso`, `trg_block_update_signed_periograma`, `trg_block_update_signed_orden`) — ninguno tenía archivo de migration en el repo, se reconstruyeron. `block_update_signed_periograma()` tenía un bug real (referenciaba columna inexistente `firmado_en`) que bloqueaba TODO `UPDATE` a `fce_periograma` en producción — corregido y aplicado el mismo día (`20260802_01_fix_trigger_periograma_columna_inexistente`).
 
 ### 1.4 Conservación mínima de 15 años
 - `[VERIFICAR]` No hay política de retención/archivado visible en el repo. Es un mínimo, no un máximo — el riesgo real es que algún job de limpieza o TTL borre datos antes de tiempo. Confirmar que no existe ninguno.
@@ -170,3 +172,4 @@ Publicada abril 2024, artículos clave vigentes desde 1-mar-2025. Fiscalizada po
 |---|---|
 | 2026-07-31 | Versión inicial — cobertura 20.584/Decreto 41 + 21.668 + 21.719 |
 | 2026-08-01 | Agregada sección 4 (Ley 21.663, Marco de Ciberseguridad — no cubierta antes). Corregida sección 3.8: plazo "sin dilación indebida" de 21.719 vs. 72h de 21.663, evitar mezclarlos. Agregada nota de riesgo institucional en sección 3: Consejo Directivo de la Agencia de Protección de Datos aún no nombrado (terna rechazada por el Senado por falta de quórum). Confirmado sin cambios: reglamento art. 13 de Ley 21.668 sigue sin publicar; vigencia de 21.719 el 1-dic-2026; gracia PYME de 12 meses. Item #16 agregado a la matriz. |
+| 2026-08-02 | Auditoría de cumplimiento (16 ítems matriz + sub-requisitos §1-4) verificada contra DB real vía MCP Supabase, no solo contra el repo. Sección 1.3: cerrado el `[VERIFICAR]` de inmutabilidad de `icd_codigos`/`secciones_estructuradas` — confirmado aplicado. Hallazgo nuevo: `fce_periograma` tenía un trigger de inmutabilidad con bug (columna inexistente `firmado_en`) que bloqueaba todo `UPDATE` a la tabla en producción — corregido y verificado el mismo día. Sección 1.1: corregida inyección `.or()` en `examenes_catalogo`; documentada la migración de RLS a `tiene_acceso_clinico()` y la inconsistencia con `pacientes`. Repo de migrations tenía 5 objetos DB vivos en prod sin archivo — reconstruidos. |

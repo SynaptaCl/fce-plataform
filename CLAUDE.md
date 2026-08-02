@@ -772,6 +772,8 @@ Actualmente **ninguna clínica tiene fce-plataform en producción** — el repo 
 | ~~UI panel antropometría no implementada~~ | ✅ RESUELTO — `AntropometriaPanel.tsx` + `AntropometriaChart.tsx` + `actions/clinico/antropometria.ts`. Embebido en workspace vía `getEspecialidadConfig(esp).tieneAntropometria` (N1: solo Nutrición) |
 | `medicamentos_catalogo` (legacy) sigue existiendo en DB tras el cutover a `medicamentos`/`medicamentos_presentaciones` — decidir baja (DROP) en sprint aparte una vez validado en producción | Baja |
 | **~210 medicamentos** (verificado en DB 2026-07-31) + 360 presentaciones migrados desde `medicamentos_catalogo` sin `validado_clinicamente` con intención clínica formal (tratar como `false` en UI) — falta pasada de validación masiva por QF/médico | Media |
+| `pacientes` sigue en RLS `get_clinica_ids_for_user()` mientras el resto de tablas clínicas migró a `tiene_acceso_clinico()` (2026-07-24) — confirmar si es intencional o falta migrarla, ver §9 | Media |
+| Repo de migrations desincronizado con prod — se detectaron 5 triggers/función vivos en producción sin archivo de migration en el repo (ver §10, reconstruidos 2026-08-02). No hay garantía de que no queden más objetos sin reconstruir; considerar un pase de reconciliación completo repo↔prod | Media |
 
 #### Auditoría de seguridad SEC-1 (2026-07-06) — mergeado a main
 
@@ -797,7 +799,7 @@ Auditoría multi-agente detectó 8 vulnerabilidades. **Mergeado a `main` en comm
 |---|---|
 | ~~0 de 7 headers de seguridad configurados~~ | ✅ RESUELTO — `next.config.ts` `headers()` + `src/proxy.ts` (HSTS, X-Frame-Options DENY, X-Content-Type-Options, Referrer-Policy, Permissions-Policy, CSP nonce) |
 | Source maps / secretos en cliente | ✅ OK (sin hallazgos — `productionBrowserSourceMaps` default false, Sentry borra `.map` tras upload) |
-| Rate limiting inexistente en 3 acciones IA (`resumen-ia.ts`, `copiloto-nota.ts`, `informes-ia.ts`) | Pendiente — riesgo financiero IA (~US$2.100/h en loop). Tienen auth (`requireContext`) pero no `checkRateLimit()` |
+| ~~Rate limiting inexistente en 3 acciones IA~~ | ✅ RESUELTO (verificado 2026-08-02) — las 3 (`resumen-ia.ts`, `copiloto-nota.ts`, `informes-ia.ts`) usan `iaRateLimit()` de `lib/rate-limit.ts` (Upstash Redis, sliding window, fail-open): 6/min resumen, 10/min copiloto, 10/min informes. `KV_REST_API_URL`/`KV_REST_API_TOKEN` configurados en `.env.local`. La auditoría original de este doc buscaba solo `checkRateLimit()` directo y no detectó el wrapper `iaRateLimit()` |
 | ~~Server Actions ICD (`diagnostico.ts`, `cif.ts`) sin auth~~ | ✅ RESUELTO (verificado LEGAL1, 2026-08-01) — ambos tienen `requireClinicMember()` + `checkRateLimit()` (Redis/Upstash, ver `src/lib/rate-limit.ts`) |
 
 ---
