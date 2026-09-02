@@ -202,7 +202,7 @@ export default async function RehabPage({
                 planActivo={planActivo}
               />
             )}
-            {profesional?.puede_prescribir && (
+            {profesional?.puede_prescribir && config?.modulosActivos.includes("M7_prescripciones") && (
               <PrescripcionLauncher patientId={patient.id} encuentroId={encuentroId} paciente={patient} />
             )}
           </div>
