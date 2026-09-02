@@ -6,6 +6,10 @@ import { getIdClinica } from "@/app/actions/patients";
 import type { ActionResult } from "@/app/actions/patients";
 import type { ProcedimientoCatalogo } from "@/types/plan-tratamiento";
 
+/**
+ * Catálogo dental del FCE: prestaciones_catalogo (dominio synapta, solo-read)
+ * con ambito='dental'. Reemplaza a procedimientos_catalogo (deprecado, 0 filas).
+ */
 export async function getProcedimientosCatalogo(): Promise<
   ActionResult<ProcedimientoCatalogo[]>
 > {
@@ -16,9 +20,10 @@ export async function getProcedimientosCatalogo(): Promise<
     return { success: false, error: "No se pudo determinar la clínica." };
 
   const { data, error } = await supabase
-    .from("procedimientos_catalogo")
-    .select("*")
+    .from("prestaciones_catalogo")
+    .select("id, codigo, nombre, categoria, precio_base, afecta_iva, requiere_pieza")
     .eq("id_clinica", idClinica)
+    .eq("ambito", "dental")
     .eq("activo", true)
     .order("categoria", { ascending: true })
     .order("orden", { ascending: true });

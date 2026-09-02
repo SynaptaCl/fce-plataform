@@ -271,9 +271,9 @@ export const MODULE_REGISTRY: Record<ModuleId, ModuleDefinition> = {
     descripcion: "Presupuestos clínicos con items y firma. Compartido entre todas las especialidades.",
     obligatorio: false,
     dependeDe: ["M1_identificacion"],
-    tablasSupabase: ["fce_presupuestos", "fce_presupuesto_items"],
+    tablasSupabase: ["fce_presupuestos", "fce_presupuesto_items", "prestaciones_catalogo", "profesional_prestaciones"],
     rutasApp: ["/dashboard/pacientes/[id]/exportar-pdf"],
-    componentes: ["PresupuestoForm", "PresupuestoList", "PresupuestoPdfView"],
+    componentes: ["PresupuestoForm", "PresupuestoList", "PresupuestoPdfView", "PrestacionPicker"],
     requiereEspecialidad: false,
     estado: "beta",
   },
@@ -301,7 +301,7 @@ export const ESPECIALIDADES_REGISTRY: Record<string, EspecialidadRegistro> = {
   "Kinesiología":        { codigo: "Kinesiología",        label: "Kinesiología",        modelo: "rehabilitacion",  tieneContraindicaciones: false, tieneEscalaFuncional: true,  estado: "estable" },
   "Fonoaudiología":      { codigo: "Fonoaudiología",      label: "Fonoaudiología",      modelo: "rehabilitacion",  tieneContraindicaciones: false, tieneEscalaFuncional: true,  estado: "estable" },
   "Masoterapia":         { codigo: "Masoterapia",         label: "Masoterapia",         modelo: "rehabilitacion",  tieneContraindicaciones: true,  tieneEscalaFuncional: false, estado: "estable" },
-  "Terapia Ocupacional": { codigo: "Terapia Ocupacional", label: "Terapia Ocupacional", modelo: "rehabilitacion",  tieneContraindicaciones: false, tieneEscalaFuncional: true,  estado: "beta" },
+  "Terapia Ocupacional": { codigo: "Terapia Ocupacional", label: "Terapia Ocupacional", modelo: "rehabilitacion",  tieneContraindicaciones: false, tieneEscalaFuncional: true,  estado: "estable" },
   "Podología":           { codigo: "Podología",           label: "Podología",           modelo: "rehabilitacion",  tieneContraindicaciones: true,  tieneEscalaFuncional: false, estado: "roadmap" },
 
   // Modelo clínico general

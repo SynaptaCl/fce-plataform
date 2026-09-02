@@ -10,7 +10,9 @@ export interface PlanTratamiento {
   diagnostico: string | null;
   observaciones: string | null;
   estado: EstadoPlan;
+  /** Derivado de M11 en código — se deja de escribir (sprint PRE-1 §7/§8). */
   presupuesto_total: number;
+  /** Derivado de pagos en código — se deja de escribir (sprint PRE-1 §7). */
   monto_pagado: number;
   cerrado: boolean;
   cerrado_at: string | null;
@@ -25,6 +27,9 @@ export interface PlanTratamientoItem {
   id: string;
   id_plan: string;
   id_clinica: string;
+  /** Prestación del catálogo (prestaciones_catalogo, ámbito dental). */
+  id_prestacion: string | null;
+  /** Etiqueta snapshot del nombre de la prestación (solo display). */
   procedimiento: string;
   descripcion: string | null;
   pieza: number | null;
@@ -35,21 +40,21 @@ export interface PlanTratamientoItem {
   id_encuentro_realizado: string | null;
   realizado_at: string | null;
   realizado_por: string | null;
-  valor_unitario: number;
   notas: string | null;
   created_at: string;
   updated_at: string;
 }
 
+/**
+ * Prestación del catálogo dental (prestaciones_catalogo, ambito='dental').
+ * Reemplaza al procedimientos_catalogo deprecado (0 filas en prod).
+ */
 export interface ProcedimientoCatalogo {
   id: string;
-  id_clinica: string;
   codigo: string;
   nombre: string;
   categoria: string;
-  descripcion: string | null;
   precio_base: number;
-  duracion_min: number | null;
-  activo: boolean;
-  orden: number;
+  afecta_iva: boolean;
+  requiere_pieza: boolean;
 }

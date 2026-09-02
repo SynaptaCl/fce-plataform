@@ -7,6 +7,7 @@ import { InstrumentosPanel } from "@/components/clinico/InstrumentosPanel";
 import { PlanTratamientoPanel } from "@/components/dental/PlanTratamientoPanel";
 import { PeriogramaForm } from "@/components/dental/PeriogramaForm";
 import { OdontogramaInteractivo } from "@/components/dental/OdontogramaInteractivo";
+import { getEspecialidadConfig } from "@/lib/modules/especialidad-config";
 import type { Patient } from "@/types/patient";
 import type { NotaClinica } from "@/types/nota-clinica";
 import type { Periograma } from "@/types/periograma";
@@ -52,6 +53,7 @@ export function DentalWorkspace({
   readOnly,
 }: DentalWorkspaceProps) {
   const [activeTab, setActiveTab] = useState<Tab>("odontograma");
+  const espConfig = getEspecialidadConfig(especialidad);
 
   return (
     <div className="rounded-xl border border-kp-border bg-surface-1">
@@ -138,6 +140,7 @@ export function DentalWorkspace({
                 readOnly={readOnly}
                 idClinica={idClinica}
                 especialidad={especialidad}
+                tieneAmbientScribe={espConfig.tieneAmbientScribe}
               />
             </div>
             <div className="w-full lg:w-80 xl:w-96 lg:pl-6 mt-6 lg:mt-0">

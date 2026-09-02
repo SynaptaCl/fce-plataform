@@ -7,24 +7,24 @@ import { PIEZAS_ADULTO, PIEZAS_NINO } from "@/lib/dental/fdi";
 import type { ProcedimientoCatalogo, PrioridadItem } from "@/types/plan-tratamiento";
 
 interface FormData {
+  id_prestacion: string | null;
   procedimiento: string;
   descripcion: string;
   pieza: number | "";
   superficie: string;
   prioridad: PrioridadItem;
-  valor_unitario: number | "";
   notas: string;
 }
 
 interface Props {
   catalogo: ProcedimientoCatalogo[];
   onSubmit: (data: {
-    procedimiento: string;
+    id_prestacion?: string;
+    procedimiento?: string;
     descripcion?: string;
     pieza?: number | null;
     superficie?: string | null;
     prioridad: PrioridadItem;
-    valor_unitario: number;
     notas?: string;
   }) => Promise<void>;
   onCancel: () => void;
@@ -39,7 +39,6 @@ const PRIORIDADES: { value: PrioridadItem; label: string }[] = [
   { value: "electivo", label: "Electivo" },
 ];
 
-
 export function PlanTratamientoItemForm({
   catalogo,
   onSubmit,
@@ -47,12 +46,12 @@ export function PlanTratamientoItemForm({
   loading = false,
 }: Props) {
   const [form, setForm] = useState<FormData>({
+    id_prestacion: null,
     procedimiento: "",
     descripcion: "",
     pieza: "",
     superficie: "",
     prioridad: "normal",
-    valor_unitario: "",
     notas: "",
   });
   const [showPicker, setShowPicker] = useState(false);
@@ -61,26 +60,26 @@ export function PlanTratamientoItemForm({
   function handleSelectProc(proc: ProcedimientoCatalogo) {
     setForm((f) => ({
       ...f,
+      id_prestacion: proc.id,
       procedimiento: proc.nombre,
-      valor_unitario: proc.precio_base > 0 ? proc.precio_base : f.valor_unitario,
     }));
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    if (!form.procedimiento.trim()) {
-      setError("El procedimiento es requerido.");
+    if (!form.id_prestacion && !form.procedimiento.trim()) {
+      setError("Selecciona una prestación del catálogo o indica un procedimiento.");
       return;
     }
     try {
       await onSubmit({
-        procedimiento: form.procedimiento.trim(),
+        id_prestacion: form.id_prestacion ?? undefined,
+        procedimiento: form.id_prestacion ? undefined : form.procedimiento.trim(),
         descripcion: form.descripcion.trim() || undefined,
         pieza: form.pieza !== "" ? Number(form.pieza) : null,
         superficie: form.superficie.trim() || null,
         prioridad: form.prioridad,
-        valor_unitario: form.valor_unitario !== "" ? Number(form.valor_unitario) : 0,
         notas: form.notas.trim() || undefined,
       });
     } catch (err) {
@@ -104,9 +103,16 @@ export function PlanTratamientoItemForm({
           <input
             type="text"
             value={form.procedimiento}
-            onChange={(e) => setForm((f) => ({ ...f, procedimiento: e.target.value }))}
-            placeholder="Nombre del procedimiento *"
+            onChange={(e) =>
+              setForm((f) => ({
+                ...f,
+                procedimiento: e.target.value,
+                id_prestacion: null,
+              }))
+            }
+            placeholder={form.id_prestacion ? "Prestación del catálogo" : "Nombre del procedimiento *"}
             required
+            readOnly={!!form.id_prestacion}
             className="flex-1 rounded-lg border px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-kp-primary/20"
             style={{
               borderColor: "var(--color-kp-border)",
@@ -120,13 +126,19 @@ export function PlanTratamientoItemForm({
               onClick={() => setShowPicker((v) => !v)}
               className="rounded-lg border px-3 py-2 text-xs font-medium flex items-center gap-1.5 transition-colors hover:bg-surface-0"
               style={{ borderColor: "var(--color-kp-border)", color: "var(--color-ink-2)" }}
-              title="Buscar en catálogo"
+              title="Buscar en catálogo de prestaciones"
             >
               <BookOpen className="w-3.5 h-3.5" />
               Catálogo
             </button>
           )}
         </div>
+
+        {form.id_prestacion && (
+          <p className="text-xs mt-1" style={{ color: "var(--color-ink-3)" }}>
+            Prestación del catálogo seleccionada — el precio se resuelve al generar el presupuesto.
+          </p>
+        )}
 
         {showPicker && catalogo.length > 0 && (
           <div className="absolute left-0 right-0 top-full mt-1 z-20">
@@ -195,56 +207,29 @@ export function PlanTratamientoItemForm({
         </div>
       </div>
 
-      {/* Prioridad + Valor */}
-      <div className="grid grid-cols-2 gap-2">
-        <div>
-          <label className="block text-xs mb-1" style={{ color: "var(--color-ink-3)" }}>
-            Prioridad
-          </label>
-          <select
-            value={form.prioridad}
-            onChange={(e) =>
-              setForm((f) => ({ ...f, prioridad: e.target.value as PrioridadItem }))
-            }
-            className="w-full rounded-lg border px-3 py-2 text-sm outline-none"
-            style={{
-              borderColor: "var(--color-kp-border)",
-              color: "var(--color-ink-1)",
-              background: "var(--color-surface-0)",
-            }}
-          >
-            {PRIORIDADES.map((p) => (
-              <option key={p.value} value={p.value}>
-                {p.label}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div>
-          <label className="block text-xs mb-1" style={{ color: "var(--color-ink-3)" }}>
-            Valor ($)
-          </label>
-          <input
-            type="number"
-            min="0"
-            step="1000"
-            value={form.valor_unitario}
-            onChange={(e) =>
-              setForm((f) => ({
-                ...f,
-                valor_unitario: e.target.value === "" ? "" : Number(e.target.value),
-              }))
-            }
-            placeholder="0"
-            className="w-full rounded-lg border px-3 py-2 text-sm outline-none"
-            style={{
-              borderColor: "var(--color-kp-border)",
-              color: "var(--color-ink-1)",
-              background: "var(--color-surface-0)",
-            }}
-          />
-        </div>
+      {/* Prioridad */}
+      <div>
+        <label className="block text-xs mb-1" style={{ color: "var(--color-ink-3)" }}>
+          Prioridad
+        </label>
+        <select
+          value={form.prioridad}
+          onChange={(e) =>
+            setForm((f) => ({ ...f, prioridad: e.target.value as PrioridadItem }))
+          }
+          className="w-full rounded-lg border px-3 py-2 text-sm outline-none"
+          style={{
+            borderColor: "var(--color-kp-border)",
+            color: "var(--color-ink-1)",
+            background: "var(--color-surface-0)",
+          }}
+        >
+          {PRIORIDADES.map((p) => (
+            <option key={p.value} value={p.value}>
+              {p.label}
+            </option>
+          ))}
+        </select>
       </div>
 
       {/* Notas */}

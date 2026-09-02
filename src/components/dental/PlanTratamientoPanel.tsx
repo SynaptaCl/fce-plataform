@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import {
   Plus,
   CheckCircle2,
@@ -12,6 +12,7 @@ import {
   ClipboardList,
   ChevronDown,
   ChevronUp,
+  FileText,
 } from "lucide-react";
 import { PlanTratamientoItemForm } from "./PlanTratamientoItemForm";
 import {
@@ -19,12 +20,15 @@ import {
   addItemPlan,
   updateItemEstado,
   removeItemPlan,
+  getPresupuestoDePlan,
+  generarPresupuestoDesdePlan,
 } from "@/app/actions/dental/plan-tratamiento";
 import {
   calcularProgreso,
   calcularPresupuestoTotal,
   calcularMontoRealizado,
 } from "@/lib/dental/plan";
+import type { PresupuestoDePlan } from "@/lib/dental/plan";
 import type {
   PlanTratamiento,
   PlanTratamientoItem,
@@ -103,6 +107,9 @@ function EstadoBadge({ estado }: { estado: EstadoItem }) {
 function ItemRow({
   item,
   readOnly,
+  seleccionable,
+  seleccionado,
+  onToggleSeleccion,
   onEstadoChange,
   onRemove,
 }: {
@@ -111,6 +118,9 @@ function ItemRow({
   patientId: string;
   encuentroId: string;
   readOnly: boolean;
+  seleccionable?: boolean;
+  seleccionado?: boolean;
+  onToggleSeleccion?: (itemId: string) => void;
   onEstadoChange: (itemId: string, estado: EstadoItem) => void;
   onRemove: (itemId: string) => void;
 }) {
@@ -125,6 +135,17 @@ function ItemRow({
     >
       {/* Fila principal */}
       <div className="flex items-start gap-3 p-3">
+        {/* Selección para presupuesto (PRE-1 F8) */}
+        {seleccionable && (
+          <input
+            type="checkbox"
+            checked={!!seleccionado}
+            onChange={() => onToggleSeleccion?.(item.id)}
+            className="mt-1 shrink-0"
+            title="Incluir en el presupuesto"
+          />
+        )}
+
         {/* Indicador prioridad */}
         <div
           className="mt-0.5 w-1 self-stretch rounded-full shrink-0"
@@ -153,14 +174,16 @@ function ItemRow({
               </span>
             )}
             <EstadoBadge estado={item.estado} />
+            {!item.id_prestacion && (
+              <span
+                className="text-xs px-1.5 py-0.5 rounded"
+                style={{ color: "#92400E", background: "#FEF9C3" }}
+                title="Sin prestación del catálogo asociada: no entra al presupuesto M11"
+              >
+                sin tarificar
+              </span>
+            )}
           </div>
-
-          {/* Valor */}
-          {item.valor_unitario > 0 && (
-            <p className="text-xs mt-0.5" style={{ color: "var(--color-ink-3)" }}>
-              {formatCLP(item.valor_unitario)}
-            </p>
-          )}
 
           {/* Notas expandidas */}
           {item.notas && expanded && (
@@ -259,11 +282,27 @@ export function PlanTratamientoPanel({
   const [showForm, setShowForm] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [presupuesto, setPresupuesto] = useState<PresupuestoDePlan | null>(null);
+  const [seleccion, setSeleccion] = useState<Set<string>>(new Set());
+  const [generando, setGenerando] = useState(false);
+
+  // Sprint PRE-1 F8: los totales del plan derivan del presupuesto M11 generado
+  const planId = plan?.id;
+  useEffect(() => {
+    if (!planId) return;
+    let cancelado = false;
+    getPresupuestoDePlan(planId).then((res) => {
+      if (!cancelado && res.success) setPresupuesto(res.data);
+    });
+    return () => {
+      cancelado = true;
+    };
+  }, [planId]);
 
   const items = plan?.items ?? [];
   const progreso = calcularProgreso(items);
-  const presupuesto = calcularPresupuestoTotal(items);
-  const realizado = calcularMontoRealizado(items);
+  const totalPlan = calcularPresupuestoTotal(presupuesto);
+  const realizado = calcularMontoRealizado(items, presupuesto);
 
   // Sin plan: invitar a crear uno
   if (!plan) {
@@ -314,12 +353,12 @@ export function PlanTratamientoPanel({
   }
 
   async function handleAddItem(data: {
-    procedimiento: string;
+    id_prestacion?: string;
+    procedimiento?: string;
     descripcion?: string;
     pieza?: number | null;
     superficie?: string | null;
     prioridad: PrioridadItem;
-    valor_unitario: number;
     notas?: string;
   }) {
     setError(null);
@@ -333,7 +372,6 @@ export function PlanTratamientoPanel({
         ? {
             ...p,
             items: [...(p.items ?? []), res.data],
-            presupuesto_total: p.presupuesto_total + res.data.valor_unitario,
           }
         : p,
     );
@@ -374,7 +412,6 @@ export function PlanTratamientoPanel({
 
   function handleRemove(itemId: string) {
     setError(null);
-    const item = items.find((i) => i.id === itemId);
     startTransition(async () => {
       const res = await removeItemPlan(itemId, plan!.id, patientId);
       if (!res.success) {
@@ -386,12 +423,37 @@ export function PlanTratamientoPanel({
           ? {
               ...p,
               items: (p.items ?? []).filter((i) => i.id !== itemId),
-              presupuesto_total:
-                p.presupuesto_total - (item?.valor_unitario ?? 0),
             }
           : p,
       );
     });
+  }
+
+  function toggleSeleccion(itemId: string) {
+    setSeleccion((prev) => {
+      const next = new Set(prev);
+      if (next.has(itemId)) next.delete(itemId);
+      else next.add(itemId);
+      return next;
+    });
+  }
+
+  async function handleGenerarPresupuesto() {
+    if (!plan || seleccion.size === 0) return;
+    setError(null);
+    setGenerando(true);
+    try {
+      const res = await generarPresupuestoDesdePlan(plan.id, patientId, Array.from(seleccion));
+      if (!res.success) {
+        setError(res.error);
+        return;
+      }
+      const detalle = await getPresupuestoDePlan(plan.id);
+      if (detalle.success) setPresupuesto(detalle.data);
+      setSeleccion(new Set());
+    } finally {
+      setGenerando(false);
+    }
   }
 
   const pendientes = items.filter(
@@ -512,6 +574,9 @@ export function PlanTratamientoPanel({
                 patientId={patientId}
                 encuentroId={encuentroId}
                 readOnly={readOnly || plan.cerrado}
+                seleccionable={!readOnly && !plan.cerrado && !!item.id_prestacion}
+                seleccionado={seleccion.has(item.id)}
+                onToggleSeleccion={toggleSeleccion}
                 onEstadoChange={handleEstadoChange}
                 onRemove={handleRemove}
               />
@@ -572,7 +637,7 @@ export function PlanTratamientoPanel({
         </section>
       )}
 
-      {/* Footer presupuesto */}
+      {/* Footer presupuesto (derivado del M11 generado — PRE-1 F8) */}
       {items.length > 0 && (
         <div
           className="rounded-xl border px-4 py-3 flex flex-wrap gap-4 justify-between items-center"
@@ -580,11 +645,16 @@ export function PlanTratamientoPanel({
         >
           <div className="space-y-0.5">
             <p className="text-xs" style={{ color: "var(--color-ink-3)" }}>
-              Presupuesto total
+              {presupuesto ? "Presupuesto M11" : "Presupuesto"}
             </p>
             <p className="text-base font-semibold" style={{ color: "var(--color-ink-1)" }}>
-              {formatCLP(presupuesto)}
+              {presupuesto ? formatCLP(totalPlan) : "—"}
             </p>
+            {!presupuesto && (
+              <p className="text-xs" style={{ color: "var(--color-ink-3)" }}>
+                Sin presupuesto generado
+              </p>
+            )}
           </div>
           <div className="space-y-0.5 text-right">
             <p className="text-xs" style={{ color: "var(--color-ink-3)" }}>
@@ -597,15 +667,38 @@ export function PlanTratamientoPanel({
               {formatCLP(realizado)}
             </p>
           </div>
-          {presupuesto > 0 && (
+          {presupuesto && totalPlan > 0 && (
             <div className="space-y-0.5 text-right">
               <p className="text-xs" style={{ color: "var(--color-ink-3)" }}>
                 Pendiente
               </p>
               <p className="text-base font-semibold" style={{ color: "var(--color-ink-2)" }}>
-                {formatCLP(presupuesto - realizado)}
+                {formatCLP(totalPlan - realizado)}
               </p>
             </div>
+          )}
+
+          {/* Generar presupuesto M11 desde los ítems seleccionados (PRE-1 F8) */}
+          {!readOnly && !plan.cerrado && (
+            <button
+              type="button"
+              onClick={handleGenerarPresupuesto}
+              disabled={generando || seleccion.size === 0}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium text-white transition-opacity disabled:opacity-50"
+              style={{ background: "var(--color-kp-primary)" }}
+              title={
+                seleccion.size === 0
+                  ? "Selecciona procedimientos pendientes con prestación asociada"
+                  : "Generar presupuesto M11 con los ítems seleccionados"
+              }
+            >
+              <FileText className="w-4 h-4" />
+              {generando
+                ? "Generando…"
+                : seleccion.size > 0
+                  ? `Generar presupuesto (${seleccion.size})`
+                  : "Generar presupuesto"}
+            </button>
           )}
         </div>
       )}

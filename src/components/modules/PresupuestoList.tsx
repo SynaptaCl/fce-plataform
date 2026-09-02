@@ -26,10 +26,13 @@ function formatCLP(value: number): string {
   }).format(value);
 }
 
-function calcularTotal(p: Presupuesto): number {
-  if (!p.items?.length) return 0;
-  return p.items.reduce((sum, it) => sum + it.cantidad * it.precio_unitario, 0);
-}
+const ESTADO_BADGE: Record<string, { label: string; bg: string; color: string }> = {
+  borrador: { label: "Borrador", bg: "#FEF9C3", color: "#92400E" },
+  enviado: { label: "Enviado", bg: "#DBEAFE", color: "#1D4ED8" },
+  aceptado: { label: "Aceptado", bg: "#DCFCE7", color: "#15803D" },
+  rechazado: { label: "Rechazado", bg: "#FEE2E2", color: "#B91C1C" },
+  anulado: { label: "Anulado", bg: "#E5E7EB", color: "#4B5563" },
+};
 
 function formatFecha(iso: string): string {
   return new Date(iso).toLocaleDateString("es-CL", {
@@ -159,8 +162,8 @@ export function PresupuestoList({ idPaciente, idEncuentro }: Props) {
       {presupuestos.length > 0 && (
         <ul className="space-y-2">
           {presupuestos.map((p) => {
-            const isBorrador = p.estado === "borrador";
-            const total = calcularTotal(p);
+            const badge = ESTADO_BADGE[p.estado] ?? ESTADO_BADGE.borrador;
+            const total = p.total_clp ?? 0;
             return (
               <li
                 key={p.id}
@@ -177,13 +180,9 @@ export function PresupuestoList({ idPaciente, idEncuentro }: Props) {
                       {/* Estado badge */}
                       <span
                         className="text-xs font-medium px-2 py-0.5 rounded-full whitespace-nowrap"
-                        style={
-                          isBorrador
-                            ? { background: "#FEF9C3", color: "#92400E" }
-                            : { background: "#DCFCE7", color: "#15803D" }
-                        }
+                        style={{ background: badge.bg, color: badge.color }}
                       >
-                        {isBorrador ? "Borrador" : "Enviado"}
+                        {badge.label}
                       </span>
                     </div>
                     <div className="flex items-center gap-3 mt-0.5 flex-wrap">
