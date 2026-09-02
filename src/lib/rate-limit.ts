@@ -81,3 +81,18 @@ export async function iaRateLimit(
 ): Promise<RateLimitResult> {
   return checkRateLimit(`ia:${action}:${userId}`, limit, windowMs);
 }
+
+/**
+ * Tope agregado por clínica — evita que N profesionales de la misma clínica
+ * (o una sesión comprometida rotando de usuario) sumen costo sin que el
+ * límite por-usuario individual lo detecte. Complementa `iaRateLimit`,
+ * no lo reemplaza: llamar ambos y bloquear si cualquiera de los dos falla.
+ */
+export async function iaRateLimitClinica(
+  action: string,
+  idClinica: string,
+  limit: number,
+  windowMs = 60_000
+): Promise<RateLimitResult> {
+  return checkRateLimit(`ia:${action}:clinica:${idClinica}`, limit, windowMs);
+}

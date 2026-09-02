@@ -9,7 +9,7 @@ import type { ActionResult } from '@/lib/modules/guards'
 import type { TipoInforme } from '@/types/informe'
 import { logAudit } from '@/lib/audit'
 import { log } from '@/lib/logger'
-import { iaRateLimit } from '@/lib/rate-limit'
+import { iaRateLimit, iaRateLimitClinica } from '@/lib/rate-limit'
 import { seudonimizarTexto } from '@/lib/ia/sanitize-pii'
 import { fetchPiiPaciente } from '@/lib/ia/pii-paciente'
 import type { PIIPaciente } from '@/lib/ia/sanitize-pii'
@@ -68,6 +68,10 @@ export async function estructurarInforme(
   const rl = await iaRateLimit('informes', user.id, 10, 60_000)
   if (!rl.allowed) {
     return { success: false, error: 'Demasiadas solicitudes de informe. Espera un momento e inténtalo de nuevo.' }
+  }
+  const rlClinica = await iaRateLimitClinica('informes', idClinica, 50, 60_000)
+  if (!rlClinica.allowed) {
+    return { success: false, error: 'Demasiadas solicitudes de informe en esta clínica. Espera un momento e inténtalo de nuevo.' }
   }
 
   // 4. Validar contenido
