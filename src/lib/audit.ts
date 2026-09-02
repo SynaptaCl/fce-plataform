@@ -8,7 +8,11 @@ export type TipoEvento =
   | "create_adenda" | "create_errata" | "create_anulacion"
   | "errata_post_ventana" | "login"
   | "ia_copiloto" | "ia_resumen" | "ia_informe"
-  | "config_update";
+  | "config_update"
+  // AMB-1 — pendientes de migration que extienda el CHECK/enum de logs_auditoria.tipo_evento
+  // (ver AMB-1-ambient-scribe.md §5.5). logAudit es fire-and-forget: si la DB aún no acepta
+  // estos valores, el INSERT falla y se loguea a console.error sin romper el flujo clínico.
+  | "ia_ambient" | "consent_grabacion_otorgado" | "consent_grabacion_revocado";
 
 export type ActorTipo = "profesional" | "admin" | "sistema" | "bot";
 

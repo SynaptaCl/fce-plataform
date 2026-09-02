@@ -49,7 +49,7 @@ export function CopilotoNotaPanel({
         </button>
       </div>
 
-      {/* Disclaimer */}
+      {/* Disclaimer — texto literal, no modificar (§18 CLAUDE.md / AMB-1 §8) */}
       <p
         className="text-xs italic pl-3 border-l-2"
         style={{
@@ -57,8 +57,9 @@ export function CopilotoNotaPanel({
           borderColor: 'var(--color-kp-warning, #F5A623)',
         }}
       >
-        Borrador generado por IA a partir de los apuntes ingresados. Debe ser revisado y editado
-        por el profesional responsable antes de firmar.
+        {borrador.origen === 'ambient'
+          ? 'Borrador generado por IA a partir de la transcripción de la consulta. Debe ser revisado y editado por el profesional responsable antes de firmar.'
+          : 'Borrador generado por IA a partir de los apuntes ingresados. Debe ser revisado y editado por el profesional responsable antes de firmar.'}
       </p>
 
       {/* Contenido del borrador */}

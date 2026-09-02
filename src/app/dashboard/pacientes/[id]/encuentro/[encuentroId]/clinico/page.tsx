@@ -189,6 +189,7 @@ export default async function ClinicoPage({
               m10Activo={m10Activo}
               planActivo={planActivo}
               tieneCopilotoIA={espConfig.tieneCopilotoIA}
+              tieneAmbientScribe={espConfig.tieneAmbientScribe}
             />
           </div>
           <div className="w-full lg:w-80 xl:w-96 p-6 bg-surface-0">

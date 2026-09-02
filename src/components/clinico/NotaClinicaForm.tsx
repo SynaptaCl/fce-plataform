@@ -17,6 +17,7 @@ import type { NotaClinica } from "@/types/nota-clinica";
 import { DiagnosticoSearch } from '@/components/clinico/DiagnosticoSearch';
 import type { ICDCodeSnap } from '@/lib/icd/types';
 import { CopilotoNotaButton, CopilotoNotaPanel } from '@/components/modules/CopilotoNota'
+import { AmbientRecorder } from '@/components/modules/Ambient'
 import type { BorradorNota } from '@/lib/ia/copiloto-nota/types'
 import type { PlanIntervencion } from '@/types/plan-intervencion'
 import { getEspecialidadConfig } from '@/lib/modules/especialidad-config'
@@ -84,6 +85,7 @@ interface NotaClinicaFormProps {
   m10Activo?: boolean;
   planActivo?: PlanIntervencion | null;
   tieneCopilotoIA?: boolean;
+  tieneAmbientScribe?: boolean;
   especialidad?: string;
 }
 
@@ -100,6 +102,7 @@ export function NotaClinicaForm({
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   planActivo: _planActivo,
   tieneCopilotoIA = true,
+  tieneAmbientScribe = false,
   especialidad,
 }: NotaClinicaFormProps) {
   const [notaId, setNotaId] = useState<string | undefined>(notaExistente?.id);
@@ -319,14 +322,24 @@ export function NotaClinicaForm({
             <label className="text-sm font-medium text-ink-1">
               Nota clínica <span className="text-red-500">*</span>
             </label>
-            {!readOnly && tieneCopilotoIA && (
-              <CopilotoNotaButton
-                encuentroId={encuentroId}
-                idClinica={idClinica}
-                getBullets={() => stripHtml(getValues("contenido"))}
-                onBorradorReady={setBorradorActivo}
-              />
-            )}
+            <div className="flex items-start gap-2">
+              {!readOnly && tieneAmbientScribe && (
+                <AmbientRecorder
+                  encuentroId={encuentroId}
+                  idClinica={idClinica}
+                  idPaciente={patientId}
+                  onBorradorReady={setBorradorActivo}
+                />
+              )}
+              {!readOnly && tieneCopilotoIA && (
+                <CopilotoNotaButton
+                  encuentroId={encuentroId}
+                  idClinica={idClinica}
+                  getBullets={() => stripHtml(getValues("contenido"))}
+                  onBorradorReady={setBorradorActivo}
+                />
+              )}
+            </div>
           </div>
           <Controller
             name="contenido"

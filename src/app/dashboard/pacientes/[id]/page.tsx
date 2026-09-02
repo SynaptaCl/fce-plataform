@@ -15,6 +15,9 @@ import { getEgresosByPaciente } from "@/app/actions/egresos";
 import { ResumenIAButton } from "@/components/modules/ResumenIA";
 import { AlertBanner } from "@/components/ui/AlertBanner";
 import { logAudit } from "@/lib/audit";
+import { getEspecialidadConfig } from "@/lib/modules/especialidad-config";
+import { getUltimaVersionGrabacion } from "@/lib/ambient/consentimiento";
+import { AmbientConsentPanel } from "@/components/shared/AmbientConsentPanel";
 import type { PatientSummary } from "@/app/actions/timeline";
 
 export async function generateMetadata({
@@ -76,7 +79,7 @@ async function _patientDetailPage(
   const rol = adminRes.data?.rol ?? "";
 
   // ── Fetch paralelo ─────────────────────────────────────────────────────
-  const [patientResult, timelineResult, consentResult, fceConfigRes, profesional, egresosResult] =
+  const [patientResult, timelineResult, consentResult, ultimaVersionGrabacion, fceConfigRes, profesional, egresosResult] =
     await Promise.all([
       getPatientById(id),
       getPatientTimeline(id),
@@ -85,6 +88,10 @@ async function _patientDetailPage(
         .select("id", { count: "exact", head: true })
         .eq("id_paciente", id)
         .eq("firmado", true),
+      // AMB-1 F1 — última versión del consentimiento de grabación (tipo='grabacion_ia').
+      // Se computa siempre (barato, indexado) pero solo se muestra si la clínica tiene
+      // alguna especialidad con tieneAmbientScribe activo (ver ambientHabilitado abajo).
+      getUltimaVersionGrabacion(supabase, id),
       idClinica
         ? supabase
             .from("clinicas_fce_config")
@@ -114,6 +121,14 @@ async function _patientDetailPage(
   const especialidadesActivas: string[] =
     fceConfigRes.data?.especialidades_activas ?? [];
   const especialidadProfesional = rol === "profesional" ? (profesional?.especialidad ?? null) : null;
+
+  // AMB-1 — badge de consentimiento de grabación solo si la clínica tiene activa
+  // alguna especialidad con tieneAmbientScribe (regla 18: gating vía config, nunca
+  // if (especialidad === '...')).
+  const ambientHabilitado = especialidadesActivas.some(
+    (esp) => getEspecialidadConfig(esp).tieneAmbientScribe === true
+  );
+  const hasConsentGrabacion = ultimaVersionGrabacion?.firmado === true;
 
   const fullName =
     [p.nombre, p.apellido_paterno, p.apellido_materno]
@@ -162,7 +177,12 @@ async function _patientDetailPage(
       </div>
 
       {/* PatientHeader — compact single line */}
-      <PatientHeader patient={p} hasConsent={hasConsent} patientId={id} />
+      <PatientHeader
+        patient={p}
+        hasConsent={hasConsent}
+        hasConsentGrabacion={ambientHabilitado ? hasConsentGrabacion : undefined}
+        patientId={id}
+      />
 
       {/* ActionBar — horizontal chips con CTA principal */}
       <ActionBar
@@ -218,7 +238,7 @@ async function _patientDetailPage(
           </div>
 
           {/* ── Columna 2: Panel resumen — oculto en viewports < xl ── */}
-          <div className="hidden xl:block xl:sticky xl:top-4 self-start">
+          <div className="hidden xl:block xl:sticky xl:top-4 self-start space-y-4">
             <SummaryPanel
               summary={summary}
               patientId={id}
@@ -230,6 +250,20 @@ async function _patientDetailPage(
                   : undefined
               }
             />
+            {ambientHabilitado && (
+              <AmbientConsentPanel
+                patientId={id}
+                estado={
+                  ultimaVersionGrabacion
+                    ? {
+                        firmado: ultimaVersionGrabacion.firmado,
+                        version: ultimaVersionGrabacion.version,
+                        createdAt: ultimaVersionGrabacion.created_at,
+                      }
+                    : null
+                }
+              />
+            )}
           </div>
 
         </div>

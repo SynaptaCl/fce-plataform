@@ -1,12 +1,18 @@
 import type React from "react";
 import Link from "next/link";
-import { Pencil, Download } from "lucide-react";
+import { Pencil, Download, Mic, MicOff } from "lucide-react";
 import { calculateAge, formatRut } from "@/lib/utils";
 import type { Patient } from "@/types";
 
 interface PatientHeaderProps {
   patient: Patient;
   hasConsent: boolean;
+  /**
+   * AMB-1 — consentimiento de grabación (Ambient Scribe). `undefined` = no
+   * mostrar badge (clínica sin especialidad con tieneAmbientScribe activo).
+   * `true`/`false` = mostrar estado vigente/no vigente.
+   */
+  hasConsentGrabacion?: boolean;
   patientId?: string;
   primaryAction?: React.ReactNode;
   statusBadge?: React.ReactNode;
@@ -15,6 +21,7 @@ interface PatientHeaderProps {
 export function PatientHeader({
   patient,
   hasConsent,
+  hasConsentGrabacion,
   patientId,
   primaryAction,
   statusBadge,
@@ -143,6 +150,41 @@ export function PatientHeader({
               }}
             >
               CI firmado
+            </span>
+          )}
+
+          {hasConsentGrabacion !== undefined && (
+            <span
+              title={
+                hasConsentGrabacion
+                  ? "Consentimiento de grabación vigente"
+                  : "Sin consentimiento de grabación — Ambient Scribe deshabilitado"
+              }
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 3,
+                fontSize: 10,
+                textTransform: "uppercase",
+                letterSpacing: "0.05em",
+                fontWeight: 600,
+                background: hasConsentGrabacion
+                  ? "var(--color-kp-success-lt, #DCFCE7)"
+                  : "var(--color-kp-border, #E2E8F0)",
+                color: hasConsentGrabacion
+                  ? "var(--color-kp-success, #16A34A)"
+                  : "var(--color-ink-3, #94A3B8)",
+                padding: "2px 6px",
+                borderRadius: 4,
+                flexShrink: 0,
+              }}
+            >
+              {hasConsentGrabacion ? (
+                <Mic style={{ width: 10, height: 10 }} />
+              ) : (
+                <MicOff style={{ width: 10, height: 10 }} />
+              )}
+              Grabación IA
             </span>
           )}
         </div>

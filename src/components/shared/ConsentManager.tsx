@@ -62,7 +62,7 @@ Este consentimiento se rige por la Ley N° 20.584, el Decreto N° 41 MINSAL y la
 
 // ── SignatureCanvas ────────────────────────────────────────────────────────
 
-function SignatureCanvas({
+export function SignatureCanvas({
   onSign,
   onClear,
 }: {
