@@ -153,8 +153,13 @@ export function PrescripcionDetalleModal({
         {/* Content */}
         {activeTab === "receta" && (
           <div className="flex-1 overflow-auto">
-            {/* Hidden RecetaPdfView rendered off-screen for html2pdf.js */}
-            <div className="sr-only absolute pointer-events-none" aria-hidden>
+            {/* Hidden RecetaPdfView rendered off-screen for html2pdf.js —
+                NUNCA usar Tailwind sr-only aquí: su overflow:hidden + clip:rect(0,0,0,0)
+                hace que html2canvas capture un PDF en blanco. Solo desplazar fuera del viewport. */}
+            <div
+              style={{ position: "absolute", left: "-9999px", top: 0, pointerEvents: "none" }}
+              aria-hidden
+            >
               <RecetaPdfView
                 prescripcion={prescripcion}
                 paciente={paciente}

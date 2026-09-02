@@ -6,6 +6,33 @@ import { logAudit } from "@/lib/audit";
 import type { ActionResult } from "@/lib/modules/guards";
 import type { Patient } from "@/types";
 import type { FichaClinicaData, AdendaPdfRow } from "@/lib/ficha-clinica/pdf-renderer";
+import type { OdontogramaEntry } from "@/types/odontograma";
+import type { Periograma } from "@/types/periograma";
+import type { PlanTratamiento, PlanTratamientoItem } from "@/types/plan-tratamiento";
+
+function buildDentalData(
+  odontogramaRes: { data: unknown },
+  periogramaRes: { data: unknown },
+  planTratamientoRes: { data: unknown }
+): FichaClinicaData["dental"] {
+  const odontograma = (odontogramaRes.data as OdontogramaEntry[] | null) ?? [];
+  const periograma = (periogramaRes.data as Periograma[] | null) ?? [];
+  const planTratamiento =
+    (planTratamientoRes.data as Array<PlanTratamiento & { items: PlanTratamientoItem[] }> | null) ?? [];
+
+  if (odontograma.length === 0 && periograma.length === 0 && planTratamiento.length === 0) {
+    return null;
+  }
+
+  return {
+    odontograma,
+    periograma,
+    planTratamiento: planTratamiento.map((p) => ({
+      ...p,
+      items: (p.items ?? []).sort((a, b) => a.orden - b.orden),
+    })),
+  };
+}
 
 /**
  * Compila la ficha clínica electrónica completa del paciente (Decreto 41 / Ley 20.584):
@@ -64,6 +91,9 @@ export async function exportarFichaCompletaPdf(
     egresoRes,
     clinicaRes,
     adendasRes,
+    odontogramaRes,
+    periogramaRes,
+    planTratamientoRes,
   ] = await Promise.all([
     supabase
       .from("fce_anamnesis")
@@ -100,7 +130,7 @@ export async function exportarFichaCompletaPdf(
     supabase
       .from("fce_notas_clinicas")
       .select(
-        "id, motivo_consulta, contenido, diagnostico, icd_codigos, icd_version, plan, secciones_estructuradas, firmado_at, created_at, encuentro:fce_encuentros(especialidad, started_at)"
+        "id, id_encuentro, motivo_consulta, contenido, diagnostico, icd_codigos, icd_version, plan, secciones_estructuradas, firmado_at, created_at, encuentro:fce_encuentros(especialidad, started_at)"
       )
       .eq("id_paciente", idPaciente)
       .eq("id_clinica", idClinica)
@@ -171,6 +201,25 @@ export async function exportarFichaCompletaPdf(
       .eq("id_paciente", idPaciente)
       .eq("id_clinica", idClinica)
       .order("created_at", { ascending: true }),
+    supabase
+      .from("fce_odontograma")
+      .select("id, id_clinica, id_paciente, pieza, estado, superficies, movilidad, notas, updated_by, updated_at, created_at")
+      .eq("id_paciente", idPaciente)
+      .eq("id_clinica", idClinica)
+      .order("pieza", { ascending: true }),
+    supabase
+      .from("fce_periograma")
+      .select("id, id_clinica, id_paciente, id_encuentro, datos, indice_sangrado, profundidad_media, sitios_patologicos, diagnostico_icd, notas, firmado, firmado_at, firmado_por, registrado_por, created_at, updated_at")
+      .eq("id_paciente", idPaciente)
+      .eq("id_clinica", idClinica)
+      .eq("firmado", true)
+      .order("created_at", { ascending: true }),
+    supabase
+      .from("fce_plan_tratamiento")
+      .select("*, items:fce_plan_tratamiento_items(*)")
+      .eq("id_paciente", idPaciente)
+      .eq("id_clinica", idClinica)
+      .order("created_at", { ascending: true }),
   ]);
 
   // Audit obligatorio en exportación de ficha clínica
@@ -229,6 +278,30 @@ export async function exportarFichaCompletaPdf(
 
   const rows = <T>(res: { data: unknown }): T[] => (res.data as T[] | null) ?? [];
 
+  // ── AMB-1/Copiloto — inferir "asistida por IA" desde logs_auditoria ───────
+  // fce_notas_clinicas no tiene columna que lo marque; ia_copiloto/ia_ambient
+  // se auditan con registro_id = id_encuentro (ver copiloto-nota.ts / generar-nota.ts),
+  // no id de la nota — por eso el join es por encuentro, no por nota.
+  const notasClinicasRaw = rows<
+    FichaClinicaData["notasClinicas"][number] & { id_encuentro: string }
+  >(notasClinicasRes);
+  const encuentroIdsConNota = [...new Set(notasClinicasRaw.map((n) => n.id_encuentro))];
+  let encuentrosConIA = new Set<string>();
+  if (encuentroIdsConNota.length > 0) {
+    const { data: auditRows } = await supabase
+      .from("logs_auditoria")
+      .select("registro_id")
+      .eq("id_clinica", idClinica)
+      .eq("tabla_afectada", "fce_notas_clinicas")
+      .in("tipo_evento", ["ia_copiloto", "ia_ambient"])
+      .in("registro_id", encuentroIdsConNota);
+    encuentrosConIA = new Set((auditRows ?? []).map((r) => r.registro_id as string));
+  }
+  const notasClinicasConIA = notasClinicasRaw.map((n) => ({
+    ...n,
+    asistidoPorIA: encuentrosConIA.has(n.id_encuentro),
+  }));
+
   const data: FichaClinicaData = {
     generadoEl,
     clinica: {
@@ -242,7 +315,7 @@ export async function exportarFichaCompletaPdf(
     encuentros: rows<FichaClinicaData["encuentros"][number]>(encuentrosRes),
     signosVitales: rows<FichaClinicaData["signosVitales"][number]>(signosVitalesRes),
     notasSoap: rows<FichaClinicaData["notasSoap"][number]>(notasSoapRes),
-    notasClinicas: rows<FichaClinicaData["notasClinicas"][number]>(notasClinicasRes),
+    notasClinicas: notasClinicasConIA,
     evaluaciones: rows<FichaClinicaData["evaluaciones"][number]>(evaluacionesRes),
     instrumentos: rows<FichaClinicaData["instrumentos"][number]>(instrumentosRes),
     consentimientos: rows<FichaClinicaData["consentimientos"][number]>(consentimientosRes),
@@ -259,6 +332,7 @@ export async function exportarFichaCompletaPdf(
     ),
     egreso: (egresoRes.data as FichaClinicaData["egreso"]) ?? null,
     adendas: adendasMap,
+    dental: buildDentalData(odontogramaRes, periogramaRes, planTratamientoRes),
   };
 
   return { success: true, data };

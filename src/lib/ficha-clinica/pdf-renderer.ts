@@ -17,6 +17,10 @@ import { TIPOS_EGRESO } from "@/types/egreso";
 import { calculateAge } from "@/lib/utils";
 import { isRichTextHtml } from "@/lib/utils";
 import { sanitizeRichText } from "@/lib/sanitize";
+import type { OdontogramaEntry, EstadoPieza } from "@/types/odontograma";
+import type { Periograma } from "@/types/periograma";
+import type { PlanTratamiento, PlanTratamientoItem } from "@/types/plan-tratamiento";
+import { getLabelPieza } from "@/lib/dental/fdi";
 
 // ── Tipos de data compilada ───────────────────────────────────────────────────
 
@@ -87,6 +91,12 @@ export interface FichaClinicaData {
     firmado_at: string | null;
     created_at: string;
     encuentro: { especialidad: string | null; started_at: string | null } | null;
+    /**
+     * AMB-1/Copiloto — true si logs_auditoria registra 'ia_copiloto' o 'ia_ambient'
+     * para el encuentro de esta nota. Inferido desde el audit log (no hay columna
+     * en fce_notas_clinicas que lo marque) — ver exportarFichaCompletaPdf().
+     */
+    asistidoPorIA?: boolean;
   }>;
   evaluaciones: Array<{
     id: string;
@@ -150,6 +160,12 @@ export interface FichaClinicaData {
   } | null;
   /** Adendas por id_documento — clave = UUID del documento original */
   adendas: Record<string, AdendaPdfRow[]>;
+  /** Solo poblado para especialidad Odontología (modelo odontológico) — omitido en el resto */
+  dental: {
+    odontograma: OdontogramaEntry[];
+    periograma: Periograma[];
+    planTratamiento: Array<PlanTratamiento & { items: PlanTratamientoItem[] }>;
+  } | null;
 }
 
 // ── Constantes de presentación ────────────────────────────────────────────────
@@ -172,6 +188,33 @@ const RED_FLAG_LABELS: Record<string, string> = {
   alergias_severas: "Alergias severas",
   infeccion_cutanea: "Infección cutánea",
   fragilidad_capilar: "Fragilidad capilar",
+};
+
+const ESTADO_PIEZA_LABELS: Record<EstadoPieza, string> = {
+  sano: "Sano",
+  caries: "Caries",
+  obturado: "Obturado",
+  corona: "Corona",
+  ausente: "Ausente",
+  ausente_no_erupcionado: "Ausente (no erupcionado)",
+  endodoncia: "Endodoncia",
+  implante: "Implante",
+  protesis_fija: "Prótesis fija",
+  protesis_removible: "Prótesis removible",
+  fracturado: "Fracturado",
+  extraccion_indicada: "Extracción indicada",
+  sellante: "Sellante",
+  en_erupcion: "En erupción",
+  retenido: "Retenido",
+  supernumerario: "Supernumerario",
+};
+
+const ESTADO_ITEM_LABELS: Record<string, string> = {
+  pendiente: "Pendiente",
+  en_progreso: "En progreso",
+  completado: "Completado",
+  cancelado: "Cancelado",
+  rechazado_paciente: "Rechazado por paciente",
 };
 
 const GAS_LABELS: Record<string, string> = {
@@ -615,9 +658,13 @@ function buildNotasClinicas(notas: FichaClinicaData["notasClinicas"], adendasMap
       const anulada = docAdendas.some((a) => a.tipo_adenda === "anulacion");
       const fecha = fmtDate(n.encuentro?.started_at ?? n.created_at);
       const esp = n.encuentro?.especialidad ? ` · ${esc(n.encuentro.especialidad)}` : "";
-      const headerRight = anulada
-        ? `<span style="color:#DC2626; font-weight:700;">⚠ ANULADA</span>`
-        : `✓ Firmada ${fmtDate(n.firmado_at)}`;
+      const iaTag = n.asistidoPorIA
+        ? ` · <span style="color:${TEAL_DK}; font-weight:600;">Redactada con asistencia de IA</span>`
+        : "";
+      const headerRight =
+        (anulada
+          ? `<span style="color:#DC2626; font-weight:700;">⚠ ANULADA</span>`
+          : `✓ Firmada ${fmtDate(n.firmado_at)}`) + iaTag;
       return entryCard(`Nota clínica — ${fecha}${esp}`, headerRight, body) + buildAdendaBlocks(n.id, adendasMap);
     })
     .join("");
@@ -773,6 +820,84 @@ function buildEgreso(egreso: FichaClinicaData["egreso"]): string {
   );
 }
 
+function buildDental(dental: FichaClinicaData["dental"]): string {
+  if (!dental) return "";
+  const { odontograma, periograma, planTratamiento } = dental;
+  if (odontograma.length === 0 && periograma.length === 0 && planTratamiento.length === 0) return "";
+
+  let body = "";
+
+  // Odontograma — solo piezas con hallazgo (estado ≠ sano), evita listar 32 filas sanas
+  const piezasConHallazgo = odontograma
+    .filter((o) => o.estado !== "sano")
+    .sort((a, b) => a.pieza - b.pieza);
+  if (piezasConHallazgo.length > 0) {
+    body += `<div style="font-size:9px; font-weight:700; color:${INK_3}; text-transform:uppercase; margin:6px 0 3px;">Odontograma — hallazgos</div>`;
+    body += table(
+      ["Pieza", "Estado", "Superficies", "Notas"],
+      piezasConHallazgo.map((o) => {
+        const superficies = Object.entries(o.superficies)
+          .filter(([, v]) => v)
+          .map(([sup, estado]) => `${sup}:${ESTADO_PIEZA_LABELS[estado as EstadoPieza] ?? estado}`)
+          .join(", ");
+        return [
+          `${o.pieza} · ${esc(getLabelPieza(o.pieza))}`,
+          esc(ESTADO_PIEZA_LABELS[o.estado] ?? o.estado),
+          esc(superficies || "—"),
+          esc(o.notas ?? "—"),
+        ];
+      })
+    );
+  }
+
+  // Periograma — cards por evaluación firmada, con índices calculados
+  if (periograma.length > 0) {
+    body += `<div style="font-size:9px; font-weight:700; color:${INK_3}; text-transform:uppercase; margin:10px 0 3px;">Periograma</div>`;
+    body += periograma
+      .map((p) => {
+        let card = "";
+        card += field("Índice de sangrado", p.indice_sangrado != null ? `${p.indice_sangrado}%` : "—");
+        card += field("Profundidad de sondaje media", p.profundidad_media != null ? `${p.profundidad_media} mm` : "—");
+        card += field("Sitios patológicos (≥4mm)", p.sitios_patologicos != null ? String(p.sitios_patologicos) : "—");
+        const dx = p.diagnostico_icd as { code?: string; title?: string } | null;
+        if (dx?.code) card += field("Diagnóstico", `${dx.code} ${dx.title ?? ""}`.trim());
+        card += field("Notas", p.notas ?? "");
+        return entryCard(`Periograma — ${fmtDate(p.created_at)}`, "✓ Firmado", card);
+      })
+      .join("");
+  }
+
+  // Plan de tratamiento — items agrupados por plan (PRE-1 F8: el precio vive en
+  // el presupuesto M11, no en los ítems del plan; aquí solo lo clínico)
+  if (planTratamiento.length > 0) {
+    body += `<div style="font-size:9px; font-weight:700; color:${INK_3}; text-transform:uppercase; margin:10px 0 3px;">Plan de tratamiento</div>`;
+    body += planTratamiento
+      .map((plan) => {
+        let card = "";
+        card += field("Diagnóstico", plan.diagnostico ?? "");
+        card += field("Estado", humanize(plan.estado));
+        if (plan.items.length > 0) {
+          card += table(
+            ["Pieza", "Procedimiento", "Prioridad", "Estado"],
+            plan.items
+              .sort((a, b) => a.orden - b.orden)
+              .map((i) => [
+                i.pieza != null ? String(i.pieza) : "—",
+                esc(i.procedimiento) + (i.superficie ? ` (${esc(i.superficie)})` : ""),
+                humanize(i.prioridad),
+                esc(ESTADO_ITEM_LABELS[i.estado] ?? i.estado),
+              ])
+          );
+        }
+        return entryCard(`Plan de tratamiento — ${esc(plan.titulo)}`, "", card);
+      })
+      .join("");
+  }
+
+  if (!body.trim()) return "";
+  return sectionTitle("14. Odontología (odontograma, periograma, plan de tratamiento)") + body;
+}
+
 // ── Main renderer ─────────────────────────────────────────────────────────────
 
 export function renderFichaCompletaPdf(data: FichaClinicaData): string {
@@ -800,6 +925,7 @@ export function renderFichaCompletaPdf(data: FichaClinicaData): string {
     buildOrdenesExamen(data.ordenesExamen),
     buildPlanesIntervencion(data.planesIntervencion),
     buildEgreso(data.egreso),
+    buildDental(data.dental),
   ].join("");
 
   return `

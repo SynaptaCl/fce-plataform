@@ -77,7 +77,8 @@ export function FichaCompletaExport({ patientId }: FichaCompletaExportProps) {
         if (cancelled) return;
         try {
           const html2pdf = (await import("html2pdf.js")).default;
-          await html2pdf()
+          const worker = html2pdf();
+          await worker
             .set({
               margin: [12, 10, 14, 10],
               filename,
@@ -85,7 +86,8 @@ export function FichaCompletaExport({ patientId }: FichaCompletaExportProps) {
               html2canvas: { scale: 2, useCORS: true, logging: false },
               jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
               pagebreak: { mode: ["avoid-all", "css", "legacy"] },
-            })
+              // pagebreak es válido en runtime pero falta en las typings 0.14 de html2pdf.js
+            } as Parameters<typeof worker.set>[0])
             .from(element)
             .save();
           if (!cancelled) setStatus("done");
