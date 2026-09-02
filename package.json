@@ -20,7 +20,11 @@
     "test:sprint-n2-nutricion": "tsx scripts/test-sprint-n2-nutricion.ts",
     "test:sprint-rte": "tsx scripts/test-sprint-rte.ts",
     "test:sprint-sec1": "tsx scripts/test-sprint-sec1.ts",
-    "test:resumen-ia-parcial": "tsx scripts/test-resumen-ia-parcial.ts"
+    "test:sprint-amb1": "tsx scripts/test-sprint-amb1.ts",
+    "test:sprint-d7": "tsx scripts/test-sprint-d7.ts",
+    "test:resumen-ia-parcial": "tsx scripts/test-resumen-ia-parcial.ts",
+    "test:copiloto-modelos": "tsx scripts/test-copiloto-modelos.ts",
+    "test:sprint-pre1": "tsx scripts/test-sprint-pre1.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.92.0",

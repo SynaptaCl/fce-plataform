@@ -14,9 +14,12 @@ import type { ActionResult } from '@/lib/modules/guards'
 import type { ReporteIA } from '@/types/resumen-ia'
 import { logAudit } from '@/lib/audit'
 import { log } from '@/lib/logger'
-import { iaRateLimit } from '@/lib/rate-limit'
+import { iaRateLimit, iaRateLimitClinica } from '@/lib/rate-limit'
 
-const MODEL = 'claude-haiku-4-5-20251001'
+// Sonnet: síntesis de historial clínico completo generada sin revisión humana previa —
+// la tarea de mayor riesgo clínico (COMERCIAL.md §10). No bajar a Haiku sin evidencia
+// de calidad equivalente.
+const MODEL = 'claude-sonnet-4-6'
 
 export async function generarResumenIA(
   idPaciente: string,
@@ -47,9 +50,15 @@ export async function generarResumenIA(
   }
 
   // 3. Rate limit (resumen es la llamada más cara: contexto clínico completo)
+  // Por-usuario y por-clínica: el segundo evita que una clínica entera (o una
+  // sesión comprometida rotando de usuario) sume costo sin disparar el primero.
   const rl = await iaRateLimit('resumen', user.id, 6, 60_000)
   if (!rl.allowed) {
     return { success: false, error: 'Demasiadas solicitudes de resumen. Espera un momento e inténtalo de nuevo.' }
+  }
+  const rlClinica = await iaRateLimitClinica('resumen', idClinica, 30, 60_000)
+  if (!rlClinica.allowed) {
+    return { success: false, error: 'Demasiadas solicitudes de resumen en esta clínica. Espera un momento e inténtalo de nuevo.' }
   }
 
   // 4. Construir contexto clínico

@@ -5,17 +5,15 @@ import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { buildSystemPrompt, buildUserPrompt } from '@/lib/ia/copiloto-nota/prompt'
-import { parseBorradorNota } from '@/lib/ia/copiloto-nota/parser'
+import { llamarCopiloto } from '@/lib/ia/copiloto-nota/llamar-modelo'
 import { requireAccesoFCE } from '@/lib/modules/guards'
 import type { ActionResult } from '@/lib/modules/guards'
 import type { EstructurarNotaInput, BorradorNota } from '@/lib/ia/copiloto-nota/types'
 import { logAudit } from '@/lib/audit'
-import { log } from '@/lib/logger'
-import { iaRateLimit } from '@/lib/rate-limit'
+import { iaRateLimit, iaRateLimitClinica } from '@/lib/rate-limit'
 import { seudonimizarTexto } from '@/lib/ia/sanitize-pii'
 import { fetchPiiPaciente } from '@/lib/ia/pii-paciente'
 
-const MODEL = 'claude-sonnet-4-6'
 const MAX_BULLETS_LENGTH = 5000
 
 export async function estructurarNota(
@@ -52,6 +50,10 @@ export async function estructurarNota(
   if (!rl.allowed) {
     return { success: false, error: 'Demasiadas solicitudes al copiloto. Espera un momento e inténtalo de nuevo.' }
   }
+  const rlClinica = await iaRateLimitClinica('copiloto', idClinica, 50, 60_000)
+  if (!rlClinica.allowed) {
+    return { success: false, error: 'Demasiadas solicitudes al copiloto en esta clínica. Espera un momento e inténtalo de nuevo.' }
+  }
 
   // 4. Validar bullets
   const bulletsTrimmed = bullets.trim()
@@ -79,52 +81,33 @@ export async function estructurarNota(
     return { success: false, error: 'El encuentro ya no está en progreso' }
   }
 
-  // 6. Llamada Anthropic
+  // 6. Llamada Anthropic — Haiku por defecto con upgrade a Sonnet ante falla de
+  // formato o error/timeout (ver llamar-modelo.ts).
   // Choke point: seudonimizar los apuntes con la PII del paciente del encuentro antes de salir.
   const pii = await fetchPiiPaciente(supabase, encuentro.id_paciente)
   const bulletsSeguros = seudonimizarTexto(bulletsTrimmed, pii)
 
   const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
-  let borrador: BorradorNota
+  const resultado = await llamarCopiloto(anthropic, {
+    system: buildSystemPrompt(encuentro.especialidad, input.seccion),
+    userPrompt: buildUserPrompt(bulletsSeguros),
+    idClinica,
+    idEncuentro,
+  })
 
-  try {
-    const response = await anthropic.messages.create({
-      model: MODEL,
-      max_tokens: 1024,
-      system: buildSystemPrompt(encuentro.especialidad, input.seccion),
-      messages: [{ role: 'user', content: buildUserPrompt(bulletsSeguros) }],
-    })
-
-    const textBlock = response.content.find((b) => b.type === 'text')
-    if (!textBlock || textBlock.type !== 'text') {
+  if (!resultado.ok) {
+    if (resultado.motivo === 'api_error') {
+      return { success: false, error: 'Error generando la nota. Intenta nuevamente.' }
+    }
+    if (resultado.motivo === 'respuesta_vacia') {
       return { success: false, error: 'Respuesta vacía del modelo' }
     }
+    return { success: false, error: 'Error procesando respuesta de IA. Intenta nuevamente.' }
+  }
 
-    let parsed: { contenido: string }
-    try {
-      parsed = parseBorradorNota(textBlock.text)
-    } catch (parseErr) {
-      // NO loguear contenido clínico (regla seccion 22 CLAUDE.md — solo UUIDs/metadata).
-      // NO pasar parseErr: el SyntaxError de JSON.parse embebe un fragmento del input fallido.
-      log('warn', {
-        action: 'copiloto_nota_parse_failed',
-        idClinica,
-        idEncuentro,
-        stopReason: response.stop_reason,
-        outputTokens: response.usage.output_tokens,
-        rawLength: textBlock.text.length,
-        errorName: parseErr instanceof Error ? parseErr.name : 'Unknown',
-      })
-      return { success: false, error: 'Error procesando respuesta de IA. Intenta nuevamente.' }
-    }
-
-    borrador = {
-      contenido: parsed.contenido,
-      especialidad: encuentro.especialidad,
-    }
-  } catch (e) {
-    log('error', { action: 'copiloto_nota_llamada_anthropic', error: e })
-    return { success: false, error: 'Error generando la nota. Intenta nuevamente.' }
+  const borrador: BorradorNota = {
+    contenido: resultado.contenido,
+    especialidad: encuentro.especialidad,
   }
 
   // 7. Audit log (service_role para bypasear RLS en logs_auditoria)

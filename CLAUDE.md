@@ -692,13 +692,13 @@ Actualmente **ninguna clínica tiene fce-plataform en producción** — el repo 
 | R13 | M8 Exámenes: UI completa — form, PDF, timeline, compartir |
 | R14 | Mejoras UX: SummaryPanel + Timeline colapsable + Nota rápida |
 | M9 | Egresos: tipos, acciones, form, timeline, integración ficha |
-| Resumen IA | Botón on-demand en ficha: extracción 7 tablas → Anthropic Haiku → caché + audit |
+| Resumen IA | Botón on-demand en ficha: extracción 7 tablas → Anthropic Sonnet → caché + audit |
 | UX-01 | Rediseño ficha paciente: PatientHeader slots, ActionBar chips, workspaces sticky |
 | Layout sidebar | Sidebar colapsable con persistencia localStorage (W=240/58px) |
 | R-ICD-1 | DiagnosticoSearch ICD-11 MMS integrado en NotaClinicaForm + PeriogramaForm + Timeline chips FHIR |
 | R-ICD-2 | CifSearch autocomplete ICF API — reemplaza input libre en CifMapper |
 | D2-D6 | Módulo odontológico completo: registry + router dental + DentalWorkspace + odontograma + periograma + plan tratamiento + procedimientos + integración ICD-11 |
-| Copiloto Escritura | IA inline en NotaClinicaForm: bullets → nota clínica en prosa. Modelo `claude-sonnet-4-6` |
+| Copiloto Escritura | IA inline en NotaClinicaForm: bullets → nota clínica en prosa. Haiku con upgrade a Sonnet ante falla de formato/error (`llamar-modelo.ts`, 2026-09-01) |
 | N1 | Módulo M10 Plan de Intervención: plantillas por dominio, GAS, progreso, PDF, timeline, registro_externo para instrumentos externos |
 | P1 | Perfiles profesionales: `especialidad-config.ts` (fuente única de verdad), `servicio-config.ts`, workspace adaptado (instrumentos sugeridos, launchers condicionados por puede_prescribir/puede_indicar_examenes/tieneCopilotoIA), validación especialidad en DB, selector perfil activo con cookie `id_profesional_activo`, SQL RLS hotfix + onboarding cenupsi |
 | P2 | Workspaces especializados: secciones estructuradas en nota clínica (Medicina/Enfermería/Psicología/Nutrición), `SeccionEstructuradaRenderer`, `TerapiaOcupacionalEval` (6 sub-áreas, TO → beta), corrección códigos instrumentos (wisc5/corah_ansiedad/sensory_profile), `lib/nutricion/antropometria.ts`, seed MNA/MUST/SGA (pendiente validación clínica) |
@@ -877,14 +877,14 @@ Botón ResumenIAButton (client)
       → generarAlertas (sin query, lógica pura)
       → calcularContextoHash → getResumenCacheado
         ✓ cache hit  → audit log 'resumen_ia_cache' → return
-        ✗ cache miss → Anthropic API (Haiku) → guardarResumenCache (service_role)
+        ✗ cache miss → Anthropic API (Sonnet) → guardarResumenCache (service_role)
                      → audit log 'resumen_ia_generado' → return
 ```
 
 ### Patrones críticos
 
 ```typescript
-const MODEL = 'claude-haiku-4-5-20251001'  // NO cambiar sin revisión médica del prompt
+const MODEL = 'claude-sonnet-4-6'  // NO cambiar sin revisión médica del prompt — riesgo clínico sin revisión humana previa (COMERCIAL.md §10, fix 2026-09-01)
 
 // Cache usa service_role (bypasea RLS en fce_resumenes_ia)
 import { createServiceClient } from '@/lib/supabase/service'
@@ -1188,7 +1188,7 @@ log("warn", { action: "cross_tenant_attempt", id_clinica: idClinica, detail: "qu
 - Supabase: `vigyhfpwyxihrjiygfsa` (sa-east-1)
 - Deploy: Vercel
 - Repo hermano: `synapta` (landing + admin + agenda + chatbot)
-- Modelos IA: `claude-haiku-4-5-20251001` (Resumen IA) · `claude-sonnet-4-6` (Copiloto Escritura)
+- Modelos IA: `claude-sonnet-4-6` (Resumen IA, Informes, AMB-1) · `claude-haiku-4-5-20251001` (Copiloto Escritura, con upgrade condicional a `claude-sonnet-4-6` ante falla de formato/error — `lib/ia/copiloto-nota/llamar-modelo.ts`)
 - Clínicas: `clinics/nuvident/CLAUDE.md`, `clinics/renata/CLAUDE.md`, `clinics/cenupsi/CLAUDE.md`
 
 ---
