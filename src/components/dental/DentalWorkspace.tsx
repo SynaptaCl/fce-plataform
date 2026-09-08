@@ -29,6 +29,9 @@ interface DentalWorkspaceProps {
   denticionInicial: "adulto" | "nino" | "mixta";
   encuentroFinalizado: boolean;
   readOnly: boolean;
+  /** I11 — gate server-side (mismo criterio que mostrarPrescripcion/mostrarOrdenExamen
+   *  en rehab/clinico): puede_estetica del profesional activo AND M13_estetica activo. */
+  mostrarEstetica: boolean;
 }
 
 const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
@@ -51,6 +54,7 @@ export function DentalWorkspace({
   denticionInicial,
   encuentroFinalizado,
   readOnly,
+  mostrarEstetica,
 }: DentalWorkspaceProps) {
   const [activeTab, setActiveTab] = useState<Tab>("odontograma");
 
@@ -67,8 +71,11 @@ export function DentalWorkspace({
           </h1>
         </div>
         <div className="flex items-center gap-2">
-          {/* Self-gating: se oculta solo si M13_estetica inactivo o sin puede_estetica */}
-          <EsteticaLauncher patientId={paciente.id} encuentroId={encuentroId} paciente={paciente} />
+          {/* I11 — gate server-side vía mostrarEstetica (mismo patrón que rehab/clinico).
+              EsteticaLauncher conserva su propio gating client-side como defensa adicional. */}
+          {mostrarEstetica && (
+            <EsteticaLauncher patientId={paciente.id} encuentroId={encuentroId} paciente={paciente} />
+          )}
           {encuentroFinalizado ? (
             <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-green-50 border border-green-200 text-green-800 text-xs font-medium">
               Encuentro cerrado

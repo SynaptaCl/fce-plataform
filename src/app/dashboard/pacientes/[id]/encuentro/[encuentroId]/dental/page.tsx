@@ -11,6 +11,8 @@ import { getProcedimientosCatalogo } from "@/app/actions/dental/procedimientos";
 import { getPeriograma } from "@/app/actions/dental/periograma";
 import { getOdontograma } from "@/app/actions/dental/odontograma";
 import { AlertBanner } from "@/components/ui/AlertBanner";
+import { getClinicaConfig } from "@/lib/modules/config";
+import { getProfesionalActivo } from "@/lib/fce/profesional";
 
 function calcularDenticion(fechaNacimiento: string | null): "adulto" | "nino" | "mixta" {
   if (!fechaNacimiento) return "adulto";
@@ -45,7 +47,7 @@ export default async function DentalPage({
   const canAccess = ["superadmin", "director", "admin", "profesional"].includes(rol);
   if (!canAccess) redirect("/dashboard");
 
-  const [patientResult, encuentroRes, notaResult, periogramaResult, planResult, catalogoResult, piezasResult] =
+  const [patientResult, encuentroRes, notaResult, periogramaResult, planResult, catalogoResult, piezasResult, config, profesional] =
     await Promise.all([
       getPatientById(id),
       supabase
@@ -59,7 +61,16 @@ export default async function DentalPage({
       getPlanActivo(id),
       getProcedimientosCatalogo(),
       getOdontograma(id),
+      idClinica ? getClinicaConfig(idClinica, supabase) : Promise.resolve(null),
+      getProfesionalActivo(supabase, user.id, idClinica || undefined),
     ]);
+
+  // I11 — gate server-side para el launcher de M13, igual que rehab/page.tsx
+  // y clinico/page.tsx (mostrarPrescripcion/mostrarOrdenExamen). Antes
+  // DentalWorkspace renderizaba <EsteticaLauncher> incondicionalmente y
+  // dependía solo del gating client-side interno del propio launcher.
+  const mostrarEstetica =
+    Boolean(profesional?.puede_estetica) && (config?.modulosActivos.includes("M13_estetica") ?? false);
 
   if (!patientResult.success || encuentroRes.error || !encuentroRes.data) notFound();
 
@@ -110,6 +121,7 @@ export default async function DentalPage({
         denticionInicial={denticionInicial}
         encuentroFinalizado={encuentroFinalizado}
         readOnly={readOnly}
+        mostrarEstetica={mostrarEstetica}
       />
 
       <div className="flex justify-start">

@@ -1,9 +1,10 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { X } from "lucide-react";
 import { saveFichaEstetica, upsertZona, deleteZona, getFichaEstetica, signFichaEstetica } from "@/app/actions/estetica/fichas";
 import { getProcedimientosEsteticosCatalogo } from "@/app/actions/estetica/procedimientos";
+import { AlertBanner } from "@/components/ui/AlertBanner";
 import { MapaFacialInteractivo } from "./MapaFacialInteractivo";
 import { MapaCorporalInteractivo } from "./MapaCorporalInteractivo";
 import { ZonaDetailPanel } from "./ZonaDetailPanel";
@@ -26,8 +27,25 @@ export function EsteticaWorkspace({ patientId, encuentroId, paciente, onClose }:
   const [catalogo, setCatalogo] = useState<ProcedimientoEsteticoCatalogo[]>([]);
   const [tipoFicha, setTipoFicha] = useState<TipoFicha>("facial");
   const [motivo, setMotivo] = useState("");
+  const [observacionesGenerales, setObservacionesGenerales] = useState("");
   const [selectedZona, setSelectedZona] = useState<{ region: RegionEstetica; codigo: string } | null>(null);
   const [loading, setLoading] = useState(true);
+  // I1 — cada action que puede fallar debe reflejarse acá. Antes los
+  // ActionResult de handleSaveZona/handleDeleteZona/handleFirmar/reload se
+  // descartaban sin chequear `success`, así que un rechazo del guard de C3/C4
+  // (módulo inactivo, sin permiso, ficha firmada, tenancy) fallaba en
+  // silencio y la UI seguía como si nada.
+  const [error, setError] = useState<string | null>(null);
+  // I2 — bump tras cada upload exitoso para forzar el refetch de FotoComparador.
+  const [fotosRefreshKey, setFotosRefreshKey] = useState(0);
+
+  // C5 (parte B) — guard en memoria contra el race de crear la ficha dos
+  // veces: ensureFicha se dispara desde varios handlers (onBlur en tipo de
+  // ficha / motivo / observaciones, más handleZonaClick). Sin esto, dos
+  // llamadas casi simultáneas podían disparar dos INSERT antes de que
+  // cualquiera resolviera. Las llamadas concurrentes esperan la misma
+  // promesa en vez de iniciar un nuevo guardado.
+  const creatingRef = useRef<Promise<string | null> | null>(null);
 
   const readOnly = ficha?.firmado ?? false;
 
@@ -36,12 +54,21 @@ export function EsteticaWorkspace({ patientId, encuentroId, paciente, onClose }:
       getFichaEstetica(encuentroId),
       getProcedimientosEsteticosCatalogo(),
     ]);
-    if (fichaRes.success && fichaRes.data) {
-      setFicha(fichaRes.data);
-      setTipoFicha(fichaRes.data.tipo_ficha);
-      setMotivo(fichaRes.data.motivo ?? "");
+    if (fichaRes.success) {
+      if (fichaRes.data) {
+        setFicha(fichaRes.data);
+        setTipoFicha(fichaRes.data.tipo_ficha);
+        setMotivo(fichaRes.data.motivo ?? "");
+        setObservacionesGenerales(fichaRes.data.observaciones_generales ?? "");
+      }
+    } else {
+      setError(fichaRes.error);
     }
-    if (catalogoRes.success) setCatalogo(catalogoRes.data);
+    if (catalogoRes.success) {
+      setCatalogo(catalogoRes.data);
+    } else {
+      setError(catalogoRes.error);
+    }
     setLoading(false);
   }, [encuentroId]);
 
@@ -51,17 +78,40 @@ export function EsteticaWorkspace({ patientId, encuentroId, paciente, onClose }:
   }, [reload]);
 
   async function ensureFicha(): Promise<string | null> {
-    if (ficha) return ficha.id;
-    const res = await saveFichaEstetica({
-      encuentroId,
-      patientId,
-      tipoFicha,
-      motivo: motivo || null,
-      observacionesGenerales: null,
-    });
-    if (!res.success) return null;
-    await reload();
-    return res.data.id;
+    // Ya hay un guardado en curso (p.ej. blur casi simultáneo en dos campos,
+    // o un click de zona mientras el blur anterior no resolvió) — esperar su
+    // resultado en vez de disparar un segundo INSERT/UPDATE concurrente.
+    if (creatingRef.current) return creatingRef.current;
+
+    const promise = (async () => {
+      // C2 — antes: `if (ficha) return ficha.id;` hacía que esta función
+      // solo creara la ficha una vez y luego se auto-anulara en cada llamada
+      // subsiguiente. tipo_ficha/motivo/observaciones quedaban wireados a
+      // onBlur pero cualquier edición posterior al primer guardado se perdía
+      // sin ningún error. Ahora siempre persiste el estado actual — el server
+      // action ya soporta create-or-update.
+      const res = await saveFichaEstetica({
+        encuentroId,
+        patientId,
+        tipoFicha,
+        motivo: motivo || null,
+        observacionesGenerales: observacionesGenerales || null,
+      });
+      if (!res.success) {
+        setError(res.error);
+        return null;
+      }
+      setError(null);
+      await reload();
+      return res.data.id;
+    })();
+
+    creatingRef.current = promise;
+    try {
+      return await promise;
+    } finally {
+      creatingRef.current = null;
+    }
   }
 
   async function handleZonaClick(region: RegionEstetica, codigo: string) {
@@ -77,12 +127,17 @@ export function EsteticaWorkspace({ patientId, encuentroId, paciente, onClose }:
   async function handleSaveZona(payload: ZonaFormPayload) {
     if (!ficha || !selectedZona) return;
     const existente = zonaFor(selectedZona.region, selectedZona.codigo);
-    await upsertZona(ficha.id, patientId, {
+    const res = await upsertZona(ficha.id, patientId, {
       id: existente?.id,
       region: selectedZona.region,
       zonaCodigo: selectedZona.codigo,
       ...payload,
     });
+    if (!res.success) {
+      setError(res.error);
+      return;
+    }
+    setError(null);
     setSelectedZona(null);
     await reload();
   }
@@ -90,15 +145,31 @@ export function EsteticaWorkspace({ patientId, encuentroId, paciente, onClose }:
   async function handleDeleteZona() {
     if (!selectedZona) return;
     const existente = zonaFor(selectedZona.region, selectedZona.codigo);
-    if (existente) await deleteZona(existente.id, patientId);
+    if (existente) {
+      const res = await deleteZona(existente.id, patientId);
+      if (!res.success) {
+        setError(res.error);
+        return;
+      }
+    }
+    setError(null);
     setSelectedZona(null);
     await reload();
   }
 
   async function handleFirmar() {
     if (!ficha) return;
-    await signFichaEstetica(ficha.id, patientId);
+    const res = await signFichaEstetica(ficha.id, patientId);
+    if (!res.success) {
+      setError(res.error);
+      return;
+    }
+    setError(null);
     await reload();
+  }
+
+  function handleFotoUploaded() {
+    setFotosRefreshKey((k) => k + 1);
   }
 
   if (loading) return null;
@@ -127,6 +198,12 @@ export function EsteticaWorkspace({ patientId, encuentroId, paciente, onClose }:
         </div>
 
         <div className="p-6 space-y-6">
+          {error && (
+            <AlertBanner variant="danger" title="No se pudo completar la acción">
+              {error}
+            </AlertBanner>
+          )}
+
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="text-xs font-medium" style={{ color: "var(--color-ink-2)" }}>
@@ -161,6 +238,21 @@ export function EsteticaWorkspace({ patientId, encuentroId, paciente, onClose }:
             </div>
           </div>
 
+          <div>
+            <label className="text-xs font-medium" style={{ color: "var(--color-ink-2)" }}>
+              Observaciones generales
+            </label>
+            <textarea
+              value={observacionesGenerales}
+              onChange={(e) => setObservacionesGenerales(e.target.value)}
+              disabled={readOnly}
+              onBlur={ensureFicha}
+              rows={3}
+              className="mt-1 w-full text-sm px-3 py-2 rounded-lg border resize-none"
+              style={{ borderColor: "var(--color-kp-border)", color: "var(--color-ink-1)" }}
+            />
+          </div>
+
           <div className={tipoFicha === "mixta" ? "grid gap-4 md:grid-cols-2 place-items-center" : "flex justify-center"}>
             {(tipoFicha === "facial" || tipoFicha === "mixta") && (
               <MapaFacialInteractivo
@@ -180,6 +272,12 @@ export function EsteticaWorkspace({ patientId, encuentroId, paciente, onClose }:
 
           {selectedZona && (
             <ZonaDetailPanel
+              // C1 — sin key, React reutiliza la instancia de ZonaDetailPanel
+              // al cambiar de zona seleccionada y sus useState (seedeados
+              // desde zonaExistente) no se re-inicializan: el form de la
+              // zona B mostraba/guardaba silenciosamente los valores de la
+              // zona A. La key fuerza un remount por cada zona distinta.
+              key={`${selectedZona.region}-${selectedZona.codigo}`}
               region={selectedZona.region}
               zonaCodigo={selectedZona.codigo}
               zonaExistente={zonaFor(selectedZona.region, selectedZona.codigo)}
@@ -196,8 +294,12 @@ export function EsteticaWorkspace({ patientId, encuentroId, paciente, onClose }:
               <h3 className="text-sm font-semibold" style={{ color: "var(--color-ink-1)" }}>
                 Fotografías
               </h3>
-              <FotoUploader idFicha={ficha.id} patientId={patientId} onUploaded={reload} />
-              <FotoComparador idFicha={ficha.id} />
+              {/* I3 — el uploader solo se renderiza si la ficha no está firmada
+                  (antes solo se gateaba en `ficha` existiendo, no en readOnly). */}
+              {!readOnly && (
+                <FotoUploader idFicha={ficha.id} patientId={patientId} onUploaded={handleFotoUploaded} />
+              )}
+              <FotoComparador idFicha={ficha.id} refreshKey={fotosRefreshKey} />
             </div>
           )}
 

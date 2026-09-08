@@ -81,10 +81,14 @@ async function runInmutabilidadTests() {
   const TEST_ID_ENCUENTRO = refData.id;
   const TEST_CREATED_BY = refData.id_profesional;
 
-  // Verificar que no hay ficha existente para este encuentro (o limpiar previamente)
-  await supabase.from("fce_fichas_esteticas").delete()
-    .eq("id_encuentro", TEST_ID_ENCUENTRO)
-    .eq("firmado", false);
+  // I9 — antes había acá un DELETE "de limpieza previa" con service_role sobre
+  // TEST_ID_ENCUENTRO (un encuentro real, elegido con .limit(1) del catálogo
+  // completo). Si ese encuentro real ya tenía una ficha estética sin firmar de
+  // uso clínico genuino, este bloque la borraba sin aviso, antes de que este
+  // test hubiera creado ninguna fila propia. Eliminado: el test ahora inserta
+  // su propia fila (3a) y solo esa fila se toca durante todo el test — la
+  // limpieza final (por id, primary key) sigue siendo la única escritura
+  // destructiva y ya está acotada a esa fila específica.
 
   // ── 3a: INSERT de ficha estética ───────────────────────────────────────────
   const { data: insertada, error: errInsert } = await supabase

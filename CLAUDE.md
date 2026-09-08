@@ -795,6 +795,7 @@ Actualmente **ninguna clínica tiene fce-plataform en producción** — el repo 
 | **~210 medicamentos** (verificado en DB 2026-07-31) + 360 presentaciones migrados desde `medicamentos_catalogo` sin `validado_clinicamente` con intención clínica formal (tratar como `false` en UI) — falta pasada de validación masiva por QF/médico | Media |
 | `pacientes` sigue en RLS `get_clinica_ids_for_user()` mientras el resto de tablas clínicas migró a `tiene_acceso_clinico()` (2026-07-24) — confirmar si es intencional o falta migrarla, ver §9 | Media |
 | Repo de migrations desincronizado con prod — se detectaron 5 triggers/función vivos en producción sin archivo de migration en el repo (ver §10, reconstruidos 2026-08-02). No hay garantía de que no queden más objetos sin reconstruir; considerar un pase de reconciliación completo repo↔prod | Media |
+| M13_estetica no implementa el aviso no-bloqueante de consentimiento (spec §6: "se muestra aviso si falta consentimiento firmado del tipo correspondiente, pero no impide firmar") — quedó definido en el spec de diseño pero ningún task del plan lo construyó; hallazgo de la revisión final de rama (2026-09-08) | Media |
 
 #### Auditoría de seguridad SEC-1 (2026-07-06) — mergeado a main
 

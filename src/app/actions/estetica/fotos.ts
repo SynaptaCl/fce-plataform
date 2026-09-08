@@ -2,10 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 import { randomUUID } from "crypto";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { dbError } from "@/lib/modules/guards";
 import { requireContext } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import { log } from "@/lib/logger";
+import { getProfesionalActivo } from "@/lib/fce/profesional";
 import type { ActionResult } from "@/app/actions/patients";
 import type { FichaEsteticaFoto, FichaEsteticaFotoConUrl, TipoFoto, RegionEstetica } from "@/types/estetica";
 
@@ -17,6 +19,33 @@ const ALLOWED_MIME: Record<string, string> = {
   "image/png": "png",
   "image/webp": "webp",
 };
+
+/**
+ * I3 — una fotografía ligada a una ficha (idFicha no nulo) hereda la
+ * inmutabilidad post-firma de la ficha: si la ficha está firmada, no se puede
+ * subir ni eliminar una foto asociada. Fotos de evolución sin ficha asociada
+ * (idFicha null) no forman parte de un documento firmado, así que no aplica.
+ * También valida tenancy (id_clinica) antes de exponer el estado de la ficha.
+ */
+async function assertFichaEditable(
+  supabase: SupabaseClient,
+  idFicha: string,
+  idClinica: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const { data: ficha } = await supabase
+    .from("fce_fichas_esteticas")
+    .select("firmado, id_clinica")
+    .eq("id", idFicha)
+    .maybeSingle();
+
+  if (!ficha || ficha.id_clinica !== idClinica) {
+    return { ok: false, error: "Ficha estética no encontrada." };
+  }
+  if (ficha.firmado) {
+    return { ok: false, error: "La ficha estética está firmada y no puede modificarse." };
+  }
+  return { ok: true };
+}
 
 interface UploadFotoInput {
   idFicha: string | null;
@@ -38,6 +67,18 @@ export async function uploadFotoFicha(
   }
   if (input.file.size > MAX_BYTES) {
     return { success: false, error: "La imagen supera el tamaño máximo permitido (8MB)." };
+  }
+
+  if (input.idFicha) {
+    const editable = await assertFichaEditable(supabase, input.idFicha, idClinica);
+    if (!editable.ok) return { success: false, error: editable.error };
+  }
+
+  // I5 — created_by usa profesionales.id (no el auth user id), igual que el
+  // resto de escrituras del módulo (fichas.ts: created_by/firmado_por).
+  const profesional = await getProfesionalActivo(supabase, user.id, idClinica);
+  if (!profesional) {
+    return { success: false, error: "No se encontró el perfil profesional del usuario." };
   }
 
   const path = `${idClinica}/${input.patientId}/${randomUUID()}.${ext}`;
@@ -62,14 +103,14 @@ export async function uploadFotoFicha(
       region: input.region,
       zona_codigo: input.zonaCodigo,
       tomada_at: new Date().toISOString(),
-      created_by: user.id,
+      created_by: profesional.id,
     })
     .select("id")
     .single();
 
   if (error) {
     await supabase.storage.from(BUCKET).remove([path]);
-    return dbError("ficha_estetica_fotos", error);
+    return dbError("ficha_estetica_fotos", error, { id_clinica: idClinica });
   }
 
   await logAudit({
@@ -88,7 +129,7 @@ export async function uploadFotoFicha(
 }
 
 async function withSignedUrls(
-  supabase: Awaited<ReturnType<typeof requireContext>>["supabase"],
+  supabase: SupabaseClient,
   fotos: FichaEsteticaFoto[],
 ): Promise<FichaEsteticaFotoConUrl[]> {
   const result: FichaEsteticaFotoConUrl[] = [];
@@ -104,15 +145,18 @@ async function withSignedUrls(
 export async function getFotosFicha(
   idFicha: string,
 ): Promise<ActionResult<FichaEsteticaFotoConUrl[]>> {
-  const { supabase } = await requireContext();
+  // I4 — requireContext() + filtro explícito de id_clinica en vez de confiar
+  // solo en RLS.
+  const { supabase, idClinica } = await requireContext();
 
   const { data, error } = await supabase
     .from("fce_ficha_estetica_fotos")
     .select("*")
     .eq("id_ficha_estetica", idFicha)
+    .eq("id_clinica", idClinica)
     .order("tomada_at", { ascending: true });
 
-  if (error) return dbError("ficha_estetica_fotos", error);
+  if (error) return dbError("ficha_estetica_fotos", error, { id_clinica: idClinica });
   const withUrls = await withSignedUrls(supabase, (data ?? []) as FichaEsteticaFoto[]);
   return { success: true, data: withUrls };
 }
@@ -120,15 +164,17 @@ export async function getFotosFicha(
 export async function getFotosEvolucionPaciente(
   patientId: string,
 ): Promise<ActionResult<FichaEsteticaFotoConUrl[]>> {
-  const { supabase } = await requireContext();
+  // I4 — idem getFotosFicha.
+  const { supabase, idClinica } = await requireContext();
 
   const { data, error } = await supabase
     .from("fce_ficha_estetica_fotos")
     .select("*")
     .eq("id_paciente", patientId)
+    .eq("id_clinica", idClinica)
     .order("tomada_at", { ascending: true });
 
-  if (error) return dbError("ficha_estetica_fotos", error);
+  if (error) return dbError("ficha_estetica_fotos", error, { id_clinica: idClinica });
   const withUrls = await withSignedUrls(supabase, (data ?? []) as FichaEsteticaFoto[]);
   return { success: true, data: withUrls };
 }
@@ -137,22 +183,32 @@ export async function deleteFotoFicha(
   fotoId: string,
   patientId: string,
 ): Promise<ActionResult<void>> {
+  // I4 — ya usaba requireContext(); se agrega el filtro explícito de tenancy
+  // sobre la fila encontrada (antes buscaba por id sin verificar id_clinica).
   const { supabase, user, idClinica } = await requireContext();
 
   const { data: foto } = await supabase
     .from("fce_ficha_estetica_fotos")
-    .select("storage_path")
+    .select("storage_path, id_ficha_estetica, id_clinica")
     .eq("id", fotoId)
-    .single();
+    .maybeSingle();
 
-  if (!foto) return { success: false, error: "Fotografía no encontrada." };
+  if (!foto || foto.id_clinica !== idClinica) {
+    return { success: false, error: "Fotografía no encontrada." };
+  }
+
+  // I3 — bloquear el borrado si la foto pertenece a una ficha firmada.
+  if (foto.id_ficha_estetica) {
+    const editable = await assertFichaEditable(supabase, foto.id_ficha_estetica, idClinica);
+    if (!editable.ok) return { success: false, error: editable.error };
+  }
 
   const { error: deleteRowError } = await supabase
     .from("fce_ficha_estetica_fotos")
     .delete()
     .eq("id", fotoId);
 
-  if (deleteRowError) return dbError("ficha_estetica_fotos", deleteRowError);
+  if (deleteRowError) return dbError("ficha_estetica_fotos", deleteRowError, { id_clinica: idClinica });
 
   await supabase.storage.from(BUCKET).remove([foto.storage_path]);
 

@@ -6,9 +6,14 @@ import type { FichaEsteticaFotoConUrl } from "@/types/estetica";
 
 interface Props {
   idFicha: string;
+  /** I2 — se incrementa desde EsteticaWorkspace tras cada upload exitoso.
+   *  idFicha por sí solo no cambia entre subidas, así que sin esta prop el
+   *  useEffect de abajo nunca vuelve a dispararse y el comparador queda con
+   *  la lista de fotos obsoleta. */
+  refreshKey?: number;
 }
 
-export function FotoComparador({ idFicha }: Props) {
+export function FotoComparador({ idFicha, refreshKey }: Props) {
   const [fotos, setFotos] = useState<FichaEsteticaFotoConUrl[]>([]);
   const [sliderPos, setSliderPos] = useState(50);
 
@@ -20,7 +25,7 @@ export function FotoComparador({ idFicha }: Props) {
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     reload();
-  }, [reload]);
+  }, [reload, refreshKey]);
 
   const antes = fotos.filter((f) => f.tipo === "antes");
   const despues = fotos.filter((f) => f.tipo === "despues");
