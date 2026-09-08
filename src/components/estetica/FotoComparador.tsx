@@ -18,6 +18,7 @@ export function FotoComparador({ idFicha }: Props) {
   }, [idFicha]);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     reload();
   }, [reload]);
 
