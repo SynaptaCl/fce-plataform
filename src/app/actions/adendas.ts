@@ -21,6 +21,7 @@ const TABLA_POR_TIPO: Record<TipoDocumentoFirmable, string> = {
   prescripcion: "fce_prescripciones",
   orden_examen: "fce_ordenes_examen",
   consentimiento: "fce_consentimientos",
+  ficha_estetica: "fce_fichas_esteticas",
 };
 
 const VENTANA_ERRATA_MS = 72 * 60 * 60 * 1000;

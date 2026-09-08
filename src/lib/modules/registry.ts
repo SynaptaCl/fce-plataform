@@ -28,7 +28,8 @@ export type ModuleId =
   | "M9_egresos"
   | "M10_plan_intervencion"
   | "M11_presupuestos"
-  | "M12_informes";
+  | "M12_informes"
+  | "M13_estetica";
 
 // ============================================================================
 // IDs de especialidades (coinciden con especialidades_catalogo.codigo)
@@ -287,6 +288,31 @@ export const MODULE_REGISTRY: Record<ModuleId, ModuleDefinition> = {
     tablasSupabase: ["fce_informes"],
     rutasApp: ["/dashboard/pacientes/[id]/exportar-pdf"],
     componentes: ["InformeForm", "InformeList", "InformePdfView"],
+    requiereEspecialidad: false,
+    estado: "beta",
+  },
+
+  M13_estetica: {
+    id: "M13_estetica",
+    label: "Ficha Estética",
+    descripcion:
+      "Ficha estética facial/corporal transversal: mapeo de zonas tratadas, procedimiento/producto/lote/dosis, fotos antes/después. Habilitado por profesional vía puede_estetica, independiente de la especialidad base.",
+    obligatorio: false,
+    dependeDe: ["M1_identificacion"],
+    tablasSupabase: [
+      "fce_fichas_esteticas",
+      "fce_ficha_estetica_zonas",
+      "procedimientos_esteticos_catalogo",
+      "fce_ficha_estetica_fotos",
+    ],
+    rutasApp: [],
+    componentes: [
+      "EsteticaLauncher",
+      "EsteticaWorkspace",
+      "MapaFacialInteractivo",
+      "MapaCorporalInteractivo",
+      "FotoComparador",
+    ],
     requiereEspecialidad: false,
     estado: "beta",
   },

@@ -1,6 +1,7 @@
 export type TipoDocumentoFirmable =
   | "soap" | "nota_clinica" | "periograma"
-  | "egreso" | "prescripcion" | "orden_examen" | "consentimiento";
+  | "egreso" | "prescripcion" | "orden_examen" | "consentimiento"
+  | "ficha_estetica";
 
 export type TipoAdenda = "adenda" | "errata" | "anulacion";
 

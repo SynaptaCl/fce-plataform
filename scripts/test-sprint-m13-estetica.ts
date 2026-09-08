@@ -4,6 +4,7 @@
  */
 
 import { ZONAS_FACIALES, ZONAS_CORPORALES, getLabelZona, esZonaValida } from "../src/lib/estetica/zonas";
+import { MODULE_REGISTRY } from "../src/lib/modules/registry";
 
 const errors: string[] = [];
 let passCount = 0;
@@ -30,6 +31,15 @@ check(esZonaValida("facial", "labios") === true, "esZonaValida acepta 'labios' e
 check(esZonaValida("corporal", "labios") === false, "esZonaValida rechaza 'labios' en corporal", "esZonaValida aceptó 'labios' en corporal incorrectamente");
 check(esZonaValida("corporal", "abdomen") === true, "esZonaValida acepta 'abdomen' en corporal", "esZonaValida rechazó 'abdomen' en corporal");
 
+console.log("\n[Test 2] Wiring de módulo M13 en registry.ts");
+check(MODULE_REGISTRY.M13_estetica !== undefined, "MODULE_REGISTRY tiene entrada M13_estetica", "MODULE_REGISTRY no tiene M13_estetica");
+check(MODULE_REGISTRY.M13_estetica?.obligatorio === false, "M13_estetica no es obligatorio", "M13_estetica no debería ser obligatorio");
+check(
+  MODULE_REGISTRY.M13_estetica?.tablasSupabase.includes("fce_fichas_esteticas") ?? false,
+  "M13_estetica declara fce_fichas_esteticas",
+  "M13_estetica no declara fce_fichas_esteticas en tablasSupabase"
+);
+
 console.log("\n" + "─".repeat(60));
 console.log(`Resultado: ${passCount} checks pasaron, ${errors.length} fallaron`);
 if (errors.length > 0) {
@@ -37,6 +47,6 @@ if (errors.length > 0) {
   errors.forEach((e) => console.error(`  - ${e}`));
   process.exit(1);
 } else {
-  console.log("✓ Todos los checks pasaron (parcial — Task 1).");
+  console.log("✓ Todos los checks pasaron.");
   process.exit(0);
 }

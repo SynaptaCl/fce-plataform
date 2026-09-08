@@ -1,4 +1,4 @@
-export type ConsentType = "general" | "menores" | "teleconsulta";
+export type ConsentType = "general" | "menores" | "teleconsulta" | "procedimiento_estetico";
 
 export interface SignatureData {
   data_url: string; // base64 canvas image

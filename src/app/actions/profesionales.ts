@@ -38,6 +38,7 @@ export interface ProfesionalInput {
   tipo_registro?: string | null;
   puede_prescribir?: boolean;
   puede_indicar_examenes?: boolean;
+  puede_estetica?: boolean;
   duracion_consulta?: number;
   color_agenda?: string | null;
   es_agendable?: boolean;
@@ -73,6 +74,7 @@ export async function crearProfesional(
       es_agendable: input.es_agendable ?? true,
       puede_prescribir: input.puede_prescribir ?? false,
       puede_indicar_examenes: input.puede_indicar_examenes ?? false,
+      puede_estetica: input.puede_estetica ?? false,
       duracion_consulta: input.duracion_consulta ?? 60,
     })
     .select("id")
