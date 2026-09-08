@@ -63,21 +63,23 @@ async function runInmutabilidadTests() {
   const supabase = createClient(SUPABASE_URL, SUPABASE_KEY);
 
   // Obtener IDs reales para respetar FK constraints
-  const { data: refData } = await supabase
+  // NOTA: fce_encuentros usa id_profesional, no created_by (created_by es una
+  // columna de fce_fichas_esteticas, no de fce_encuentros — no confundir).
+  const { data: refData, error: refError } = await supabase
     .from("fce_encuentros")
-    .select("id, id_clinica, id_paciente, created_by")
+    .select("id, id_clinica, id_paciente, id_profesional")
     .limit(1)
     .single();
 
-  if (!refData) {
-    console.log("  ℹ Test 3 omitido: no hay encuentros en DB para referenciar en tests de FK");
+  if (refError || !refData) {
+    console.log(`  ℹ Test 3 omitido: no hay encuentros en DB para referenciar en tests de FK${refError ? ` (${refError.message})` : ""}`);
     return;
   }
 
   const TEST_ID_CLINICA = refData.id_clinica;
   const TEST_ID_PACIENTE = refData.id_paciente;
   const TEST_ID_ENCUENTRO = refData.id;
-  const TEST_CREATED_BY = refData.created_by;
+  const TEST_CREATED_BY = refData.id_profesional;
 
   // Verificar que no hay ficha existente para este encuentro (o limpiar previamente)
   await supabase.from("fce_fichas_esteticas").delete()
