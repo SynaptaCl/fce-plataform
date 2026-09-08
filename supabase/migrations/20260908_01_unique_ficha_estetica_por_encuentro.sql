@@ -9,6 +9,7 @@
 -- Impacto: Requiere que no existan duplicados actuales antes de aplicar.
 -- Rollback: DROP INDEX IF EXISTS idx_fichas_esteticas_encuentro_unico;
 -- Aprobación humana pendiente — NO aplicar sin revisión (CLAUDE.md regla 15).
+-- Aplicada 2026-09-08 con aprobación humana explícita en el chat (CLAUDE.md regla 15).
 -- ============================================================================
 
 -- Verificación pre-requisito (ejecutar manualmente antes de aplicar si hay dudas):
