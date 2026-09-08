@@ -19,7 +19,7 @@
 --           DROP TABLE IF EXISTS procedimientos_esteticos_catalogo CASCADE;
 -- Requiere: función public.tiene_acceso_clinico(uuid) — ya aplicada
 --   (20260724_01_crear_funcion_tiene_acceso_clinico.sql).
--- Aprobación humana pendiente — NO aplicar sin revisión (CLAUDE.md regla 15).
+-- Aplicada 2026-09-07 con aprobación humana explícita en el chat (CLAUDE.md regla 15).
 -- ============================================================================
 
 CREATE TABLE fce_fichas_esteticas (

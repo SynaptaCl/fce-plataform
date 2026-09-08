@@ -7,7 +7,7 @@
 --   20260828_01_m11_tarificacion_presupuestos.sql agregó 'presupuesto').
 -- Impacto: Solo cambia el CHECK constraint, no toca filas existentes.
 -- Rollback: revertir a la lista de valores previa (sin 'ficha_estetica').
--- Aprobación humana pendiente — NO aplicar sin revisión (CLAUDE.md regla 15).
+-- Aplicada 2026-09-07 con aprobación humana explícita en el chat (CLAUDE.md regla 15).
 -- ============================================================================
 
 ALTER TABLE fce_adendas DROP CONSTRAINT fce_adendas_tipo_documento_check;

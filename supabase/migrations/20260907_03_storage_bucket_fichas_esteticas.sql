@@ -11,7 +11,7 @@
 --   ningún bucket ni política existente.
 -- Rollback: DELETE FROM storage.buckets WHERE id = 'fichas-esteticas';
 --   (requiere vaciar el bucket de objetos antes de poder borrarlo)
--- Aprobación humana pendiente — NO aplicar sin revisión (CLAUDE.md regla 15).
+-- Aplicada 2026-09-07 con aprobación humana explícita en el chat (CLAUDE.md regla 15).
 -- ============================================================================
 
 INSERT INTO storage.buckets (id, name, public)

@@ -6,7 +6,7 @@
 --   manualmente por clínica — false por defecto.
 -- Impacto: ALTER TABLE aditivo, no rompe filas existentes (default false).
 -- Rollback: ALTER TABLE profesionales DROP COLUMN puede_estetica;
--- Aprobación humana pendiente — NO aplicar sin revisión (CLAUDE.md regla 15).
+-- Aplicada 2026-09-07 con aprobación humana explícita en el chat (CLAUDE.md regla 15).
 -- ============================================================================
 
 ALTER TABLE profesionales

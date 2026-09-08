@@ -14,7 +14,7 @@
 --   "procedimientos_esteticos_catalogo sembrado sin validación clínica
 --   formal, pendiente revisión por profesional antes de producción" —
 --   mismo estándar que el seed de medicamentos/examenes.
--- Aprobación humana pendiente — NO aplicar sin revisión (CLAUDE.md regla 15).
+-- Aplicada 2026-09-07 con aprobación humana explícita en el chat (CLAUDE.md regla 15).
 -- ============================================================================
 
 INSERT INTO procedimientos_esteticos_catalogo
