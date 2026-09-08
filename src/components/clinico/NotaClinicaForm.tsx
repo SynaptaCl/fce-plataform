@@ -87,6 +87,9 @@ interface NotaClinicaFormProps {
   tieneCopilotoIA?: boolean;
   tieneAmbientScribe?: boolean;
   especialidad?: string;
+  /** Labels de red flags críticas activas del paciente (regla 9 CLAUDE.md) — bloquea la firma
+   *  cuando la especialidad tiene tieneContraindicaciones=true (ej. Odontología). */
+  contraindicacionesActivas?: string[];
 }
 
 // ── Componente principal ─────────────────────────────────────────────────────
@@ -104,6 +107,7 @@ export function NotaClinicaForm({
   tieneCopilotoIA = true,
   tieneAmbientScribe = false,
   especialidad,
+  contraindicacionesActivas = [],
 }: NotaClinicaFormProps) {
   const [notaId, setNotaId] = useState<string | undefined>(notaExistente?.id);
   const [serverError, setServerError] = useState<string | null>(null);
@@ -136,6 +140,11 @@ export function NotaClinicaForm({
   const seccionesEsp = espConfig
     ? espConfig.secciones.filter((s) => s.campos.length > 0)
     : [];
+
+  // Hard-stop contraindicaciones (regla 9 CLAUDE.md) — enforcement real en signNotaClinica;
+  // esto solo evita que el profesional intente firmar sin saber por qué fallará.
+  const bloqueadoPorContraindicacion =
+    Boolean(espConfig?.tieneContraindicaciones) && contraindicacionesActivas.length > 0;
 
   const diagnosticoConfig = espConfig?.diagnostico;
   const mostrarICD = diagnosticoConfig?.tipo === 'icd11_mms';
@@ -652,30 +661,50 @@ export function NotaClinicaForm({
 
         {/* Acciones */}
         {!readOnly && (
-          <div id="signature-section" className="flex items-center gap-3 pt-2 border-t border-kp-border">
-            <Button
-              type="submit"
-              variant="secondary"
-              disabled={isSubmitting}
-            >
-              <PenLine className="w-4 h-4 mr-1.5" />
-              {isSubmitting ? "Guardando…" : "Guardar borrador"}
-            </Button>
-
-            <Button
-              type="button"
-              variant="primary"
-              disabled={isSubmitting || isPendingSign || !notaId}
-              onClick={handleSignClick}
-              title={!notaId ? "Guarda la nota antes de firmar" : undefined}
-            >
-              <CheckCircle2 className="w-4 h-4 mr-1.5" />
-              {isPendingSign ? "Firmando…" : "Firmar y cerrar"}
-            </Button>
-
-            {!notaId && (
-              <span className="text-xs text-ink-3">Guarda la nota primero para poder firmar</span>
+          <div id="signature-section" className="space-y-3 pt-2 border-t border-kp-border">
+            {bloqueadoPorContraindicacion && (
+              <AlertBanner
+                variant="danger"
+                title={`⛔ CONTRAINDICACIÓN ACTIVA — No proceder${especialidad ? ` con ${especialidad}` : ""}`}
+              >
+                <p className="text-sm">
+                  El paciente tiene red flags críticas activas: {contraindicacionesActivas.join(", ")}.
+                  Actualiza la anamnesis si la condición ya se resolvió — mientras estén activas, la
+                  firma queda bloqueada.
+                </p>
+              </AlertBanner>
             )}
+            <div className="flex items-center gap-3">
+              <Button
+                type="submit"
+                variant="secondary"
+                disabled={isSubmitting}
+              >
+                <PenLine className="w-4 h-4 mr-1.5" />
+                {isSubmitting ? "Guardando…" : "Guardar borrador"}
+              </Button>
+
+              <Button
+                type="button"
+                variant="primary"
+                disabled={isSubmitting || isPendingSign || !notaId || bloqueadoPorContraindicacion}
+                onClick={handleSignClick}
+                title={
+                  bloqueadoPorContraindicacion
+                    ? "Contraindicación activa — no se puede firmar"
+                    : !notaId
+                      ? "Guarda la nota antes de firmar"
+                      : undefined
+                }
+              >
+                <CheckCircle2 className="w-4 h-4 mr-1.5" />
+                {isPendingSign ? "Firmando…" : "Firmar y cerrar"}
+              </Button>
+
+              {!notaId && (
+                <span className="text-xs text-ink-3">Guarda la nota primero para poder firmar</span>
+              )}
+            </div>
           </div>
         )}
 

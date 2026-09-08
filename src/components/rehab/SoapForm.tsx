@@ -102,6 +102,10 @@ interface SoapFormProps {
   initialNote?: SoapNote | null;
   objetivoHint?: string;
   readOnly?: boolean;
+  /** Especialidad activa — usada solo para el mensaje de hard-stop de contraindicaciones */
+  especialidadLabel?: string;
+  /** Labels de red flags críticas activas del paciente (regla 9 CLAUDE.md) — bloquea la firma */
+  contraindicacionesActivas?: string[];
 }
 
 // ── Componente principal ───────────────────────────────────────────────────
@@ -113,6 +117,8 @@ export function SoapForm({
   initialNote,
   objetivoHint,
   readOnly: readOnlyProp = false,
+  especialidadLabel,
+  contraindicacionesActivas = [],
 }: SoapFormProps) {
   const router = useRouter();
   const [noteId, setNoteId] = useState<string | undefined>(
@@ -440,6 +446,8 @@ export function SoapForm({
           isSigning={isSigning}
           error={signError}
           saved={saved}
+          especialidadLabel={especialidadLabel}
+          contraindicacionesActivas={contraindicacionesActivas}
         />
       )}
     </div>
@@ -453,10 +461,20 @@ interface SignatureBlockProps {
   isSigning: boolean;
   error: string | null;
   saved: boolean;
+  especialidadLabel?: string;
+  contraindicacionesActivas?: string[];
 }
 
-function SignatureBlock({ onSign, isSigning, error, saved }: SignatureBlockProps) {
+function SignatureBlock({
+  onSign,
+  isSigning,
+  error,
+  saved,
+  especialidadLabel,
+  contraindicacionesActivas = [],
+}: SignatureBlockProps) {
   const [confirmed, setConfirmed] = useState(false);
+  const bloqueadoPorContraindicacion = contraindicacionesActivas.length > 0;
 
   return (
     <div id="signature-section" className="rounded-xl border-2 border-kp-border bg-surface-0 p-4 space-y-3">
@@ -469,6 +487,19 @@ function SignatureBlock({ onSign, isSigning, error, saved }: SignatureBlockProps
         Al firmar, la nota queda cerrada e <strong>inmutable</strong>. El documento quedará
         registrado con tu nombre, fecha y hora. Esta acción no puede revertirse.
       </p>
+
+      {bloqueadoPorContraindicacion && (
+        <AlertBanner
+          variant="danger"
+          title={`⛔ CONTRAINDICACIÓN ACTIVA — No proceder${especialidadLabel ? ` con ${especialidadLabel}` : ""}`}
+        >
+          <p className="text-sm">
+            El paciente tiene red flags críticas activas: {contraindicacionesActivas.join(", ")}.
+            Actualiza la anamnesis si la condición ya se resolvió — mientras estén activas, la
+            firma queda bloqueada.
+          </p>
+        </AlertBanner>
+      )}
 
       {!saved && (
         <p className="text-xs text-kp-warning font-medium flex items-center gap-1.5">
@@ -495,8 +526,9 @@ function SignatureBlock({ onSign, isSigning, error, saved }: SignatureBlockProps
         <Button
           type="button"
           onClick={onSign}
-          disabled={!confirmed || isSigning || !saved}
+          disabled={!confirmed || isSigning || !saved || bloqueadoPorContraindicacion}
           variant="secondary"
+          title={bloqueadoPorContraindicacion ? "Contraindicación activa — no se puede firmar" : undefined}
         >
           <PenLine className="w-3.5 h-3.5 mr-1.5" />
           {isSigning ? "Firmando…" : "Firmar y cerrar nota"}

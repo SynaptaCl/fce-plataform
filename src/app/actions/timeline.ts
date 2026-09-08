@@ -21,6 +21,8 @@ export type TimelineEntryType =
   | "orden_examen"
   | "egreso"
   | "plan_intervencion"
+  | "periograma"
+  | "plan_tratamiento"
   | "adenda";
 
 export interface TimelineEntry {
@@ -126,6 +128,33 @@ type PlanIntervencionRow = {
   objetivos_count?: number;
 };
 
+type PeriogramaTimelineRow = {
+  id: string;
+  id_encuentro: string;
+  indice_sangrado: number | null;
+  profundidad_media: number | null;
+  sitios_patologicos: number | null;
+  notas: string | null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  diagnostico_icd: Record<string, any> | null;
+  firmado: boolean;
+  firmado_at: string | null;
+  firmado_por: string | null;
+  registrado_por: string;
+  created_at: string;
+};
+
+type PlanTratamientoTimelineRow = {
+  id: string;
+  titulo: string;
+  diagnostico: string | null;
+  estado: string;
+  cerrado: boolean;
+  cerrado_at: string | null;
+  created_by: string;
+  created_at: string;
+};
+
 type EgresoTimelineRow = {
   id: string;
   tipo_egreso: string;
@@ -197,7 +226,7 @@ export async function getPatientTimeline(
 
   // Todas las queries usan el cliente con RLS + filtro id_clinica explícito (defense-in-depth).
   // Ya NO se usa service_role: fce_notas_soap y fce_evaluaciones tienen id_clinica + RLS directa (20260606_03).
-  const [soapRes, evalRes, vitalsRes, consentRes, anamnesisRes, notasRes, instrumentosRes, prescripcionesRes, ordenesExamenRes, egresosRes, planesRes, adendaRes] = await Promise.all([
+  const [soapRes, evalRes, vitalsRes, consentRes, anamnesisRes, notasRes, instrumentosRes, prescripcionesRes, ordenesExamenRes, egresosRes, planesRes, periogramasRes, planesTratamientoRes, adendaRes] = await Promise.all([
     supabase.from("fce_notas_soap").select("*").eq("id_paciente", patientId).eq("id_clinica", idClinica).order("created_at", { ascending: false }),
     supabase.from("fce_evaluaciones").select("*").eq("id_paciente", patientId).eq("id_clinica", idClinica).order("created_at", { ascending: false }),
     supabase.from("fce_signos_vitales").select("*").eq("id_paciente", patientId).eq("id_clinica", idClinica).order("recorded_at", { ascending: false }),
@@ -253,6 +282,18 @@ export async function getPatientTimeline(
       .eq("id_clinica", idClinica)
       .order("created_at", { ascending: false }),
     supabase
+      .from("fce_periograma")
+      .select("id, id_encuentro, indice_sangrado, profundidad_media, sitios_patologicos, notas, diagnostico_icd, firmado, firmado_at, firmado_por, registrado_por, created_at")
+      .eq("id_paciente", patientId)
+      .eq("id_clinica", idClinica)
+      .order("created_at", { ascending: false }),
+    supabase
+      .from("fce_plan_tratamiento")
+      .select("id, titulo, diagnostico, estado, cerrado, cerrado_at, created_by, created_at")
+      .eq("id_paciente", patientId)
+      .eq("id_clinica", idClinica)
+      .order("created_at", { ascending: false }),
+    supabase
       .from("fce_adendas")
       .select("id, tipo_adenda, tipo_documento, id_documento, motivo, contenido, created_at, created_by, firmado_at, override_director, override_motivo, id_encuentro")
       .eq("id_paciente", patientId)
@@ -275,6 +316,8 @@ export async function getPatientTimeline(
     { label: "ordenes_examen", error: ordenesExamenRes.error },
     { label: "egresos", error: egresosRes.error },
     { label: "planes_intervencion", error: planesRes.error },
+    { label: "periogramas", error: periogramasRes.error },
+    { label: "planes_tratamiento", error: planesTratamientoRes.error },
     { label: "adendas", error: adendaRes.error },
   ];
   const failedSections = subqueries.filter((s) => s.error).map((s) => s.label);
@@ -296,7 +339,11 @@ export async function getPatientTimeline(
     .map((n) => n.id_encuentro)
     .filter((id): id is string => Boolean(id));
 
-  const allEncIds = [...new Set([...soapEncIds, ...notasEncIds])];
+  const periogramaEncIds = ((periogramasRes.data ?? []) as PeriogramaTimelineRow[])
+    .map((p) => p.id_encuentro)
+    .filter((id): id is string => Boolean(id));
+
+  const allEncIds = [...new Set([...soapEncIds, ...notasEncIds, ...periogramaEncIds])];
   const encEspMap = new Map<string, string>(); // encuentro_id → especialidad
   const validEncIds = new Set<string>(); // encuentros de la clínica actual (para filtrar SOAP)
   if (allEncIds.length > 0) {
@@ -335,6 +382,13 @@ export async function getPatientTimeline(
     if (e.firmado_por) profIds.add(e.firmado_por);
   }
   for (const p of (planesRes.data ?? []) as PlanIntervencionRow[]) {
+    if (p.created_by) profIds.add(p.created_by);
+  }
+  for (const p of (periogramasRes.data ?? []) as PeriogramaTimelineRow[]) {
+    if (p.firmado_por) profIds.add(p.firmado_por);
+    if (p.registrado_por) profIds.add(p.registrado_por);
+  }
+  for (const p of (planesTratamientoRes.data ?? []) as PlanTratamientoTimelineRow[]) {
     if (p.created_by) profIds.add(p.created_by);
   }
   const adendas = (adendaRes.data ?? []) as AdendaRow[];
@@ -672,6 +726,60 @@ export async function getPatientTimeline(
         firmado: plan.firmado,
         firmado_at: plan.firmado_at,
         objetivos_activos: objetivosActivos,
+      },
+    });
+  }
+
+  // Periogramas (modelo odontológico) — un doc firmable por encuentro, como SOAP/nota clínica
+  for (const p of (periogramasRes.data ?? []) as PeriogramaTimelineRow[]) {
+    const pEsp = p.id_encuentro ? encEspMap.get(p.id_encuentro) : undefined;
+    const autorId = p.firmado_por ?? p.registrado_por;
+    const pDateStr = new Date(p.created_at).toLocaleDateString("es-CL", { day: "2-digit", month: "short" });
+    docTituloMap.set(p.id, `Periograma del ${pDateStr}`);
+    const diagnostico = p.diagnostico_icd && "title" in p.diagnostico_icd ? String(p.diagnostico_icd.title) : null;
+    entries.push({
+      id: p.id,
+      type: "periograma",
+      date: p.created_at,
+      especialidad: pEsp,
+      encuentroId: p.id_encuentro,
+      autor_id: autorId,
+      profesional_nombre: autorId ? profMap.get(autorId)?.nombre : undefined,
+      titulo: "Periograma",
+      resumen: diagnostico
+        ? diagnostico
+        : `Sangrado ${p.indice_sangrado ?? "—"}% · Profundidad media ${p.profundidad_media ?? "—"}mm`,
+      firmado: p.firmado,
+      data: {
+        indice_sangrado: p.indice_sangrado,
+        profundidad_media: p.profundidad_media,
+        sitios_patologicos: p.sitios_patologicos,
+        notas: p.notas,
+        diagnostico_icd: p.diagnostico_icd,
+        firmado: p.firmado,
+        firmado_at: p.firmado_at,
+        adendas: adendasPorDoc.get(p.id) ?? null,
+      },
+    });
+  }
+
+  // Planes de tratamiento (modelo odontológico) — documento vivo, sin concepto de firma
+  // (igual que plan_intervencion): muestra estado actual, no historial de ediciones.
+  for (const pt of (planesTratamientoRes.data ?? []) as PlanTratamientoTimelineRow[]) {
+    entries.push({
+      id: pt.id,
+      type: "plan_tratamiento",
+      date: pt.created_at,
+      autor_id: pt.created_by,
+      profesional_nombre: pt.created_by ? profMap.get(pt.created_by)?.nombre : undefined,
+      titulo: pt.titulo,
+      resumen: pt.diagnostico ? pt.diagnostico.slice(0, 150) : `Estado: ${pt.estado}`,
+      data: {
+        titulo: pt.titulo,
+        diagnostico: pt.diagnostico,
+        estado: pt.estado,
+        cerrado: pt.cerrado,
+        cerrado_at: pt.cerrado_at,
       },
     });
   }

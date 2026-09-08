@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { PatientHeader } from "@/components/layout/PatientHeader";
 import { DentalWorkspace } from "@/components/dental/DentalWorkspace";
+import { FirmarDentalButton } from "@/components/dental/FirmarDentalButton";
 import { getPatientById } from "@/app/actions/patients";
 import { getNotaClinica } from "@/app/actions/clinico/nota-clinica";
 import { getModeloDeEspecialidad } from "@/lib/modules/modelos";
@@ -11,6 +12,11 @@ import { getProcedimientosCatalogo } from "@/app/actions/dental/procedimientos";
 import { getPeriograma } from "@/app/actions/dental/periograma";
 import { getOdontograma } from "@/app/actions/dental/odontograma";
 import { AlertBanner } from "@/components/ui/AlertBanner";
+import { getProfesionalActivo } from "@/lib/fce/profesional";
+import { getClinicaConfig } from "@/lib/modules/config";
+import { getEspecialidadConfig } from "@/lib/modules/especialidad-config";
+import { getContraindicacionesActivas } from "@/lib/anamnesis/red-flags";
+import type { RedFlags } from "@/types/anamnesis";
 
 function calcularDenticion(fechaNacimiento: string | null): "adulto" | "nino" | "mixta" {
   if (!fechaNacimiento) return "adulto";
@@ -45,12 +51,14 @@ export default async function DentalPage({
   const canAccess = ["superadmin", "director", "admin", "profesional"].includes(rol);
   if (!canAccess) redirect("/dashboard");
 
-  const [patientResult, encuentroRes, notaResult, periogramaResult, planResult, catalogoResult, piezasResult] =
+  const config = idClinica ? await getClinicaConfig(idClinica, supabase) : null;
+
+  const [patientResult, encuentroRes, notaResult, periogramaResult, planResult, catalogoResult, piezasResult, profesional] =
     await Promise.all([
       getPatientById(id),
       supabase
         .from("fce_encuentros")
-        .select("id, especialidad, status")
+        .select("id, especialidad, status, created_at")
         .eq("id", encuentroId)
         .eq("id_paciente", id)
         .single(),
@@ -59,6 +67,7 @@ export default async function DentalPage({
       getPlanActivo(id),
       getProcedimientosCatalogo(),
       getOdontograma(id),
+      getProfesionalActivo(supabase, user.id, idClinica || undefined),
     ]);
 
   if (!patientResult.success || encuentroRes.error || !encuentroRes.data) notFound();
@@ -85,9 +94,65 @@ export default async function DentalPage({
   const readOnly = encuentroFinalizado || (nota?.firmado ?? false);
   const denticionInicial = calcularDenticion(patient.fecha_nacimiento ?? null);
 
+  // Mismo gate que clinico/rehab (defense-in-depth — los launchers también se auto-gatean
+  // vía useClinicaSession): módulo activo en la clínica + permiso del profesional.
+  const mostrarPrescripcion =
+    Boolean(profesional?.puede_prescribir) && (config?.modulosActivos.includes("M7_prescripciones") ?? false);
+  const mostrarOrdenExamen =
+    Boolean(profesional?.puede_indicar_examenes) && (config?.modulosActivos.includes("M8_examenes") ?? false);
+
+  // Hard-stop contraindicaciones (regla 9 CLAUDE.md) — Odontología siempre lo requiere.
+  // Bloqueo real vive en signNotaClinica; esto solo muestra el aviso antes de firmar.
+  const espConfigDental = getEspecialidadConfig(encuentro.especialidad);
+  let contraindicacionesActivas: string[] = [];
+  if (espConfigDental.tieneContraindicaciones) {
+    const { data: anamnesis } = await supabase
+      .from("fce_anamnesis")
+      .select("red_flags")
+      .eq("id_paciente", id)
+      .eq("id_clinica", idClinica)
+      .maybeSingle();
+    contraindicacionesActivas = getContraindicacionesActivas(
+      anamnesis?.red_flags as RedFlags | null
+    ).map((f) => f.label);
+  }
+
+  const horaInicio = encuentro.created_at
+    ? new Date(encuentro.created_at).toLocaleTimeString("es-CL", {
+        hour: "2-digit",
+        minute: "2-digit",
+        timeZone: "America/Santiago",
+      })
+    : null;
+
+  const statusBadge = encuentroFinalizado ? (
+    <span
+      className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium text-white"
+      style={{ background: "var(--color-kp-success)" }}
+    >
+      Encuentro cerrado
+    </span>
+  ) : (
+    <span
+      className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium text-white"
+      style={{ background: "var(--color-kp-warning)" }}
+    >
+      En progreso{horaInicio ? ` · ${horaInicio}` : ""}
+    </span>
+  );
+
   return (
     <div className="space-y-4">
-      <PatientHeader patient={patient} hasConsent={false} patientId={id} />
+      {/* PatientHeader sticky — badge estado + Firmar y cerrar siempre visibles (mismo patrón que clinico/rehab) */}
+      <div className="sticky top-0 z-20">
+        <PatientHeader
+          patient={patient}
+          hasConsent={false}
+          patientId={id}
+          statusBadge={statusBadge}
+          primaryAction={!readOnly ? <FirmarDentalButton /> : undefined}
+        />
+      </div>
 
       {hasLoadFailures && (
         <AlertBanner variant="danger" title="No se pudo cargar todo el registro dental">
@@ -110,6 +175,9 @@ export default async function DentalPage({
         denticionInicial={denticionInicial}
         encuentroFinalizado={encuentroFinalizado}
         readOnly={readOnly}
+        mostrarPrescripcion={mostrarPrescripcion}
+        mostrarOrdenExamen={mostrarOrdenExamen}
+        contraindicacionesActivas={contraindicacionesActivas}
       />
 
       <div className="flex justify-start">

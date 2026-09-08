@@ -1,13 +1,16 @@
 'use client';
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Stethoscope, Grid3x3, BarChart2, ClipboardList } from "lucide-react";
 import { NotaClinicaForm } from "@/components/clinico/NotaClinicaForm";
 import { InstrumentosPanel } from "@/components/clinico/InstrumentosPanel";
 import { PlanTratamientoPanel } from "@/components/dental/PlanTratamientoPanel";
 import { PeriogramaForm } from "@/components/dental/PeriogramaForm";
 import { OdontogramaInteractivo } from "@/components/dental/OdontogramaInteractivo";
+import { PrescripcionLauncher } from "@/components/shared/PrescripcionLauncher";
+import { OrdenExamenLauncher } from "@/components/shared/OrdenExamenLauncher";
 import { getEspecialidadConfig } from "@/lib/modules/especialidad-config";
+import { DENTAL_FIRMAR_EVENT } from "@/components/dental/FirmarDentalButton";
 import type { Patient } from "@/types/patient";
 import type { NotaClinica } from "@/types/nota-clinica";
 import type { Periograma } from "@/types/periograma";
@@ -29,6 +32,12 @@ interface DentalWorkspaceProps {
   denticionInicial: "adulto" | "nino" | "mixta";
   encuentroFinalizado: boolean;
   readOnly: boolean;
+  /** M7 activo en la clínica + profesional habilitado para prescribir (mismo gate que clinico/rehab) */
+  mostrarPrescripcion: boolean;
+  /** M8 activo en la clínica + profesional habilitado para indicar exámenes */
+  mostrarOrdenExamen: boolean;
+  /** Labels de red flags críticas activas (regla 9 CLAUDE.md) — bloquea la firma de la nota */
+  contraindicacionesActivas: string[];
 }
 
 const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
@@ -51,9 +60,25 @@ export function DentalWorkspace({
   denticionInicial,
   encuentroFinalizado,
   readOnly,
+  mostrarPrescripcion,
+  mostrarOrdenExamen,
+  contraindicacionesActivas,
 }: DentalWorkspaceProps) {
   const [activeTab, setActiveTab] = useState<Tab>("odontograma");
   const espConfig = getEspecialidadConfig(especialidad);
+
+  // FirmarDentalButton (header sticky en page.tsx) vive fuera de esta tab-view —
+  // cambia a la tab "nota" y hace scroll a la firma, que solo existe en el DOM ahí.
+  useEffect(() => {
+    function irAFirma() {
+      setActiveTab("nota");
+      requestAnimationFrame(() => {
+        document.getElementById("signature-section")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+    }
+    window.addEventListener(DENTAL_FIRMAR_EVENT, irAFirma);
+    return () => window.removeEventListener(DENTAL_FIRMAR_EVENT, irAFirma);
+  }, []);
 
   return (
     <div className="rounded-xl border border-kp-border bg-surface-1">
@@ -67,7 +92,13 @@ export function DentalWorkspace({
             Encuentro dental — {especialidad}
           </h1>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
+          {mostrarPrescripcion && (
+            <PrescripcionLauncher patientId={paciente.id} encuentroId={encuentroId} paciente={paciente} />
+          )}
+          {mostrarOrdenExamen && (
+            <OrdenExamenLauncher patientId={paciente.id} encuentroId={encuentroId} paciente={paciente} />
+          )}
           {encuentroFinalizado ? (
             <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-green-50 border border-green-200 text-green-800 text-xs font-medium">
               Encuentro cerrado
@@ -141,6 +172,7 @@ export function DentalWorkspace({
                 idClinica={idClinica}
                 especialidad={especialidad}
                 tieneAmbientScribe={espConfig.tieneAmbientScribe}
+                contraindicacionesActivas={contraindicacionesActivas}
               />
             </div>
             <div className="w-full lg:w-80 xl:w-96 lg:pl-6 mt-6 lg:mt-0">

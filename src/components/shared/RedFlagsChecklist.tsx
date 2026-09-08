@@ -12,84 +12,43 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AlertBanner } from "@/components/ui/AlertBanner";
+import { RED_FLAG_DEFS } from "@/lib/anamnesis/red-flags";
 import type { RedFlags } from "@/types";
 
 // ── Definición de flags ────────────────────────────────────────────────────
+// Label/descripción/critical vienen de lib/anamnesis/red-flags.ts (fuente única —
+// el hard-stop real en los server actions de firma usa la misma lista, nunca duplicar).
 
 interface FlagDef {
   key: keyof RedFlags;
   label: string;
   description: string;
   icon: React.ReactNode;
-  critical: boolean; // hard-stop en masoterapia
+  critical: boolean;
 }
 
-const FLAG_DEFS: FlagDef[] = [
-  {
-    key: "marcapasos",
-    label: "Marcapasos / DAI",
-    description: "Dispositivo cardíaco implantado",
-    icon: <Heart className="w-4 h-4" />,
-    critical: true,
-  },
-  {
-    key: "embarazo",
-    label: "Embarazo",
-    description: "Embarazo activo o posible",
-    icon: <Baby className="w-4 h-4" />,
-    critical: false,
-  },
-  {
-    key: "tvp",
-    label: "TVP / Tromboembolia",
-    description: "Trombosis venosa profunda activa",
-    icon: <AlertTriangle className="w-4 h-4" />,
-    critical: true,
-  },
-  {
-    key: "oncologico",
-    label: "Oncológico activo",
-    description: "Tratamiento activo de cáncer",
-    icon: <ShieldAlert className="w-4 h-4" />,
-    critical: true,
-  },
-  {
-    key: "fiebre",
-    label: "Fiebre aguda",
-    description: "Temperatura >37.5°C en este momento",
-    icon: <Thermometer className="w-4 h-4" />,
-    critical: true,
-  },
-  {
-    key: "alergias_severas",
-    label: "Alergias severas",
-    description: "Anafilaxia conocida o alergias graves",
-    icon: <AlertCircle className="w-4 h-4" />,
-    critical: false,
-  },
-  {
-    key: "infeccion_cutanea",
-    label: "Infección cutánea",
-    description: "Infección o lesión activa en piel",
-    icon: <Zap className="w-4 h-4" />,
-    critical: true,
-  },
-  {
-    key: "fragilidad_capilar",
-    label: "Fragilidad capilar",
-    description: "Historial de hematomas espontáneos",
-    icon: <Droplets className="w-4 h-4" />,
-    critical: false,
-  },
-];
+const ICONS: Record<keyof RedFlags, React.ReactNode> = {
+  marcapasos: <Heart className="w-4 h-4" />,
+  embarazo: <Baby className="w-4 h-4" />,
+  tvp: <AlertTriangle className="w-4 h-4" />,
+  oncologico: <ShieldAlert className="w-4 h-4" />,
+  fiebre: <Thermometer className="w-4 h-4" />,
+  alergias_severas: <AlertCircle className="w-4 h-4" />,
+  infeccion_cutanea: <Zap className="w-4 h-4" />,
+  fragilidad_capilar: <Droplets className="w-4 h-4" />,
+};
+
+const FLAG_DEFS: FlagDef[] = RED_FLAG_DEFS.map((f) => ({ ...f, icon: ICONS[f.key] }));
 
 // ── Props ──────────────────────────────────────────────────────────────────
 
 interface RedFlagsChecklistProps {
   value: RedFlags;
   onChange: (flags: RedFlags) => void;
-  /** En masoterapia las flags críticas bloquean el avance */
+  /** En especialidades con tieneContraindicaciones=true, las flags críticas bloquean el avance */
   hardStop?: boolean;
+  /** Nombre de la especialidad activa, usado en el mensaje de bloqueo */
+  especialidadLabel?: string;
   readOnly?: boolean;
 }
 
@@ -99,6 +58,7 @@ export function RedFlagsChecklist({
   value,
   onChange,
   hardStop = false,
+  especialidadLabel,
   readOnly = false,
 }: RedFlagsChecklistProps) {
   const activeFlags = FLAG_DEFS.filter((f) => value[f.key]);
@@ -117,7 +77,7 @@ export function RedFlagsChecklist({
       {isBlocked && (
         <AlertBanner
           variant="danger"
-          title="⛔ CONTRAINDICACIÓN ACTIVA — No proceder con masoterapia"
+          title={`⛔ CONTRAINDICACIÓN ACTIVA — No proceder${especialidadLabel ? ` con ${especialidadLabel}` : ""}`}
         >
           <ul className="mt-1 list-disc list-inside space-y-0.5">
             {activeCritical.map((f) => (

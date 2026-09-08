@@ -8,6 +8,9 @@ import { soapSchema } from "@/lib/validations";
 import { sanitizeRichText } from "@/lib/sanitize";
 import type { ActionResult } from "@/app/actions/patients";
 import { getIdClinica } from "@/app/actions/patients";
+import { getEspecialidadConfig } from "@/lib/modules/especialidad-config";
+import { getContraindicacionesActivas } from "@/lib/anamnesis/red-flags";
+import type { RedFlags } from "@/types/anamnesis";
 import type { SoapNote } from "@/types";
 
 // ── getOrCreateEncounter ────────────────────────────────────────────────────
@@ -235,6 +238,34 @@ export async function signSoapNote(
     .eq("id", noteId)
     .eq("id_clinica", idClinica)
     .single();
+
+  // Hard-stop contraindicaciones (regla 9 CLAUDE.md) — enforcement real en servidor,
+  // no solo cosmético en el form. Especialidades con tieneContraindicaciones=true
+  // (ej. Masoterapia) no pueden firmar mientras el paciente tenga una red flag crítica activa.
+  if (notaConEncuentro?.id_encuentro) {
+    const { data: encuentro } = await supabase
+      .from("fce_encuentros")
+      .select("especialidad")
+      .eq("id", notaConEncuentro.id_encuentro)
+      .single();
+
+    if (encuentro?.especialidad && getEspecialidadConfig(encuentro.especialidad).tieneContraindicaciones) {
+      const { data: anamnesis } = await supabase
+        .from("fce_anamnesis")
+        .select("red_flags")
+        .eq("id_paciente", patientId)
+        .eq("id_clinica", idClinica)
+        .maybeSingle();
+
+      const activas = getContraindicacionesActivas(anamnesis?.red_flags as RedFlags | null);
+      if (activas.length > 0) {
+        return {
+          success: false,
+          error: `No se puede firmar: contraindicación activa (${activas.map((f) => f.label).join(", ")}). Actualiza la anamnesis si la condición ya se resolvió.`,
+        };
+      }
+    }
+  }
 
   const { error } = await supabase
     .from("fce_notas_soap")

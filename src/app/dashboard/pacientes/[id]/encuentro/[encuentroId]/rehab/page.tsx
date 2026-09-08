@@ -17,6 +17,9 @@ import { FirmarHeaderButton } from "@/components/shared/FirmarHeaderButton";
 import { getClinicaConfig } from "@/lib/modules/config";
 import { getPlanesIntervencion } from "@/app/actions/clinico/plan-intervencion";
 import { PlanIntervencionLauncher } from "@/components/shared/PlanIntervencionLauncher";
+import { getEspecialidadConfig } from "@/lib/modules/especialidad-config";
+import { getContraindicacionesActivas } from "@/lib/anamnesis/red-flags";
+import type { RedFlags } from "@/types/anamnesis";
 import type { SoapNote } from "@/types";
 import type { Evaluation } from "@/types";
 
@@ -91,6 +94,23 @@ export default async function RehabPage({
   const canWrite = isAdmin || isProfesional;
   if (!canWrite) notFound();
   if (!idClinica) notFound();
+
+  // Hard-stop contraindicaciones (regla 9 CLAUDE.md) — solo se consulta si la
+  // especialidad lo requiere (Masoterapia). Bloqueo real vive en signSoapNote;
+  // esto es solo para mostrar el aviso antes de que el profesional intente firmar.
+  const espConfigRehab = getEspecialidadConfig(encuentro.especialidad);
+  let contraindicacionesActivas: string[] = [];
+  if (espConfigRehab.tieneContraindicaciones) {
+    const { data: anamnesis } = await supabase
+      .from("fce_anamnesis")
+      .select("red_flags")
+      .eq("id_paciente", id)
+      .eq("id_clinica", idClinica)
+      .maybeSingle();
+    contraindicacionesActivas = getContraindicacionesActivas(
+      anamnesis?.red_flags as RedFlags | null
+    ).map((f) => f.label);
+  }
 
   const encuentroFinalizado = encuentro.status === "finalizado";
   const readOnly = encuentroFinalizado || (soapNote?.firmado ?? false);
@@ -218,6 +238,8 @@ export default async function RehabPage({
               idClinica={idClinica}
               initialNote={soapNote}
               readOnly={readOnly}
+              especialidadLabel={especialidad}
+              contraindicacionesActivas={contraindicacionesActivas}
             />
           </div>
 

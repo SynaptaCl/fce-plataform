@@ -1,6 +1,6 @@
 # CLAUDE.md — FCE Platform (fce-plataform)
 
-> Última actualización: 2026-08-02 (LEGAL2 — auditoría de cumplimiento verificada contra DB real vía MCP Supabase: mecanismo RLS `tiene_acceso_clinico()` documentado §9, triggers de inmutabilidad reales de soap/egresos/periograma/orden_examen añadidos §4 regla 8 y §8, migrations reconstruidas §10, fix aplicado a `block_update_signed_periograma()` — bloqueaba TODO UPDATE a `fce_periograma` por referenciar columna inexistente `firmado_en`, corregido y verificado en prod §14). Anterior: 2026-08-01 (LEGAL1: corrección trigger `block_update_signed_nota_clinica` §20, migration `20260801_01` aplicada §10, ICD rate-limit marcado resuelto §14). Anterior: 2026-07-31 (auditoría staleness: conteos módulos/especialidades §6, aclaración M13 §7, migrations recientes §10, deuda §14, id_clinica fce_notas_soap §16). Anterior: 2026-07-28 (cutover código M7 a medicamentos/medicamentos_presentaciones, SEC-1 mergeado, proxy.ts con CSP nonce, sprints A0/A1 adendas, DX1/DX2 diagnóstico condicional, Sentry org slug)
+> Última actualización: 2026-09-07 (D8 — cierre de brecha dental vs estándar de calidad de la plataforma, ver auditoría §14: timeline unificado ahora incluye periograma/plan_tratamiento, adendas UI extendida a periograma, launchers M7/M8 en DentalWorkspace con doble gate, firma unificada (PatientHeader sticky + FirmarDentalButton) en /dental, hard-stop de contraindicaciones (regla 9) implementado de verdad — antes era config muerta — con enforcement en servidor en `signSoapNote` y `signNotaClinica` vía `lib/anamnesis/red-flags.ts`. RLS de `fce_odontograma`/`fce_odontograma_historial`/`fce_plan_tratamiento`/`fce_plan_tratamiento_items` confirmado en `tiene_acceso_clinico()` vía MCP §9. **Odontología sigue en Beta** — cierre de brecha técnica, no habilita venta, ver §14 y COMERCIAL.md §2.2). Anterior: 2026-08-02 (LEGAL2 — auditoría de cumplimiento verificada contra DB real vía MCP Supabase: mecanismo RLS `tiene_acceso_clinico()` documentado §9, triggers de inmutabilidad reales de soap/egresos/periograma/orden_examen añadidos §4 regla 8 y §8, migrations reconstruidas §10, fix aplicado a `block_update_signed_periograma()` — bloqueaba TODO UPDATE a `fce_periograma` por referenciar columna inexistente `firmado_en`, corregido y verificado en prod §14). Anterior: 2026-08-01 (LEGAL1: corrección trigger `block_update_signed_nota_clinica` §20, migration `20260801_01` aplicada §10, ICD rate-limit marcado resuelto §14). Anterior: 2026-07-31 (auditoría staleness: conteos módulos/especialidades §6, aclaración M13 §7, migrations recientes §10, deuda §14, id_clinica fce_notas_soap §16). Anterior: 2026-07-28 (cutover código M7 a medicamentos/medicamentos_presentaciones, SEC-1 mergeado, proxy.ts con CSP nonce, sprints A0/A1 adendas, DX1/DX2 diagnóstico condicional, Sentry org slug)
 > Este documento es la fuente de verdad para Claude Code. Leerlo antes de cualquier cambio.
 
 ---
@@ -262,11 +262,28 @@ Desde `20260724051046_crear_funcion_tiene_acceso_clinico` (aplicada, reconstruid
 tiene_acceso_clinico(p_id_clinica uuid) -- true si admin_users.rol IN (director,admin,superadmin)
                                          -- de esa clínica, O si tiene fila en admin_user_profesionales
 ```
-Tablas en `tiene_acceso_clinico()`: `fce_notas_soap`, `fce_egresos`, `fce_periograma`, `fce_ordenes_examen`, `fce_consentimientos`, `fce_notas_clinicas`, `fce_evaluaciones`, `fce_prescripciones`, `fce_informes`, `fce_adendas`.
+Tablas en `tiene_acceso_clinico()`: `fce_notas_soap`, `fce_egresos`, `fce_periograma`, `fce_ordenes_examen`, `fce_consentimientos`, `fce_notas_clinicas`, `fce_evaluaciones`, `fce_prescripciones`, `fce_informes`, `fce_adendas`, `fce_odontograma`, `fce_odontograma_historial`, `fce_plan_tratamiento`, `fce_plan_tratamiento_items` (las 4 dentales confirmadas vía MCP 2026-09-07 — ya estaban al día en prod, sin migration propia en el repo hasta esta reconciliación documental, mismo patrón que §10).
 
 **Inconsistencia detectada, sin resolver**: `pacientes` (la tabla más central) **sigue en `get_clinica_ids_for_user()`** (policy `pacientes_by_clinica`) — no fue migrada. Dos primitivas de control de acceso conviven; no confirmado si es intencional. No tocar sin decidir cuál es la fuente de verdad.
 
 Todas las tablas `fce_*` clínicas tienen `relforcerowsecurity = false` (solo `admin_users`/`profesionales`/`admin_user_profesionales` tienen `FORCE ROW LEVEL SECURITY`, desde `20260728_01_force_rls_tablas_criticas`) — un rol dueño de tabla o `service_role` puede saltarse RLS en las clínicas. Es el mismo mecanismo que usa `createServiceClient()` deliberadamente; no es un hallazgo nuevo, solo documentar la asimetría frente a las 3 tablas forzadas.
+
+### Hard-stop contraindicaciones — regla 9 (implementado D8, 2026-09-07)
+`lib/anamnesis/red-flags.ts` es la fuente única de red flags críticas (`RED_FLAG_DEFS` + `getContraindicacionesActivas()`) — consumida por `RedFlagsChecklist` (UI, en `AnamnesisForm`) **y** por los server actions de firma. Antes de esta fecha `tieneContraindicaciones` era config sin ningún consumidor real (grep en `src/` no encontraba lecturas); ahora bloquea de verdad:
+```typescript
+import { getEspecialidadConfig } from "@/lib/modules/especialidad-config";
+import { getContraindicacionesActivas } from "@/lib/anamnesis/red-flags";
+
+// Dentro de signSoapNote() / signNotaClinica(), antes del UPDATE que firma:
+if (getEspecialidadConfig(encuentro.especialidad).tieneContraindicaciones) {
+  const { data: anamnesis } = await supabase
+    .from("fce_anamnesis").select("red_flags")
+    .eq("id_paciente", patientId).eq("id_clinica", idClinica).maybeSingle();
+  const activas = getContraindicacionesActivas(anamnesis?.red_flags ?? null);
+  if (activas.length > 0) return { success: false, error: `No se puede firmar: contraindicación activa (${activas.map(f => f.label).join(", ")})...` };
+}
+```
+Bloqueo real en servidor (no solo botón deshabilitado en el form — el form también lo refleja como banner + `disabled`, pero el gate que importa es este). Cubre las dos especialidades con `tieneContraindicaciones: true` y modelo activo: **Masoterapia** (`signSoapNote`) y **Odontología** (`signNotaClinica`). Podología también tiene el flag pero está en `estado: "roadmap"` (sin modelo activo, no aplica).
 
 ### Especialidad — NO normalizar antes de escribir a DB
 ```typescript
@@ -505,7 +522,9 @@ src/components/
   │   ├── timeline/ → SoapExpandedCard, EvaluacionExpandedCard, NotaClinicaExpandedCard,
   │   │               PrescripcionExpandedCard, OrdenExamenExpandedCard,
   │   │               InstrumentoExpandedCard, ConsentimientoExpandedCard,
-  │   │               SignosVitalesExpandedCard, PlanIntervencionExpandedCard, _shared.tsx
+  │   │               SignosVitalesExpandedCard, PlanIntervencionExpandedCard,
+  │   │               PeriogramaExpandedCard, PlanTratamientoExpandedCard (D8: dental en timeline),
+  │   │               AdendaExpandedCard, _shared.tsx
   │   ├── ResumenIA/ → ResumenIAButton, ResumenIAModal, ResumenIAReport (index.ts)
   │   ├── CopilotoNota/ → CopilotoNotaButton, CopilotoNotaPanel (index.ts)
   │   ├── PresupuestoForm.tsx, PresupuestoList.tsx, PresupuestoPdfView.tsx (M11)
@@ -520,14 +539,19 @@ src/components/
   │               InstrumentoResultadoCard, EscalaSimpleRenderer, QuickNoteModal,
   │               DiagnosticoSearch, DiagnosticoChip, RegistroResultadoExterno
   │               instrumentos-custom/ → ApgarScore, GlasgowComaScale
-  ├── dental/   → DentalWorkspace, OdontogramaInteractivo, OdontogramaPieza,
+  ├── dental/   → DentalWorkspace (D8: launchers M7/M8 + escucha evento de firma),
+  │               FirmarDentalButton (D8: dispara evento → DentalWorkspace cambia a tab "nota"
+  │                 y hace scroll a #signature-section — dental usa tabs, no una sola página
+  │                 como rehab/clinico, así que FirmarHeaderButton genérico no le sirve),
+  │               OdontogramaInteractivo, OdontogramaPieza,
   │               OdontogramaLeyenda, PiezaDetailPanel, PeriogramaForm, PeriogramaChart,
   │               PlanTratamientoPanel, PlanTratamientoItemForm,
   │               ProcedimientoPicker, DiagnosticoSearch (wrapper dental ICD-11)
   └── shared/   → ActionBar (chips navegación paciente),
                    RichTextEditor (Tiptap v3 — editor compartido notas clínicas, sprint RTE),
                    EncuentroLauncher, BodyMap, ScaleSlider, SummaryPanel,
-                   FirmarHeaderButton, VitalSignsPanel, AnamnesisForm,
+                   FirmarHeaderButton (rehab/clinico — una sola página, ver FirmarDentalButton para dental),
+                   VitalSignsPanel, AnamnesisForm,
                    PatientForm, PatientList, ConsentManager, AuditTimeline,
                    FhirPreview, FichaCompletaExport (hub: descarga ficha completa on-click),
                    RedFlagsChecklist,
@@ -555,6 +579,9 @@ src/lib/
   │                                bmi-boys-5-19.json, bmi-girls-5-19.json
   │                                (_validation_status: PENDIENTE_CLINICA en todos)
   ├── fce/            → profesional.ts (getProfesionalActivo lee cookie P1, getProfesionalesDelUsuario)
+  ├── anamnesis/      → red-flags.ts (D8: RED_FLAG_DEFS + getContraindicacionesActivas — fuente
+  │                       única de red flags críticas, consumida por RedFlagsChecklist Y por el
+  │                       hard-stop real en signSoapNote/signNotaClinica, regla 9 CLAUDE.md)
   ├── icd/            → client.ts (OAuth2 WHO), types.ts, search.ts (buscarDiagnostico/buscarCIF), entity.ts
   ├── dental/         → fdi.ts (numeración FDI), periograma.ts, plan.ts
   ├── instrumentos/   → calcular.ts, interpretar.ts, registry-custom.ts
@@ -719,13 +746,16 @@ Actualmente **ninguna clínica tiene fce-plataform en producción** — el repo 
 | Sentry | Integración `@sentry/nextjs`: `instrumentation.ts` + `sentry.{client,server,edge}.config.ts` + `withSentryConfig` en `next.config.ts`. Org `synapta-spa`, sourcemaps gateados por `SENTRY_AUTH_TOKEN`. `log()` en `lib/logger.ts` envía `error` a Sentry |
 | Proxy/CSP | `src/proxy.ts` (Next 16, antes middleware) con CSP nonce por-request + headers de seguridad + gate optimista auth. Bug histórico (2026-07-27): el nonce debe viajar en **request headers** para que Next.js aplique a scripts de hidratación |
 | Cutover medicamentos | Código de M7 migrado a leer `medicamentos` + `medicamentos_presentaciones` (2026-07-28): `buscarMedicamentos()` con DCI como entidad principal y marcas embebidas, validación server-side de `perfiles_autorizados` contra tabla nueva, `MedicamentoSelector`/`MedicamentoCard` con badges de bioequivalencia ISP y validación clínica pendiente, tipos `Medicamento`/`MedicamentoPresentacion`/`MedicamentoConPresentaciones`. `medicamentos_catalogo` queda legacy sin referencias en código |
+| D7 | Cierre de lógica dental pura: `lib/dental/fdi.ts` (numeración FDI), `periograma.ts` (índices calculados), `plan.ts` (progreso/presupuesto/priorización) + cableado de especialidad (`getEspecialidadConfig`/`getRutaEncuentro`). Test `test:sprint-d7` (57 checks, sin DB). PDF de ficha completa con sección dental integrado (commit `a5f13b8`). **No cubre**: verificación end-to-end de `exportarFichaCompletaPdf` contra datos reales, ni activación de Nuvident en producción — ver Pendientes |
+| D8 (2026-09-07) | **Cierre de brecha dental vs estándar de calidad del resto de la plataforma** (auditoría previa detectó 5 gaps de integración transversal, no de lógica clínica). Timeline unificado: `periograma` (doc firmable, badge borrador/firmado) y `plan_tratamiento` (documento vivo, sin firma) ahora aparecen en `ClinicalTimeline` vía `PeriogramaExpandedCard`/`PlanTratamientoExpandedCard` (`timeline.ts` extendido — odontograma queda deliberadamente fuera, es un chart vivo con decenas de upserts por visita, mismo criterio que ya se aplica al resto del producto). Adendas: UI de "Agregar adenda/corrección" extendida a periograma (el backend ya lo soportaba desde A0, solo faltaba el botón — alcance A1 pasa de soap+nota_clinica a soap+nota_clinica+periograma). M7/M8: `PrescripcionLauncher`/`OrdenExamenLauncher` agregados a `DentalWorkspace` con el mismo doble gate que clinico/rehab (`puede_prescribir`/`puede_indicar_examenes` + `modulosActivos`). Firma unificada: `PatientHeader` sticky + `statusBadge` + `FirmarDentalButton` en `/dental` (dental usa tabs, así que el botón dispara un evento que `DentalWorkspace` escucha para cambiar a la tab "nota" y hacer scroll a `#signature-section`, en vez del `getElementById` directo de `FirmarHeaderButton`). Hard-stop contraindicaciones (regla 9): antes `tieneContraindicaciones` no tenía ningún consumidor en `src/` — ahora `lib/anamnesis/red-flags.ts` es la fuente única de red flags críticas y `signSoapNote`/`signNotaClinica` bloquean la firma **en servidor** (no solo el botón del form) cuando el paciente tiene una red flag crítica activa y la especialidad la requiere (Masoterapia, Odontología). Verificado: `npm run build` 0 errores, lint 0 warnings, `test:sprint-d7` 57/57, `test:sprint-sec1`/`test:sprint-p2-f2`/`test:sprint-rte` sin regresión. **No verificado**: flujo manual en navegador de las 5 piezas nuevas (sin pilotos activos, ver COMERCIAL.md §0) — ver Deuda técnica |
 
 ### Pendientes
 
 | Sprint | Foco |
 |---|---|
 | R1 | `renderEval()` en rehab/page.tsx — mover `if (especialidad===...)` a `getEspecialidadConfig` (campo `evalComponente`) |
-| D7 | PDF export ficha dental + smoke tests + config Nuvident en producción |
+| D9 (sugerido) | Verificación manual en navegador de los 5 flujos D8 (timeline dental, adenda periograma, launchers M7/M8, firma unificada, hard-stop) con datos reales — condición previa a considerar Odontología para un piloto real, ver COMERCIAL.md §2.2 |
+| — | Activar config Nuvident en producción (pendiente de D7, sin relación con D8) |
 
 ### DB aplicada (fuera de sprints)
 
@@ -774,6 +804,9 @@ Actualmente **ninguna clínica tiene fce-plataform en producción** — el repo 
 | **~210 medicamentos** (verificado en DB 2026-07-31) + 360 presentaciones migrados desde `medicamentos_catalogo` sin `validado_clinicamente` con intención clínica formal (tratar como `false` en UI) — falta pasada de validación masiva por QF/médico | Media |
 | `pacientes` sigue en RLS `get_clinica_ids_for_user()` mientras el resto de tablas clínicas migró a `tiene_acceso_clinico()` (2026-07-24) — confirmar si es intencional o falta migrarla, ver §9 | Media |
 | Repo de migrations desincronizado con prod — se detectaron 5 triggers/función vivos en producción sin archivo de migration en el repo (ver §10, reconstruidos 2026-08-02). No hay garantía de que no queden más objetos sin reconstruir; considerar un pase de reconciliación completo repo↔prod | Media |
+| `actions/dental/odontograma.ts` (2 lecturas), `plan-tratamiento.ts` (`getPlanActivo`) y `procedimientos.ts` siguen usando el patrón deprecado `getIdClinica()` (regla 24) en vez de `requireContext()` — las escrituras (`upsertPieza`, `createPlan`, etc.) ya migraron, quedan solo lecturas. Bajo riesgo (siempre filtran `.eq("id_clinica", idClinica)`), pero inconsistente | Baja |
+| ~~Odontología sin timeline / sin adendas / sin M7-M8 en workspace / sin firma unificada / hard-stop contraindicaciones sin implementar~~ | ✅ RESUELTO (D8, 2026-09-07) — ver Sprints completados. Odontología **sigue en `estado: "beta"`** en `registry.ts` y COMERCIAL.md §2.2 — D8 cierra la brecha de integración técnica, no reemplaza la verificación manual/piloto que exige la regla de reapertura del segmento comercial |
+| D8 sin verificación manual en navegador (solo `tsc`/lint/tests unitarios + `npm run build`) — antes de cualquier piloto dental, correr los 5 flujos nuevos con datos reales: firmar SOAP de Masoterapia con red flag activa (debe bloquear), firmar nota dental con contraindicación (debe bloquear), ver periograma/plan_tratamiento en el timeline del paciente, agregar adenda a un periograma firmado, ver aparecer/desaparecer PrescripcionLauncher/OrdenExamenLauncher según `puede_prescribir`/`modulosActivos` | Alta — antes de piloto |
 
 #### Auditoría de seguridad SEC-1 (2026-07-06) — mergeado a main
 
@@ -1226,7 +1259,7 @@ Valida firma del original, autoría (`original.created_by === profesionalId`), r
 
 ### Alcance A1 (actual)
 
-Cubierto: `soap` + `nota_clinica` (botón en `SoapExpandedCard` + `NotaClinicaExpandedCard`, modal `AdendaModal`, entries en Timeline, render en PDF ficha completa). Pendiente **A1.2**: extender a periograma, egreso, prescripción, orden_examen, consentimiento (la tabla ya los soporta). Pendiente **A2**: `/dashboard/auditoria` con filtros + export PDF firmado.
+Cubierto: `soap` + `nota_clinica` + `periograma` (D8, 2026-09-07 — botón en `SoapExpandedCard` + `NotaClinicaExpandedCard` + `PeriogramaExpandedCard`, modal `AdendaModal` genérico sin cambios, entries en Timeline, render en PDF ficha completa). Pendiente **A1.2**: extender a egreso, prescripción, orden_examen, consentimiento (la tabla ya los soporta). Pendiente **A2**: `/dashboard/auditoria` con filtros + export PDF firmado.
 
 ### `tipoEvento` de auditoría
 

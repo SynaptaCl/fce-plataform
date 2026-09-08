@@ -20,6 +20,7 @@ import {
   ClipboardList,
   Pill,
   LogOut,
+  Grid3x3,
 } from "lucide-react";
 import { useProfesionalActivo } from "@/lib/modules/provider";
 import { EncuentroLauncher } from "@/components/shared/EncuentroLauncher";
@@ -38,6 +39,8 @@ import { OrdenExamenExpandedCard } from "./timeline/OrdenExamenExpandedCard";
 import { OrdenExamenDetalleModal } from "@/components/shared/OrdenExamenDetalleModal";
 import { EgresoCard } from "@/components/shared/EgresoCard";
 import { PlanIntervencionExpandedCard } from "./timeline/PlanIntervencionExpandedCard";
+import { PeriogramaExpandedCard } from "./timeline/PeriogramaExpandedCard";
+import { PlanTratamientoExpandedCard } from "./timeline/PlanTratamientoExpandedCard";
 import { AdendaExpandedCard } from "./timeline/AdendaExpandedCard";
 import { AdendaModal } from "@/components/shared/AdendaModal";
 import type { AdendaTarget } from "@/types/adenda";
@@ -74,6 +77,7 @@ const FIRMA_TYPES = new Set<TimelineEntry["type"]>([
   "soap",
   "consentimiento",
   "prescripcion",
+  "periograma",
 ]);
 
 const TYPE_CONFIG: Record<
@@ -164,6 +168,22 @@ const TYPE_CONFIG: Record<
   },
   plan_intervencion: {
     label: "Plan de Intervención",
+    icon: ClipboardList,
+    badgeVariant: "info" as BadgeVariant,
+    borderColor: "var(--color-kp-accent, #00B0A8)",
+    iconBg: "var(--color-kp-accent-lt, #D5F5F4)",
+    iconColor: "var(--color-kp-primary, #006B6B)",
+  },
+  periograma: {
+    label: "Periograma",
+    icon: Grid3x3,
+    badgeVariant: "info" as BadgeVariant,
+    borderColor: "var(--color-kp-primary, #006B6B)",
+    iconBg: "var(--color-indigo-icon-bg, #EEF2FF)",
+    iconColor: "var(--color-indigo-icon, #4F46E5)",
+  },
+  plan_tratamiento: {
+    label: "Plan de Tratamiento",
     icon: ClipboardList,
     badgeVariant: "info" as BadgeVariant,
     borderColor: "var(--color-kp-accent, #00B0A8)",
@@ -275,6 +295,10 @@ function EntryContent({
       return <EgresoCard entry={entry} patientId={patientId} />;
     case "plan_intervencion":
       return <PlanIntervencionExpandedCard entry={entry} patientId={patientId} />;
+    case "periograma":
+      return <PeriogramaExpandedCard entry={entry} patientId={patientId} onAgregarAdenda={onAgregarAdenda} />;
+    case "plan_tratamiento":
+      return <PlanTratamientoExpandedCard entry={entry} patientId={patientId} />;
     case "adenda":
       return <AdendaExpandedCard entry={entry} patientId={patientId} />;
   }

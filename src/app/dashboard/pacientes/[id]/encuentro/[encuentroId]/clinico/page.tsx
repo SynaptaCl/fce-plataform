@@ -19,6 +19,8 @@ import { getEncuentroContext } from "@/app/actions/encuentros";
 import { AntropometriaPanel } from "@/components/clinico/AntropometriaPanel";
 import { ZSCORE_PENDIENTE_CLINICA } from "@/lib/nutricion/zscore";
 import { ATALAH_PENDIENTE_CLINICA } from "@/lib/nutricion/atalah";
+import { getContraindicacionesActivas } from "@/lib/anamnesis/red-flags";
+import type { RedFlags } from "@/types/anamnesis";
 
 export default async function ClinicoPage({
   params,
@@ -88,6 +90,21 @@ export default async function ClinicoPage({
   const firmaBloquedaPorValidacion =
     (antropModoRes.data?.length ?? 0) > 0 &&
     (ZSCORE_PENDIENTE_CLINICA || ATALAH_PENDIENTE_CLINICA);
+
+  // Hard-stop contraindicaciones (regla 9 CLAUDE.md) — solo se consulta si la especialidad
+  // lo requiere. Bloqueo real vive en signNotaClinica; esto solo muestra el aviso antes de firmar.
+  let contraindicacionesActivas: string[] = [];
+  if (espConfig.tieneContraindicaciones) {
+    const { data: anamnesis } = await supabase
+      .from("fce_anamnesis")
+      .select("red_flags")
+      .eq("id_paciente", id)
+      .eq("id_clinica", idClinica)
+      .maybeSingle();
+    contraindicacionesActivas = getContraindicacionesActivas(
+      anamnesis?.red_flags as RedFlags | null
+    ).map((f) => f.label);
+  }
 
   // Solo mostrar formulario si el encuentro está en progreso o es readOnly (finalizado)
   const encuentroFinalizado = encuentro.status === "finalizado";
@@ -190,6 +207,7 @@ export default async function ClinicoPage({
               planActivo={planActivo}
               tieneCopilotoIA={espConfig.tieneCopilotoIA}
               tieneAmbientScribe={espConfig.tieneAmbientScribe}
+              contraindicacionesActivas={contraindicacionesActivas}
             />
           </div>
           <div className="w-full lg:w-80 xl:w-96 p-6 bg-surface-0">
