@@ -161,20 +161,22 @@ export function EsteticaWorkspace({ patientId, encuentroId, paciente, onClose }:
             </div>
           </div>
 
-          {(tipoFicha === "facial" || tipoFicha === "mixta") && (
-            <MapaFacialInteractivo
-              zonasTratadas={ficha?.zonas.filter((z) => z.region === "facial") ?? []}
-              onZonaClick={(codigo) => handleZonaClick("facial", codigo)}
-              readOnly={readOnly}
-            />
-          )}
-          {(tipoFicha === "corporal" || tipoFicha === "mixta") && (
-            <MapaCorporalInteractivo
-              zonasTratadas={ficha?.zonas.filter((z) => z.region === "corporal") ?? []}
-              onZonaClick={(codigo) => handleZonaClick("corporal", codigo)}
-              readOnly={readOnly}
-            />
-          )}
+          <div className={tipoFicha === "mixta" ? "grid gap-4 md:grid-cols-2 place-items-center" : "flex justify-center"}>
+            {(tipoFicha === "facial" || tipoFicha === "mixta") && (
+              <MapaFacialInteractivo
+                zonasTratadas={ficha?.zonas.filter((z) => z.region === "facial") ?? []}
+                onZonaClick={(codigo) => handleZonaClick("facial", codigo)}
+                readOnly={readOnly}
+              />
+            )}
+            {(tipoFicha === "corporal" || tipoFicha === "mixta") && (
+              <MapaCorporalInteractivo
+                zonasTratadas={ficha?.zonas.filter((z) => z.region === "corporal") ?? []}
+                onZonaClick={(codigo) => handleZonaClick("corporal", codigo)}
+                readOnly={readOnly}
+              />
+            )}
+          </div>
 
           {selectedZona && (
             <ZonaDetailPanel
