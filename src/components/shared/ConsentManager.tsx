@@ -58,6 +58,20 @@ Yo, el/la paciente (o su representante legal), declaro haber sido informado/a so
 
 Este consentimiento se rige por la Ley N° 20.584, el Decreto N° 41 MINSAL y la normativa vigente sobre telecomunicaciones en salud en Chile.`,
   },
+  procedimiento_estetico: {
+    label: "Consentimiento para Procedimiento Estético",
+    texto: `CONSENTIMIENTO INFORMADO PARA PROCEDIMIENTO ESTÉTICO
+
+Yo, el/la paciente, declaro haber sido informado/a de manera comprensible sobre la naturaleza, objetivos, técnica, posibles riesgos, efectos adversos esperables y resultados razonablemente previsibles del procedimiento estético propuesto.
+
+En virtud de la Ley N° 20.584 sobre derechos y deberes de los pacientes, manifiesto mi consentimiento libre, voluntario e informado para:
+
+1. Recibir el procedimiento estético indicado, incluyendo el/los producto(s) a utilizar según lo informado por el profesional tratante.
+2. Que se registren fotografías antes, durante y/o después del procedimiento con fines exclusivamente clínicos, de seguimiento de evolución y de continuidad asistencial.
+3. Que dichas fotografías se almacenen de forma segura en la Ficha Clínica Electrónica del establecimiento, accesibles únicamente al equipo clínico bajo deber de confidencialidad.
+
+Declaro haber sido informado/a de que los resultados pueden variar según características individuales, y de mi derecho a revocar este consentimiento en cualquier momento.`,
+  },
 };
 
 // ── SignatureCanvas ────────────────────────────────────────────────────────
@@ -242,6 +256,7 @@ const TIPOS: { key: ConsentType; label: string; desc: string }[] = [
   { key: "general", label: "General", desc: "Tratamiento estándar de salud" },
   { key: "menores", label: "Menores / Vulnerables", desc: "Representante legal firma" },
   { key: "teleconsulta", label: "Teleconsulta", desc: "Atención a distancia" },
+  { key: "procedimiento_estetico", label: "Procedimiento Estético", desc: "Riesgos + uso de fotos clínicas" },
 ];
 
 // ── ConsentManager ─────────────────────────────────────────────────────────

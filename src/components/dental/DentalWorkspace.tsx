@@ -9,6 +9,7 @@ import { PeriogramaForm } from "@/components/dental/PeriogramaForm";
 import { OdontogramaInteractivo } from "@/components/dental/OdontogramaInteractivo";
 import { PrescripcionLauncher } from "@/components/shared/PrescripcionLauncher";
 import { OrdenExamenLauncher } from "@/components/shared/OrdenExamenLauncher";
+import { EsteticaLauncher } from "@/components/estetica";
 import { getEspecialidadConfig } from "@/lib/modules/especialidad-config";
 import { DENTAL_FIRMAR_EVENT } from "@/components/dental/FirmarDentalButton";
 import type { Patient } from "@/types/patient";
@@ -38,6 +39,9 @@ interface DentalWorkspaceProps {
   mostrarOrdenExamen: boolean;
   /** Labels de red flags críticas activas (regla 9 CLAUDE.md) — bloquea la firma de la nota */
   contraindicacionesActivas: string[];
+  /** I11 — gate server-side (mismo criterio que mostrarPrescripcion/mostrarOrdenExamen
+   *  en rehab/clinico): puede_estetica del profesional activo AND M13_estetica activo. */
+  mostrarEstetica: boolean;
 }
 
 const TABS: { id: Tab; label: string; icon: React.ReactNode }[] = [
@@ -63,6 +67,7 @@ export function DentalWorkspace({
   mostrarPrescripcion,
   mostrarOrdenExamen,
   contraindicacionesActivas,
+  mostrarEstetica,
 }: DentalWorkspaceProps) {
   const [activeTab, setActiveTab] = useState<Tab>("odontograma");
   const espConfig = getEspecialidadConfig(especialidad);
@@ -98,6 +103,11 @@ export function DentalWorkspace({
           )}
           {mostrarOrdenExamen && (
             <OrdenExamenLauncher patientId={paciente.id} encuentroId={encuentroId} paciente={paciente} />
+          )}
+          {/* I11 — gate server-side vía mostrarEstetica (mismo patrón que rehab/clinico).
+              EsteticaLauncher conserva su propio gating client-side como defensa adicional. */}
+          {mostrarEstetica && (
+            <EsteticaLauncher patientId={paciente.id} encuentroId={encuentroId} paciente={paciente} />
           )}
           {encuentroFinalizado ? (
             <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-green-50 border border-green-200 text-green-800 text-xs font-medium">

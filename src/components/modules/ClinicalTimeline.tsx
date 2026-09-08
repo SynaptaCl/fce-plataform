@@ -21,6 +21,7 @@ import {
   Pill,
   LogOut,
   Grid3x3,
+  Sparkles,
 } from "lucide-react";
 import { useProfesionalActivo } from "@/lib/modules/provider";
 import { EncuentroLauncher } from "@/components/shared/EncuentroLauncher";
@@ -42,6 +43,7 @@ import { PlanIntervencionExpandedCard } from "./timeline/PlanIntervencionExpande
 import { PeriogramaExpandedCard } from "./timeline/PeriogramaExpandedCard";
 import { PlanTratamientoExpandedCard } from "./timeline/PlanTratamientoExpandedCard";
 import { AdendaExpandedCard } from "./timeline/AdendaExpandedCard";
+import { EsteticaExpandedCard } from "./timeline/EsteticaExpandedCard";
 import { AdendaModal } from "@/components/shared/AdendaModal";
 import type { AdendaTarget } from "@/types/adenda";
 import type { Patient } from "@/types/patient";
@@ -78,6 +80,7 @@ const FIRMA_TYPES = new Set<TimelineEntry["type"]>([
   "consentimiento",
   "prescripcion",
   "periograma",
+  "ficha_estetica",
 ]);
 
 const TYPE_CONFIG: Record<
@@ -198,6 +201,14 @@ const TYPE_CONFIG: Record<
     iconBg: "var(--color-surface-0, #F1F5F9)",
     iconColor: "var(--color-ink-2, #475569)",
   },
+  ficha_estetica: {
+    label: "Ficha Estética",
+    icon: Sparkles,
+    badgeVariant: "info" as BadgeVariant,
+    borderColor: "var(--color-kp-accent, #00B0A8)",
+    iconBg: "var(--color-kp-accent-lt, #D5F5F4)",
+    iconColor: "var(--color-kp-primary, #006B6B)",
+  },
 };
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -301,6 +312,8 @@ function EntryContent({
       return <PlanTratamientoExpandedCard entry={entry} patientId={patientId} />;
     case "adenda":
       return <AdendaExpandedCard entry={entry} patientId={patientId} />;
+    case "ficha_estetica":
+      return <EsteticaExpandedCard entry={entry} patientId={patientId} onAgregarAdenda={onAgregarAdenda} />;
   }
 }
 

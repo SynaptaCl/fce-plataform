@@ -51,9 +51,7 @@ export default async function DentalPage({
   const canAccess = ["superadmin", "director", "admin", "profesional"].includes(rol);
   if (!canAccess) redirect("/dashboard");
 
-  const config = idClinica ? await getClinicaConfig(idClinica, supabase) : null;
-
-  const [patientResult, encuentroRes, notaResult, periogramaResult, planResult, catalogoResult, piezasResult, profesional] =
+  const [patientResult, encuentroRes, notaResult, periogramaResult, planResult, catalogoResult, piezasResult, config, profesional] =
     await Promise.all([
       getPatientById(id),
       supabase
@@ -67,8 +65,16 @@ export default async function DentalPage({
       getPlanActivo(id),
       getProcedimientosCatalogo(),
       getOdontograma(id),
+      idClinica ? getClinicaConfig(idClinica, supabase) : Promise.resolve(null),
       getProfesionalActivo(supabase, user.id, idClinica || undefined),
     ]);
+
+  // I11 — gate server-side para el launcher de M13, igual que rehab/page.tsx
+  // y clinico/page.tsx (mostrarPrescripcion/mostrarOrdenExamen). Antes
+  // DentalWorkspace renderizaba <EsteticaLauncher> incondicionalmente y
+  // dependía solo del gating client-side interno del propio launcher.
+  const mostrarEstetica =
+    Boolean(profesional?.puede_estetica) && (config?.modulosActivos.includes("M13_estetica") ?? false);
 
   if (!patientResult.success || encuentroRes.error || !encuentroRes.data) notFound();
 
@@ -178,6 +184,7 @@ export default async function DentalPage({
         mostrarPrescripcion={mostrarPrescripcion}
         mostrarOrdenExamen={mostrarOrdenExamen}
         contraindicacionesActivas={contraindicacionesActivas}
+        mostrarEstetica={mostrarEstetica}
       />
 
       <div className="flex justify-start">

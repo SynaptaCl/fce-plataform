@@ -13,6 +13,7 @@ import {
 import { getPatientById } from "@/app/actions/patients";
 import { getProfesionalActivo } from "@/lib/fce/profesional";
 import { PrescripcionLauncher } from "@/components/shared/PrescripcionLauncher";
+import { EsteticaLauncher } from "@/components/estetica";
 import { FirmarHeaderButton } from "@/components/shared/FirmarHeaderButton";
 import { getClinicaConfig } from "@/lib/modules/config";
 import { getPlanesIntervencion } from "@/app/actions/clinico/plan-intervencion";
@@ -224,6 +225,9 @@ export default async function RehabPage({
             )}
             {profesional?.puede_prescribir && config?.modulosActivos.includes("M7_prescripciones") && (
               <PrescripcionLauncher patientId={patient.id} encuentroId={encuentroId} paciente={patient} />
+            )}
+            {profesional?.puede_estetica && config?.modulosActivos.includes("M13_estetica") && (
+              <EsteticaLauncher patientId={patient.id} encuentroId={encuentroId} paciente={patient} />
             )}
           </div>
         </div>

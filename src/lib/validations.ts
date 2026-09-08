@@ -163,7 +163,7 @@ export type NotaClinicaSchemaType = z.infer<typeof notaClinicaSchema>;
 // ── Consentimiento ──
 
 export const consentSchema = z.object({
-  tipo: z.enum(["general", "menores", "teleconsulta"]),
+  tipo: z.enum(["general", "menores", "teleconsulta", "procedimiento_estetico"]),
   contenido: z.string().min(10, "Contenido es obligatorio"),
   firma_paciente_data_url: z.string().optional(),  // not inserted in createConsentimiento
 });

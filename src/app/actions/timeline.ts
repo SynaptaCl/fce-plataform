@@ -23,7 +23,8 @@ export type TimelineEntryType =
   | "plan_intervencion"
   | "periograma"
   | "plan_tratamiento"
-  | "adenda";
+  | "adenda"
+  | "ficha_estetica";
 
 export interface TimelineEntry {
   id: string;
@@ -167,6 +168,19 @@ type EgresoTimelineRow = {
   created_by: string;
 };
 
+type FichaEsteticaTimelineRow = {
+  id: string;
+  id_encuentro: string;
+  tipo_ficha: string;
+  motivo: string | null;
+  observaciones_generales: string | null;
+  firmado: boolean;
+  firmado_at: string | null;
+  firmado_por: string | null;
+  created_by: string;
+  created_at: string;
+};
+
 type AdendaRow = {
   id: string;
   tipo_adenda: string;
@@ -226,7 +240,7 @@ export async function getPatientTimeline(
 
   // Todas las queries usan el cliente con RLS + filtro id_clinica explícito (defense-in-depth).
   // Ya NO se usa service_role: fce_notas_soap y fce_evaluaciones tienen id_clinica + RLS directa (20260606_03).
-  const [soapRes, evalRes, vitalsRes, consentRes, anamnesisRes, notasRes, instrumentosRes, prescripcionesRes, ordenesExamenRes, egresosRes, planesRes, periogramasRes, planesTratamientoRes, adendaRes] = await Promise.all([
+  const [soapRes, evalRes, vitalsRes, consentRes, anamnesisRes, notasRes, instrumentosRes, prescripcionesRes, ordenesExamenRes, egresosRes, planesRes, periogramasRes, planesTratamientoRes, adendaRes, fichasEsteticasRes] = await Promise.all([
     supabase.from("fce_notas_soap").select("*").eq("id_paciente", patientId).eq("id_clinica", idClinica).order("created_at", { ascending: false }),
     supabase.from("fce_evaluaciones").select("*").eq("id_paciente", patientId).eq("id_clinica", idClinica).order("created_at", { ascending: false }),
     supabase.from("fce_signos_vitales").select("*").eq("id_paciente", patientId).eq("id_clinica", idClinica).order("recorded_at", { ascending: false }),
@@ -299,6 +313,12 @@ export async function getPatientTimeline(
       .eq("id_paciente", patientId)
       .eq("id_clinica", idClinica)
       .order("created_at", { ascending: false }),
+    supabase
+      .from("fce_fichas_esteticas")
+      .select("id, id_encuentro, tipo_ficha, motivo, observaciones_generales, firmado, firmado_at, firmado_por, created_by, created_at")
+      .eq("id_paciente", patientId)
+      .eq("id_clinica", idClinica)
+      .order("created_at", { ascending: false }),
   ]);
 
   // RLS deniega fila por fila sin lanzar error — pero un fallo real de query (no simplemente
@@ -319,6 +339,7 @@ export async function getPatientTimeline(
     { label: "periogramas", error: periogramasRes.error },
     { label: "planes_tratamiento", error: planesTratamientoRes.error },
     { label: "adendas", error: adendaRes.error },
+    { label: "fichas_esteticas", error: fichasEsteticasRes.error },
   ];
   const failedSections = subqueries.filter((s) => s.error).map((s) => s.label);
   if (failedSections.length > 0) {
@@ -394,6 +415,10 @@ export async function getPatientTimeline(
   const adendas = (adendaRes.data ?? []) as AdendaRow[];
   for (const a of adendas) {
     if (a.created_by) profIds.add(a.created_by);
+  }
+  for (const f of (fichasEsteticasRes.data ?? []) as FichaEsteticaTimelineRow[]) {
+    if (f.created_by) profIds.add(f.created_by);
+    if (f.firmado_por) profIds.add(f.firmado_por);
   }
 
   type ProfMapEntry = { nombre: string; id_clinica: string };
@@ -780,6 +805,32 @@ export async function getPatientTimeline(
         estado: pt.estado,
         cerrado: pt.cerrado,
         cerrado_at: pt.cerrado_at,
+      },
+    });
+  }
+
+  // Fichas estéticas — documento firmable transversal (M13)
+  for (const f of (fichasEsteticasRes.data ?? []) as FichaEsteticaTimelineRow[]) {
+    const autorId = f.firmado_por ?? f.created_by;
+    const fDateStr = new Date(f.created_at).toLocaleDateString("es-CL", { day: "2-digit", month: "short" });
+    docTituloMap.set(f.id, `Ficha estética del ${fDateStr}`);
+    entries.push({
+      id: f.id,
+      type: "ficha_estetica",
+      date: f.created_at,
+      encuentroId: f.id_encuentro,
+      autor_id: autorId,
+      profesional_nombre: autorId ? profMap.get(autorId)?.nombre : undefined,
+      titulo: `Ficha estética — ${f.tipo_ficha}`,
+      resumen: f.motivo?.slice(0, 150) ?? "",
+      firmado: f.firmado,
+      data: {
+        tipo_ficha: f.tipo_ficha,
+        motivo: f.motivo,
+        observaciones_generales: f.observaciones_generales,
+        firmado: f.firmado,
+        firmado_at: f.firmado_at,
+        adendas: adendasPorDoc.get(f.id) ?? null,
       },
     });
   }
