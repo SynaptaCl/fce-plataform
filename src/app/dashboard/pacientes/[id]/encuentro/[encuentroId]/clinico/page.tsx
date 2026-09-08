@@ -9,6 +9,7 @@ import { getNotaClinica } from "@/app/actions/clinico/nota-clinica";
 import { getProfesionalActivo } from "@/lib/fce/profesional";
 import { PrescripcionLauncher } from "@/components/shared/PrescripcionLauncher";
 import { OrdenExamenLauncher } from "@/components/shared/OrdenExamenLauncher";
+import { EsteticaLauncher } from "@/components/estetica";
 import { FirmarHeaderButton } from "@/components/shared/FirmarHeaderButton";
 import { getClinicaConfig } from "@/lib/modules/config";
 import { getPlanesIntervencion } from "@/app/actions/clinico/plan-intervencion";
@@ -173,6 +174,9 @@ export default async function ClinicoPage({
             )}
             {profesional?.puede_indicar_examenes && config?.modulosActivos.includes("M8_examenes") && (
               <OrdenExamenLauncher patientId={patient.id} encuentroId={encuentroId} paciente={patient} />
+            )}
+            {profesional?.puede_estetica && config?.modulosActivos.includes("M13_estetica") && (
+              <EsteticaLauncher patientId={patient.id} encuentroId={encuentroId} paciente={patient} />
             )}
           </div>
         </div>

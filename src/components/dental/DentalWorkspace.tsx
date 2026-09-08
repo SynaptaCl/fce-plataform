@@ -7,6 +7,7 @@ import { InstrumentosPanel } from "@/components/clinico/InstrumentosPanel";
 import { PlanTratamientoPanel } from "@/components/dental/PlanTratamientoPanel";
 import { PeriogramaForm } from "@/components/dental/PeriogramaForm";
 import { OdontogramaInteractivo } from "@/components/dental/OdontogramaInteractivo";
+import { EsteticaLauncher } from "@/components/estetica";
 import type { Patient } from "@/types/patient";
 import type { NotaClinica } from "@/types/nota-clinica";
 import type { Periograma } from "@/types/periograma";
@@ -66,6 +67,8 @@ export function DentalWorkspace({
           </h1>
         </div>
         <div className="flex items-center gap-2">
+          {/* Self-gating: se oculta solo si M13_estetica inactivo o sin puede_estetica */}
+          <EsteticaLauncher patientId={paciente.id} encuentroId={encuentroId} paciente={paciente} />
           {encuentroFinalizado ? (
             <span className="inline-flex items-center px-2.5 py-1 rounded-full bg-green-50 border border-green-200 text-green-800 text-xs font-medium">
               Encuentro cerrado
