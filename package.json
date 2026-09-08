@@ -20,6 +20,7 @@
     "test:sprint-n2-nutricion": "tsx scripts/test-sprint-n2-nutricion.ts",
     "test:sprint-rte": "tsx scripts/test-sprint-rte.ts",
     "test:sprint-sec1": "tsx scripts/test-sprint-sec1.ts",
+    "test:sprint-m13": "tsx scripts/test-sprint-m13-estetica.ts",
     "test:resumen-ia-parcial": "tsx scripts/test-resumen-ia-parcial.ts"
   },
   "dependencies": {

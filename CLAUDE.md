@@ -1,6 +1,6 @@
 # CLAUDE.md — FCE Platform (fce-plataform)
 
-> Última actualización: 2026-08-02 (LEGAL2 — auditoría de cumplimiento verificada contra DB real vía MCP Supabase: mecanismo RLS `tiene_acceso_clinico()` documentado §9, triggers de inmutabilidad reales de soap/egresos/periograma/orden_examen añadidos §4 regla 8 y §8, migrations reconstruidas §10, fix aplicado a `block_update_signed_periograma()` — bloqueaba TODO UPDATE a `fce_periograma` por referenciar columna inexistente `firmado_en`, corregido y verificado en prod §14). Anterior: 2026-08-01 (LEGAL1: corrección trigger `block_update_signed_nota_clinica` §20, migration `20260801_01` aplicada §10, ICD rate-limit marcado resuelto §14). Anterior: 2026-07-31 (auditoría staleness: conteos módulos/especialidades §6, aclaración M13 §7, migrations recientes §10, deuda §14, id_clinica fce_notas_soap §16). Anterior: 2026-07-28 (cutover código M7 a medicamentos/medicamentos_presentaciones, SEC-1 mergeado, proxy.ts con CSP nonce, sprints A0/A1 adendas, DX1/DX2 diagnóstico condicional, Sentry org slug)
+> Última actualización: 2026-09-08 (M13 Ficha Estética: módulo transversal completo — migrations `20260907_01..05` aplicadas 2026-09-07, tablas/RLS/triggers documentadas §7/§8/§9/§10, regla 8 incluye ficha estética (9 documentos inmutables), sprints §14, deuda técnica seed procedimientos §14, script `test:sprint-m13` §11, "M13_adendas" renombrado a "Adendas" §7). Anterior: 2026-08-02 (LEGAL2 — auditoría de cumplimiento verificada contra DB real vía MCP Supabase: mecanismo RLS `tiene_acceso_clinico()` documentado §9, triggers de inmutabilidad reales de soap/egresos/periograma/orden_examen añadidos §4 regla 8 y §8, migrations reconstruidas §10, fix aplicado a `block_update_signed_periograma()` — bloqueaba TODO UPDATE a `fce_periograma` por referenciar columna inexistente `firmado_en`, corregido y verificado en prod §14). Anterior: 2026-08-01 (LEGAL1: corrección trigger `block_update_signed_nota_clinica` §20, migration `20260801_01` aplicada §10, ICD rate-limit marcado resuelto §14). Anterior: 2026-07-31 (auditoría staleness: conteos módulos/especialidades §6, aclaración M13 §7, migrations recientes §10, deuda §14, id_clinica fce_notas_soap §16). Anterior: 2026-07-28 (cutover código M7 a medicamentos/medicamentos_presentaciones, SEC-1 mergeado, proxy.ts con CSP nonce, sprints A0/A1 adendas, DX1/DX2 diagnóstico condicional, Sentry org slug)
 > Este documento es la fuente de verdad para Claude Code. Leerlo antes de cualquier cambio.
 
 ---
@@ -63,7 +63,7 @@ Deploy: Vercel. Supabase project: `vigyhfpwyxihrjiygfsa` (sa-east-1).
 5. **Filtrar por `id_clinica`** en toda query. Usar `getIdClinica(supabase, user.id)`
 6. **Audit log** en toda operación de escritura (`logs_auditoria`)
 7. **Contenido médico nunca se inventa** — datos confirmados o `[PENDIENTE]`
-8. **Documentos firmados = inmutables** — SOAP, nota clínica, consentimiento, prescripción, orden de examen, egreso, periograma, informe. Triggers en DB bloquean UPDATE post-firma en las 8 (verificado vía MCP Supabase 2026-08-02 — ver §8 y §9 "RLS — tiene_acceso_clinico()"). `fce_presupuestos` es la única excepción documentada: sin trigger, bloqueo solo en application layer
+8. **Documentos firmados = inmutables** — SOAP, nota clínica, consentimiento, prescripción, orden de examen, egreso, periograma, informe, ficha estética. Triggers en DB bloquean UPDATE post-firma en las 9 (verificado vía MCP Supabase 2026-08-02 — ver §8 y §9 "RLS — tiene_acceso_clinico()"). `fce_presupuestos` es la única excepción documentada: sin trigger, bloqueo solo en application layer
 9. **Hard-stop contraindicaciones** en especialidades con `tieneContraindicaciones: true`
 10. **Server Components por defecto**, `'use client'` solo cuando necesario
 11. **Seguir sprints en orden**. No saltar. No mezclar
@@ -146,8 +146,9 @@ El workspace dental vive en `/encuentro/[encuentroId]/dental/page.tsx` y usa `De
 | M10_plan_intervencion | `fce_planes_intervencion`, `fce_plan_objetivos`, `fce_plan_progreso`, `plantillas_dominios` | beta | no |
 | M11_presupuestos | `fce_presupuestos`, `fce_presupuesto_items` | beta | no |
 | M12_informes | `fce_informes` | estable | no |
+| M13_estetica | `fce_fichas_esteticas`, `fce_ficha_estetica_zonas`, `procedimientos_esteticos_catalogo`, `fce_ficha_estetica_fotos` | beta | no |
 
-> **Nota**: `M13_adendas` (tabla `fce_adendas`, ver §24) es un flujo/tabla transversal de corrección de documentos firmables. **NO es un `ModuleId`** en `registry.ts` (el tipo `ModuleId` solo incluye M1–M12), por eso no aparece en la tabla de arriba ni se activa vía `clinicas_fce_config`. Es siempre transversal cuando existen documentos firmables.
+> **Nota**: **Adendas** (tabla `fce_adendas`, ver §24) es un flujo/tabla transversal de corrección de documentos firmables. **NO es un `ModuleId`** en `registry.ts` (el tipo `ModuleId` solo incluye M1–M13), por eso no aparece en la tabla de arriba ni se activa vía `clinicas_fce_config`. Es siempre transversal cuando existen documentos firmables. (Históricamente se le decía "M13_adendas" en la documentación; el número quedó tomado por `M13_estetica`.)
 
 ---
 
@@ -172,6 +173,8 @@ Para columnas exactas consultar `docs/schema-real.md` o MCP Supabase.
 | `fce_egresos` | `trg_block_update_signed_egreso` | `block_update_signed_egreso()` |
 | `fce_periograma` | `trg_block_update_signed_periograma` | `block_update_signed_periograma()` |
 | `fce_ordenes_examen` | `trg_block_update_signed_orden` | `block_update_signed_orden_examen()` |
+| `fce_fichas_esteticas` | `trg_block_update_signed_ficha_estetica` | `block_update_signed_ficha_estetica()` |
+| `fce_ficha_estetica_zonas` | `trg_block_write_zonas_signed_ficha_estetica` | `block_write_zonas_signed_ficha_estetica()` |
 
 **Bug corregido 2026-08-02 (`20260802_01_fix_trigger_periograma_columna_inexistente`, aplicada):** `block_update_signed_periograma()` referenciaba `OLD.firmado_en`, columna que nunca existió (la real es `firmado boolean` + `firmado_at`). Al ser trigger `BEFORE UPDATE` sin condición de guarda, **todo `UPDATE` a `fce_periograma` fallaba en producción** (firmado o no) — `savePeriograma()`/`signPeriograma()` en `src/app/actions/dental/periograma.ts` estaban rotos salvo el INSERT inicial. Corregido y verificado end-to-end con datos reales.
 
@@ -262,7 +265,7 @@ Desde `20260724051046_crear_funcion_tiene_acceso_clinico` (aplicada, reconstruid
 tiene_acceso_clinico(p_id_clinica uuid) -- true si admin_users.rol IN (director,admin,superadmin)
                                          -- de esa clínica, O si tiene fila en admin_user_profesionales
 ```
-Tablas en `tiene_acceso_clinico()`: `fce_notas_soap`, `fce_egresos`, `fce_periograma`, `fce_ordenes_examen`, `fce_consentimientos`, `fce_notas_clinicas`, `fce_evaluaciones`, `fce_prescripciones`, `fce_informes`, `fce_adendas`.
+Tablas en `tiene_acceso_clinico()`: `fce_notas_soap`, `fce_egresos`, `fce_periograma`, `fce_ordenes_examen`, `fce_consentimientos`, `fce_notas_clinicas`, `fce_evaluaciones`, `fce_prescripciones`, `fce_informes`, `fce_adendas`, `fce_fichas_esteticas` (+ `fce_ficha_estetica_zonas` via join a la cabecera, `fce_ficha_estetica_fotos` directa, y `procedimientos_esteticos_catalogo` global-o-propio; storage bucket `fichas-esteticas` filtra por primer segmento del path = id_clinica).
 
 **Inconsistencia detectada, sin resolver**: `pacientes` (la tabla más central) **sigue en `get_clinica_ids_for_user()`** (policy `pacientes_by_clinica`) — no fue migrada. Dos primitivas de control de acceso conviven; no confirmado si es intencional. No tocar sin decidir cuál es la fuente de verdad.
 
@@ -493,7 +496,9 @@ src/app/actions/
   ├── rehab/    → soap.ts, evaluacion.ts, cif.ts
   ├── clinico/  → nota-clinica.ts, nota-rapida.ts, instrumentos.ts, diagnostico.ts,
   │               plan-intervencion.ts, plantillas-dominios.ts
-  └── dental/   → odontograma.ts, periograma.ts, plan-tratamiento.ts, procedimientos.ts
+  ├── dental/   → odontograma.ts, periograma.ts, plan-tratamiento.ts, procedimientos.ts
+  └── estetica/ → fichas.ts (CRUD ficha + zonas + firma M13), fotos.ts (Storage privado),
+                  procedimientos.ts (catálogo)
 
 src/components/
   ├── ui/       → Button, Input, Card, Badge, AlertBanner, Select, Textarea,
@@ -505,7 +510,8 @@ src/components/
   │   ├── timeline/ → SoapExpandedCard, EvaluacionExpandedCard, NotaClinicaExpandedCard,
   │   │               PrescripcionExpandedCard, OrdenExamenExpandedCard,
   │   │               InstrumentoExpandedCard, ConsentimientoExpandedCard,
-  │   │               SignosVitalesExpandedCard, PlanIntervencionExpandedCard, _shared.tsx
+  │   │               SignosVitalesExpandedCard, PlanIntervencionExpandedCard,
+  │   │               EsteticaExpandedCard (M13), _shared.tsx
   │   ├── ResumenIA/ → ResumenIAButton, ResumenIAModal, ResumenIAReport (index.ts)
   │   ├── CopilotoNota/ → CopilotoNotaButton, CopilotoNotaPanel (index.ts)
   │   ├── PresupuestoForm.tsx, PresupuestoList.tsx, PresupuestoPdfView.tsx (M11)
@@ -524,6 +530,11 @@ src/components/
   │               OdontogramaLeyenda, PiezaDetailPanel, PeriogramaForm, PeriogramaChart,
   │               PlanTratamientoPanel, PlanTratamientoItemForm,
   │               ProcedimientoPicker, DiagnosticoSearch (wrapper dental ICD-11)
+  ├── estetica/ → EsteticaLauncher (self-gating: M13 activo + puede_estetica),
+  │               EsteticaWorkspace (modal shell), MapaFacialInteractivo,
+  │               MapaCorporalInteractivo (SVG clickeable por zona), ZonaDetailPanel,
+  │               ProcedimientoPicker, FotoUploader, FotoComparador (slider antes/después),
+  │               FirmarEsteticaButton, FichaEsteticaPdfView (index.ts) — M13
   └── shared/   → ActionBar (chips navegación paciente),
                    RichTextEditor (Tiptap v3 — editor compartido notas clínicas, sprint RTE),
                    EncuentroLauncher, BodyMap, ScaleSlider, SummaryPanel,
@@ -555,6 +566,8 @@ src/lib/
   │                                bmi-boys-5-19.json, bmi-girls-5-19.json
   │                                (_validation_status: PENDIENTE_CLINICA en todos)
   ├── fce/            → profesional.ts (getProfesionalActivo lee cookie P1, getProfesionalesDelUsuario)
+  ├── estetica/       → zonas.ts (M13: catálogo estático ZONAS_FACIALES/ZONAS_CORPORALES,
+  │                     getLabelZona/esZonaValida — mismo criterio que fdi.ts dental)
   ├── icd/            → client.ts (OAuth2 WHO), types.ts, search.ts (buscarDiagnostico/buscarCIF), entity.ts
   ├── dental/         → fdi.ts (numeración FDI), periograma.ts, plan.ts
   ├── instrumentos/   → calcular.ts, interpretar.ts, registry-custom.ts
@@ -612,6 +625,11 @@ supabase/migrations/
   → 20260429_03_create_fce_periograma.sql (reconstruida 2026-08-02 vía MCP — ya aplicada 2026-04-29, no existía en repo; incluye fidelidad histórica del bug `firmado_en`)
   → 20260724_01_crear_funcion_tiene_acceso_clinico.sql (reconstruida 2026-08-02 vía MCP — ya aplicada 2026-07-24, no existía en repo)
   → 20260802_01_fix_trigger_periograma_columna_inexistente.sql (LEGAL2 — **aplicada 2026-08-02**, verificada end-to-end contra datos reales; corrige `block_update_signed_periograma()` que bloqueaba todo UPDATE a `fce_periograma`)
+  → 20260907_01_fce_fichas_esteticas.sql (M13: tablas fichas/zonas/catálogo/fotos + RLS + triggers inmutabilidad — **aplicada 2026-09-07**)
+  → 20260907_02_puede_estetica_profesionales.sql (M13: flag puede_estetica en profesionales — **aplicada 2026-09-07**)
+  → 20260907_03_storage_bucket_fichas_esteticas.sql (M13: bucket privado Storage + policies por id_clinica del path — **aplicada 2026-09-07**)
+  → 20260907_04_fce_adendas_tipo_ficha_estetica.sql (M13: 'ficha_estetica' en CHECK de fce_adendas — **aplicada 2026-09-07**)
+  → 20260907_05_seed_procedimientos_esteticos_catalogo.sql (M13: seed 9 procedimientos genéricos — **aplicada 2026-09-07**, ver deuda §14)
 
 scripts/
   → test-sprint-n1.ts        (smoke test manual M10)
@@ -638,6 +656,7 @@ npm run test:sprint-p2-f3           # P2-F3: TerapiaOcupacionalEval + registry (
 npm run test:sprint-p2-f4           # P2-F4: seed nutricional + antropometría (43 checks)
 npm run test:sprint-rte             # RTE: sanitize/stripHtml/textoPlanoAHtml (41 checks)
 npm run test:sprint-sec1            # SEC-1: seudonimizarTexto + sanitizeJsonbStrings (puras, sin DB)
+npm run test:sprint-m13             # M13: zonas estáticas + registry + inmutabilidad ficha estética
 npm run test:sprint-n1-nutricion    # Nutri-N1: antropometría adulto
 npm run test:sprint-n2-nutricion    # Nutri-N2: z-score OMS + Atalah gestacional
 npm run test:sprint-o1-f1           # O1-F1: onboarding templates
@@ -719,6 +738,7 @@ Actualmente **ninguna clínica tiene fce-plataform en producción** — el repo 
 | Sentry | Integración `@sentry/nextjs`: `instrumentation.ts` + `sentry.{client,server,edge}.config.ts` + `withSentryConfig` en `next.config.ts`. Org `synapta-spa`, sourcemaps gateados por `SENTRY_AUTH_TOKEN`. `log()` en `lib/logger.ts` envía `error` a Sentry |
 | Proxy/CSP | `src/proxy.ts` (Next 16, antes middleware) con CSP nonce por-request + headers de seguridad + gate optimista auth. Bug histórico (2026-07-27): el nonce debe viajar en **request headers** para que Next.js aplique a scripts de hidratación |
 | Cutover medicamentos | Código de M7 migrado a leer `medicamentos` + `medicamentos_presentaciones` (2026-07-28): `buscarMedicamentos()` con DCI como entidad principal y marcas embebidas, validación server-side de `perfiles_autorizados` contra tabla nueva, `MedicamentoSelector`/`MedicamentoCard` con badges de bioequivalencia ISP y validación clínica pendiente, tipos `Medicamento`/`MedicamentoPresentacion`/`MedicamentoConPresentaciones`. `medicamentos_catalogo` queda legacy sin referencias en código |
+| M13 | Módulo Ficha Estética: transversal (flag `puede_estetica`, sin especialidad/modelo dedicado), mapeo de zonas facial/corporal (SVG interactivo), catálogo de procedimientos con contraindicaciones, fotos antes/después/evolución en Storage privado con URL firmada, inmutable post-firma (trigger), integrado en adendas (`ficha_estetica`)/consentimiento (`procedimiento_estetico`)/timeline. Launcher en los 3 workspaces. Migrations `20260907_01..05` aplicadas 2026-09-07 |
 
 ### Pendientes
 
@@ -766,6 +786,7 @@ Actualmente **ninguna clínica tiene fce-plataform en producción** — el repo 
 | `renderEval()` en `rehab/page.tsx` usa `if (especialidad === '...')` preexistente — mover a `getEspecialidadConfig` con campo `evalComponente` | Media — R1 |
 | Umbrales circunferencia cintura en `antropometria.ts` son ATP-III/OMS caucásicos — calibrar para población latinoamericana con nutricionista | Media |
 | Seed MNA/MUST/SGA requiere validación clínica formal antes de activar en producción | Alta |
+| `procedimientos_esteticos_catalogo` sembrado (2026-09-07, `20260907_05`, 9 procedimientos genéricos) sin validación clínica formal — pendiente revisión por profesional antes de producción (mismo estándar que medicamentos/examenes) | Alta |
 | Sección "Contexto" de `TerapiaOcupacionalEval` sin campo `observaciones_contexto` — agregar si se reporta por la clínica | Baja |
 | Datasets OMS LMS (`oms-lms/*.json`) en `PENDIENTE_CLINICA` — verificar contra tablas mensuales WHO antes de activar modo pediátrico en producción | Alta |
 | Bandas Atalah en `atalah.ts` en `PENDIENTE_CLINICA` — verificar valores contra Atalah et al. 1997 original antes de activar modo gestacional en producción | Alta |
