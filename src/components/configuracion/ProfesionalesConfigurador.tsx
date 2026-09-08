@@ -10,6 +10,7 @@ import {
   X,
   Pill,
   FlaskConical,
+  Sparkles,
 } from "lucide-react";
 import {
   toggleProfesionalActivo,
@@ -29,6 +30,7 @@ interface Profesional {
   activo: boolean;
   puede_prescribir: boolean;
   puede_indicar_examenes: boolean;
+  puede_estetica: boolean;
 }
 
 interface Props {
@@ -557,6 +559,21 @@ export function ProfesionalesConfigurador({ profesionales }: Props) {
                     >
                       <FlaskConical size={11} />
                       Exámenes
+                    </span>
+                  )}
+
+                  {/* Badge Estética — read-only */}
+                  {prof.puede_estetica && (
+                    <span
+                      style={{
+                        ...badgeBase,
+                        background: "var(--color-kp-accent-xs, rgba(0,176,168,0.08))",
+                        color: "var(--color-kp-accent, var(--color-kp-primary))",
+                        border: "1px solid rgba(0,176,168,0.2)",
+                      }}
+                    >
+                      <Sparkles size={11} />
+                      Estética
                     </span>
                   )}
                 </div>

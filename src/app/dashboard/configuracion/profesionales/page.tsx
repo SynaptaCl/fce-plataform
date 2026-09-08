@@ -18,7 +18,7 @@ export default async function ProfesionalesConfigPage() {
   const { data: profesionales } = await supabase
     .from("profesionales")
     .select(
-      "id, nombre, especialidad, auth_id, numero_registro, tipo_registro, activo, puede_prescribir, puede_indicar_examenes"
+      "id, nombre, especialidad, auth_id, numero_registro, tipo_registro, activo, puede_prescribir, puede_indicar_examenes, puede_estetica"
     )
     .eq("id_clinica", idClinica)
     .order("nombre");
