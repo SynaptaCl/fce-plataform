@@ -109,14 +109,41 @@ CREATE POLICY select_catalogo_global_o_propio ON procedimientos_esteticos_catalo
   FOR SELECT TO authenticated
   USING (id_clinica IS NULL OR tiene_acceso_clinico(id_clinica));
 
+-- Escritura restringida a admin/director/superadmin de la clínica dueña del
+-- registro (NO tiene_acceso_clinico, que también admite cualquier profesional
+-- con fila en admin_user_profesionales) — mismo criterio que
+-- manage_catalogo_clinica en medicamentos_catalogo (20260422_01), porque este
+-- catálogo es de la misma clase de sensibilidad (contraindicaciones_clave,
+-- requiere_consentimiento_especifico son contenido clínico).
 CREATE POLICY escritura_catalogo_propio ON procedimientos_esteticos_catalogo
   FOR INSERT TO authenticated
-  WITH CHECK (id_clinica IS NOT NULL AND tiene_acceso_clinico(id_clinica));
+  WITH CHECK (
+    id_clinica IS NOT NULL AND id_clinica IN (
+      SELECT id_clinica FROM admin_users
+      WHERE auth_id = auth.uid()
+        AND rol IN ('admin', 'director', 'superadmin')
+        AND activo = true
+    )
+  );
 
 CREATE POLICY actualizacion_catalogo_propio ON procedimientos_esteticos_catalogo
   FOR UPDATE TO authenticated
-  USING (id_clinica IS NOT NULL AND tiene_acceso_clinico(id_clinica))
-  WITH CHECK (id_clinica IS NOT NULL AND tiene_acceso_clinico(id_clinica));
+  USING (
+    id_clinica IS NOT NULL AND id_clinica IN (
+      SELECT id_clinica FROM admin_users
+      WHERE auth_id = auth.uid()
+        AND rol IN ('admin', 'director', 'superadmin')
+        AND activo = true
+    )
+  )
+  WITH CHECK (
+    id_clinica IS NOT NULL AND id_clinica IN (
+      SELECT id_clinica FROM admin_users
+      WHERE auth_id = auth.uid()
+        AND rol IN ('admin', 'director', 'superadmin')
+        AND activo = true
+    )
+  );
 
 -- ── Inmutabilidad post-firma ────────────────────────────────────────────────
 
