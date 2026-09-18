@@ -431,7 +431,11 @@ export async function registrarProgreso(params: {
   observacion?: string;
   estrategias?: string;
 }): Promise<ActionResult<{ id: string }>> {
-  const { supabase, user, idClinica } = await requireContext();
+  const { supabase, user, idClinica, profesionalId } = await requireContext();
+
+  if (!profesionalId) {
+    return { success: false, error: "No hay un profesional activo asociado a este usuario." };
+  }
 
   const config = await getClinicaConfig(idClinica, supabase);
   const moduleGuard = assertModuleEnabled(config, "M10_plan_intervencion");
@@ -460,7 +464,7 @@ export async function registrarProgreso(params: {
       nivel_gas: params.nivelGas,
       observacion: params.observacion ?? null,
       estrategias: params.estrategias ?? null,
-      registrado_por: user.id,
+      registrado_por: profesionalId,
       registrado_at: new Date().toISOString(),
     })
     .select("id")

@@ -182,12 +182,20 @@ export function EpicrisisPdfView({ egresoId, patientId }: EpicrisisPdfViewProps)
 
   return (
     <>
-      {/* Hidden PDF container — read by html2pdf.js */}
+      {/* Hidden PDF container — read by html2pdf.js.
+          CRÍTICO: el position:absolute va en el wrapper, NUNCA en el elemento
+          capturado — html2canvas devuelve canvas con height:0 (PDF en blanco)
+          si el propio elemento pasado a .from() es position:absolute. */}
       <div
-        id={`epicrisis-pdf-${egresoId}`}
-        style={{ position: "absolute", left: "-9999px", top: 0, width: "210mm" }}
-        dangerouslySetInnerHTML={{ __html: htmlContent }}
-      />
+        style={{ position: "absolute", left: "-9999px", top: 0, pointerEvents: "none" }}
+        aria-hidden
+      >
+        <div
+          id={`epicrisis-pdf-${egresoId}`}
+          style={{ width: "210mm" }}
+          dangerouslySetInnerHTML={{ __html: htmlContent }}
+        />
+      </div>
 
       {/* Visible UI card */}
       <div className="bg-surface-1 border border-kp-border rounded-xl p-5 space-y-4">
