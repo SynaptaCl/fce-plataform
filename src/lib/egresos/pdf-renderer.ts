@@ -208,7 +208,7 @@ export function renderEpicrisisPdf(data: EpicrisisRenderData): string {
 
   <!-- FOOTER -->
   <div style="border-top:1px solid #E2E8F0; padding-top:8px; margin-top:16px; text-align:center; font-size:10px; color:#94A3B8;">
-    Documento generado desde FCE — ${esc(clinica.nombre)} — ${formatDate(new Date().toISOString())}
+    Documento generado desde Kliniva — ${esc(clinica.nombre)} — ${formatDate(new Date().toISOString())}
   </div>
 
 </div>

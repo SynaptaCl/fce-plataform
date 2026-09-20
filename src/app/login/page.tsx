@@ -78,11 +78,11 @@ function LoginForm() {
           <div className="flex items-center gap-3 mb-1">
             <Activity className="w-7 h-7 text-kp-accent-lt" />
             <span className="text-white font-bold tracking-widest text-sm uppercase">
-              FCE
+              Kliniva
             </span>
           </div>
           <h1 className="text-white text-xl font-bold leading-tight">
-            {"Synapta FCE"}
+            {"Kliniva"}
           </h1>
           <p className="text-kp-accent-lt/70 text-xs mt-1">
             Ficha Clínica Electrónica — Acceso profesional
@@ -196,7 +196,7 @@ function LoginForm() {
       </div>
 
       <p className="relative z-10 mt-6 text-xs text-white/50">
-        Acceso restringido a personal autorizado de {"Synapta FCE"}
+        Acceso restringido a personal autorizado de {"Kliniva"}
       </p>
     </div>
   );

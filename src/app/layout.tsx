@@ -19,11 +19,11 @@ const dmMono = DM_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "FCE — Plataforma Clínica",
-    template: "%s | FCE",
+    default: "Kliniva — Plataforma Clínica",
+    template: "%s | Kliniva",
   },
   description:
-    "Ficha Clínica Electrónica multi-tenant — fce-plataform",
+    "Ficha Clínica Electrónica multi-tenant — Kliniva",
 };
 
 export default async function RootLayout({
