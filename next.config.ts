@@ -1,3 +1,4 @@
+import path from "node:path";
 import type { NextConfig } from "next";
 import { withSentryConfig } from "@sentry/nextjs";
 
@@ -27,6 +28,13 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  // Fija la raíz del workspace explícitamente — hay un package-lock.json
+  // suelto en C:\Users\alexi (fuera de este repo) que hace que Turbopack
+  // infiera esa carpeta como root y falle resolviendo dependencias (ej.
+  // tailwindcss) desde el node_modules equivocado.
+  turbopack: {
+    root: path.join(__dirname),
+  },
   images: {
     remotePatterns: [
       {

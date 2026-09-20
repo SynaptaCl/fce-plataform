@@ -1,7 +1,9 @@
 "use client";
 
 import { useState } from "react";
+import { FileSignature } from "lucide-react";
 import { getLabelZona } from "@/lib/estetica/zonas";
+import { AlertBanner } from "@/components/ui/AlertBanner";
 import { ProcedimientoPicker } from "./ProcedimientoPicker";
 import type { FichaEsteticaZona, ProcedimientoEsteticoCatalogo, RegionEstetica } from "@/types/estetica";
 
@@ -85,14 +87,20 @@ export function ZonaDetailPanel({
           <button
             type="button"
             onClick={() => setPickerOpen(true)}
-            className="mt-1 w-full text-left text-sm px-3 py-2 rounded-lg border"
+            className="mt-1 w-full flex items-center gap-1.5 text-left text-sm px-3 py-2 rounded-lg border"
             style={{ borderColor: "var(--color-kp-border)", color: "var(--color-ink-1)" }}
           >
             {procedimientoSeleccionado?.nombre ?? "Seleccionar procedimiento..."}
+            {procedimientoSeleccionado?.requiere_consentimiento_especifico && (
+              <FileSignature className="w-3.5 h-3.5 shrink-0" style={{ color: "var(--color-ink-3)" }} />
+            )}
           </button>
         ) : (
-          <p className="text-sm mt-1" style={{ color: "var(--color-ink-1)" }}>
+          <p className="text-sm mt-1 flex items-center gap-1.5" style={{ color: "var(--color-ink-1)" }}>
             {procedimientoSeleccionado?.nombre ?? "—"}
+            {procedimientoSeleccionado?.requiere_consentimiento_especifico && (
+              <FileSignature className="w-3.5 h-3.5 shrink-0" style={{ color: "var(--color-ink-3)" }} />
+            )}
           </p>
         )}
         {pickerOpen && (
@@ -104,91 +112,112 @@ export function ZonaDetailPanel({
             />
           </div>
         )}
+        {procedimientoSeleccionado && procedimientoSeleccionado.contraindicaciones_clave.length > 0 && (
+          <div className="mt-2">
+            <AlertBanner variant="warning" title="Contraindicaciones a verificar">
+              <ul className="list-disc pl-4 space-y-0.5">
+                {procedimientoSeleccionado.contraindicaciones_clave.map((c) => (
+                  <li key={c}>{c}</li>
+                ))}
+              </ul>
+            </AlertBanner>
+          </div>
+        )}
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <fieldset className="space-y-2">
+        <legend className="text-[11px] font-bold uppercase tracking-wide" style={{ color: "var(--color-ink-3)" }}>
+          Producto y dosis
+        </legend>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="text-xs font-medium" style={{ color: "var(--color-ink-2)" }}>
+              Producto comercial
+            </label>
+            <input
+              type="text"
+              value={productoComercial}
+              onChange={(e) => setProductoComercial(e.target.value)}
+              disabled={readOnly}
+              className="mt-1 w-full text-sm px-3 py-2 rounded-lg border"
+              style={{ borderColor: "var(--color-kp-border)", color: "var(--color-ink-1)" }}
+            />
+          </div>
+          <div>
+            <label className="text-xs font-medium" style={{ color: "var(--color-ink-2)" }}>
+              Lote
+            </label>
+            <input
+              type="text"
+              value={lote}
+              onChange={(e) => setLote(e.target.value)}
+              disabled={readOnly}
+              className="mt-1 w-full text-sm px-3 py-2 rounded-lg border"
+              style={{ borderColor: "var(--color-kp-border)", color: "var(--color-ink-1)" }}
+            />
+          </div>
+          <div>
+            <label className="text-xs font-medium" style={{ color: "var(--color-ink-2)" }}>
+              Dosis
+            </label>
+            <input
+              type="number"
+              value={dosis}
+              onChange={(e) => setDosis(e.target.value)}
+              disabled={readOnly}
+              className="mt-1 w-full text-sm px-3 py-2 rounded-lg border"
+              style={{ borderColor: "var(--color-kp-border)", color: "var(--color-ink-1)" }}
+            />
+          </div>
+          <div>
+            <label className="text-xs font-medium" style={{ color: "var(--color-ink-2)" }}>
+              Unidad
+            </label>
+            <input
+              type="text"
+              value={unidadDosis}
+              onChange={(e) => setUnidadDosis(e.target.value)}
+              placeholder="UI, ml, sesiones..."
+              disabled={readOnly}
+              className="mt-1 w-full text-sm px-3 py-2 rounded-lg border"
+              style={{ borderColor: "var(--color-kp-border)", color: "var(--color-ink-1)" }}
+            />
+          </div>
+        </div>
+      </fieldset>
+
+      <fieldset className="space-y-2">
+        <legend className="text-[11px] font-bold uppercase tracking-wide" style={{ color: "var(--color-ink-3)" }}>
+          Técnica y notas
+        </legend>
         <div>
           <label className="text-xs font-medium" style={{ color: "var(--color-ink-2)" }}>
-            Producto comercial
+            Técnica
           </label>
           <input
             type="text"
-            value={productoComercial}
-            onChange={(e) => setProductoComercial(e.target.value)}
+            value={tecnica}
+            onChange={(e) => setTecnica(e.target.value)}
             disabled={readOnly}
             className="mt-1 w-full text-sm px-3 py-2 rounded-lg border"
             style={{ borderColor: "var(--color-kp-border)", color: "var(--color-ink-1)" }}
           />
         </div>
-        <div>
-          <label className="text-xs font-medium" style={{ color: "var(--color-ink-2)" }}>
-            Lote
-          </label>
-          <input
-            type="text"
-            value={lote}
-            onChange={(e) => setLote(e.target.value)}
-            disabled={readOnly}
-            className="mt-1 w-full text-sm px-3 py-2 rounded-lg border"
-            style={{ borderColor: "var(--color-kp-border)", color: "var(--color-ink-1)" }}
-          />
-        </div>
-        <div>
-          <label className="text-xs font-medium" style={{ color: "var(--color-ink-2)" }}>
-            Dosis
-          </label>
-          <input
-            type="number"
-            value={dosis}
-            onChange={(e) => setDosis(e.target.value)}
-            disabled={readOnly}
-            className="mt-1 w-full text-sm px-3 py-2 rounded-lg border"
-            style={{ borderColor: "var(--color-kp-border)", color: "var(--color-ink-1)" }}
-          />
-        </div>
-        <div>
-          <label className="text-xs font-medium" style={{ color: "var(--color-ink-2)" }}>
-            Unidad
-          </label>
-          <input
-            type="text"
-            value={unidadDosis}
-            onChange={(e) => setUnidadDosis(e.target.value)}
-            placeholder="UI, ml, sesiones..."
-            disabled={readOnly}
-            className="mt-1 w-full text-sm px-3 py-2 rounded-lg border"
-            style={{ borderColor: "var(--color-kp-border)", color: "var(--color-ink-1)" }}
-          />
-        </div>
-      </div>
 
-      <div>
-        <label className="text-xs font-medium" style={{ color: "var(--color-ink-2)" }}>
-          Técnica
-        </label>
-        <input
-          type="text"
-          value={tecnica}
-          onChange={(e) => setTecnica(e.target.value)}
-          disabled={readOnly}
-          className="mt-1 w-full text-sm px-3 py-2 rounded-lg border"
-          style={{ borderColor: "var(--color-kp-border)", color: "var(--color-ink-1)" }}
-        />
-      </div>
-
-      <div>
-        <label className="text-xs font-medium" style={{ color: "var(--color-ink-2)" }}>
-          Observaciones
-        </label>
-        <textarea
-          value={observaciones}
-          onChange={(e) => setObservaciones(e.target.value)}
-          disabled={readOnly}
-          rows={2}
-          className="mt-1 w-full text-sm px-3 py-2 rounded-lg border resize-none"
-          style={{ borderColor: "var(--color-kp-border)", color: "var(--color-ink-1)" }}
-        />
-      </div>
+        <div>
+          <label className="text-xs font-medium" style={{ color: "var(--color-ink-2)" }}>
+            Observaciones
+          </label>
+          <textarea
+            value={observaciones}
+            onChange={(e) => setObservaciones(e.target.value)}
+            disabled={readOnly}
+            rows={2}
+            className="mt-1 w-full text-sm px-3 py-2 rounded-lg border resize-none"
+            style={{ borderColor: "var(--color-kp-border)", color: "var(--color-ink-1)" }}
+          />
+        </div>
+      </fieldset>
 
       {!readOnly && (
         <div className="flex items-center justify-between pt-1">

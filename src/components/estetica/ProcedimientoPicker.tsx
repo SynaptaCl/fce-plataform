@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Search, X } from "lucide-react";
+import { Search, X, AlertTriangle, FileSignature } from "lucide-react";
 import type { ProcedimientoEsteticoCatalogo } from "@/types/estetica";
 
 interface Props {
@@ -84,10 +84,30 @@ export function ProcedimientoPicker({ catalogo, onSelect, onClose }: Props) {
                     onSelect(proc);
                     onClose();
                   }}
-                  className="w-full flex items-center px-3 py-2 text-sm text-left transition-colors hover:bg-surface-0"
+                  className="w-full flex flex-col gap-1 px-3 py-2 text-sm text-left transition-colors hover:bg-surface-0"
                   style={{ color: "var(--color-ink-1)" }}
                 >
-                  {proc.nombre}
+                  <span className="flex items-center gap-1.5">
+                    {proc.nombre}
+                    {proc.requiere_consentimiento_especifico && (
+                      <FileSignature
+                        className="w-3 h-3 shrink-0"
+                        style={{ color: "var(--color-ink-3)" }}
+                        aria-label="Requiere consentimiento específico"
+                      />
+                    )}
+                  </span>
+                  {proc.contraindicaciones_clave.length > 0 && (
+                    <span
+                      className="flex items-center gap-1 text-[11px] font-medium"
+                      style={{ color: "var(--color-kp-warning)" }}
+                    >
+                      <AlertTriangle className="w-3 h-3 shrink-0" />
+                      {proc.contraindicaciones_clave.slice(0, 2).join(" · ")}
+                      {proc.contraindicaciones_clave.length > 2 &&
+                        ` +${proc.contraindicaciones_clave.length - 2}`}
+                    </span>
+                  )}
                 </button>
               ))}
             </div>
