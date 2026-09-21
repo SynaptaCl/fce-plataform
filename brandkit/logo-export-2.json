@@ -1,0 +1,9 @@
+{
+  "name": "candidate-2-filefold-corrected",
+  "logo_svg": "C:/Users/alexi/fce-plataform/brandkit/logo/candidate-2-filefold-v2.svg",
+  "delivery": "user",
+  "replacements": [
+    { "from": "#063641", "to": "#006B6B" }
+  ],
+  "include_monochrome": false
+}

@@ -1,0 +1,48 @@
+{
+  "brandbookElements": [],
+  "essentialKitApproved": false,
+  "palette": {
+    "approvalSummary": "User selected the Calma Clinica palette — exact current teal anchor kept.",
+    "colors": [
+      {
+        "hex": "#0f2a27",
+        "name": "Tinta Profunda",
+        "role": "text"
+      },
+      {
+        "hex": "#f7faf9",
+        "name": "Papel Frio",
+        "role": "background"
+      },
+      {
+        "hex": "#006b6b",
+        "name": "Kliniva Teal",
+        "role": "primary"
+      },
+      {
+        "hex": "#00b0a8",
+        "name": "Aqua Senal",
+        "role": "accent"
+      },
+      {
+        "hex": "#f5a623",
+        "name": "Ambar Pulso",
+        "role": "support"
+      },
+      {
+        "hex": "#475569",
+        "name": "Pizarra",
+        "role": "text-secondary"
+      }
+    ],
+    "gradients": [],
+    "origin": "brandkit_generated",
+    "revision": 1
+  },
+  "version": 3,
+  "visualAxes": {
+    "familiarExperimental": 25,
+    "geometricOrganic": 10,
+    "restrainedExpressive": 35
+  }
+}

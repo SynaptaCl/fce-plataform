@@ -2,12 +2,12 @@
 
 import { Suspense, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import {
-  Activity,
   Lock,
   Mail,
   ShieldCheck,
@@ -73,18 +73,22 @@ function LoginForm() {
 
       {/* Card - Se añade 'relative z-10' para que el login quede por encima del filtro */}
       <div className="relative z-10 w-full max-w-sm bg-surface-1 rounded-xl shadow-2xl overflow-hidden">
+        {/* Logo — el logo ya incluye el wordmark "Kliniva", no se repite como texto */}
+        <div className="flex justify-center pt-7 pb-4 px-8">
+          <Image
+            src="/imagenes/logo_kliniva_simplificado.png"
+            alt="Kliniva"
+            width={180}
+            height={72}
+            priority
+            quality={90}
+            style={{ width: "auto", height: 40 }}
+          />
+        </div>
+
         {/* Header */}
-        <div className="bg-kp-primary px-8 py-7">
-          <div className="flex items-center gap-3 mb-1">
-            <Activity className="w-7 h-7 text-kp-accent-lt" />
-            <span className="text-white font-bold tracking-widest text-sm uppercase">
-              Kliniva
-            </span>
-          </div>
-          <h1 className="text-white text-xl font-bold leading-tight">
-            {"Kliniva"}
-          </h1>
-          <p className="text-kp-accent-lt/70 text-xs mt-1">
+        <div className="bg-kp-primary px-8 py-4">
+          <p className="text-kp-accent-lt/80 text-xs text-center">
             Ficha Clínica Electrónica — Acceso profesional
           </p>
         </div>

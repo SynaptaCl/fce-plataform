@@ -1,0 +1,9 @@
+{
+  "name": "candidate-3-path-corrected",
+  "logo_svg": "C:/Users/alexi/fce-plataform/brandkit/logo/candidate-3-path-v2.svg",
+  "delivery": "user",
+  "replacements": [
+    { "from": "#0B3242", "to": "#006B6B" }
+  ],
+  "include_monochrome": false
+}

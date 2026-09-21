@@ -1,0 +1,14 @@
+{
+  "approval_summary": "User selected the Calma Clinica palette — exact current teal anchor kept.",
+  "palette": {
+    "colors": [
+      { "hex": "#0F2A27", "name": "Tinta Profunda", "role": "text" },
+      { "hex": "#F7FAF9", "name": "Papel Frio", "role": "background" },
+      { "hex": "#006B6B", "name": "Kliniva Teal", "role": "primary" },
+      { "hex": "#00B0A8", "name": "Aqua Senal", "role": "accent" },
+      { "hex": "#F5A623", "name": "Ambar Pulso", "role": "support" },
+      { "hex": "#475569", "name": "Pizarra", "role": "text-secondary" }
+    ],
+    "gradients": []
+  }
+}

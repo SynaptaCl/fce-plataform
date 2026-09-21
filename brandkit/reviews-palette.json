@@ -1,0 +1,63 @@
+{
+  "reviews": [
+    {
+      "stage": "palette",
+      "name": "Calma Clinica",
+      "premise": "El teal actual (#006B6B / #00B0A8) queda como ancla exacta de marca, sobre un fondo casi blanco fresco y un ambar de acento minimo — confianza clinica sin ruido visual.",
+      "keywords": ["clinico", "confiable", "calmo"],
+      "palette": [
+        { "hex": "#0F2A27", "name": "Tinta Profunda — texto" },
+        { "hex": "#F7FAF9", "name": "Papel Frio — fondo" },
+        { "hex": "#006B6B", "name": "Kliniva Teal — primario" },
+        { "hex": "#00B0A8", "name": "Aqua Senal — acento" },
+        { "hex": "#F5A623", "name": "Ambar Pulso — soporte calido" },
+        { "hex": "#475569", "name": "Pizarra — texto secundario" }
+      ],
+      "logo_ideas": [
+        "Monogram K construido con un trazo de linea de pulso/registro",
+        "Marca abstracta desde la silueta de una pestana de ficha clinica"
+      ],
+      "background_color": "#F7FAF9",
+      "text_color": "#0F2A27"
+    },
+    {
+      "stage": "palette",
+      "name": "Teal Profundo",
+      "premise": "El teal se oscurece a su tono mas corporativo (#004545) como color dominante, con un coral calido reemplazando el ambar para mas contraste y caracter — mismo ancla, mas peso y presencia.",
+      "keywords": ["seguro", "solido", "contemporaneo"],
+      "palette": [
+        { "hex": "#04211F", "name": "Tinta Noche — texto" },
+        { "hex": "#F4F7F6", "name": "Papel — fondo" },
+        { "hex": "#004545", "name": "Teal Profundo — primario" },
+        { "hex": "#00B0A8", "name": "Aqua Senal — acento" },
+        { "hex": "#F26B5B", "name": "Coral Calido — soporte" }
+      ],
+      "logo_ideas": [
+        "Nodo de confianza: dos arcos superpuestos (registro + pulso), sin escudo",
+        "Cuadrado teal dividido por un trazo aqua diagonal"
+      ],
+      "background_color": "#F4F7F6",
+      "text_color": "#04211F"
+    },
+    {
+      "stage": "palette",
+      "name": "Registro y Via",
+      "premise": "Mismo teal ancla, pero suma un indigo como segundo acento que evoca el dato/registro digital (la 'via' clinica del nombre Kliniva) — el ambar baja a color de alerta puntual, no de marca.",
+      "keywords": ["digital", "trazable", "preciso"],
+      "palette": [
+        { "hex": "#16302C", "name": "Tinta — texto" },
+        { "hex": "#F6F8F7", "name": "Papel — fondo" },
+        { "hex": "#006B6B", "name": "Kliniva Teal — primario" },
+        { "hex": "#00B0A8", "name": "Aqua Senal — acento" },
+        { "hex": "#3B5BDB", "name": "Indigo Via — acento secundario" },
+        { "hex": "#F5A623", "name": "Ambar — solo alertas" }
+      ],
+      "logo_ideas": [
+        "Linea continua que forma a la vez un check/pulso y un nodo de ruta",
+        "Monogram K construido desde una pestana de carpeta + linea de ruta"
+      ],
+      "background_color": "#F6F8F7",
+      "text_color": "#16302C"
+    }
+  ]
+}
