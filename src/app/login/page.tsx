@@ -62,12 +62,16 @@ function LoginForm() {
   }
 
   return (
-    <div
-      className="relative min-h-screen bg-cover bg-center bg-no-repeat flex flex-col items-center justify-center px-4"
-      style={{
-        backgroundImage: "url('/imagenes/fondo_login.jpg')",
-      }}
-    >
+    <div className="relative min-h-screen flex flex-col items-center justify-center px-4">
+      <Image
+        src="/imagenes/fondo_login.jpg"
+        alt=""
+        fill
+        priority
+        quality={70}
+        sizes="100vw"
+        className="object-cover"
+      />
       {/* Filtro tenue: Oscurece el fondo y aplica un desenfoque suave (glassmorphism effect) */}
       <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-[2px]" />
 

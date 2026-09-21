@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -53,10 +54,16 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div
-      className="relative min-h-screen bg-cover bg-center bg-no-repeat flex flex-col items-center justify-center px-4"
-      style={{ backgroundImage: "url('/imagenes/fondo_login.jpg')" }}
-    >
+    <div className="relative min-h-screen flex flex-col items-center justify-center px-4">
+      <Image
+        src="/imagenes/fondo_login.jpg"
+        alt=""
+        fill
+        priority
+        quality={70}
+        sizes="100vw"
+        className="object-cover"
+      />
       <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-[2px]" />
 
       <div className="relative z-10 w-full max-w-sm bg-surface-1 rounded-xl shadow-2xl overflow-hidden">

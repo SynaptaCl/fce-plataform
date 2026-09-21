@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import Image from "next/image";
 import { getFotosFicha } from "@/app/actions/estetica/fotos";
 import type { FichaEsteticaFotoConUrl } from "@/types/estetica";
 
@@ -43,11 +44,12 @@ export function FotoComparador({ idFicha, refreshKey }: Props) {
     <div className="space-y-4">
       {antes[0] && despues[0] && (
         <div className="relative w-full aspect-video rounded-xl overflow-hidden select-none" style={{ background: "var(--color-surface-0)" }}>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={despues[0].signedUrl} alt="Después" className="absolute inset-0 w-full h-full object-cover" />
-          <div className="absolute inset-0 overflow-hidden" style={{ width: `${sliderPos}%` }}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={antes[0].signedUrl} alt="Antes" className="h-full object-cover" style={{ width: `${10000 / Math.max(sliderPos, 1)}%`, maxWidth: "none" }} />
+          <Image src={despues[0].signedUrl} alt="Después" fill sizes="(max-width: 640px) 100vw, 480px" className="object-cover" />
+          <div
+            className="absolute inset-0 overflow-hidden"
+            style={{ clipPath: `inset(0 ${100 - sliderPos}% 0 0)` }}
+          >
+            <Image src={antes[0].signedUrl} alt="Antes" fill sizes="(max-width: 640px) 100vw, 480px" className="object-cover" />
           </div>
           <div
             className="absolute inset-y-0 w-0.5"
@@ -68,11 +70,12 @@ export function FotoComparador({ idFicha, refreshKey }: Props) {
       {evolucion.length > 0 && (
         <div className="flex gap-2 overflow-x-auto">
           {evolucion.map((f) => (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
+            <Image
               key={f.id}
               src={f.signedUrl}
               alt="Evolución"
+              width={96}
+              height={96}
               className="w-24 h-24 object-cover rounded-lg shrink-0"
               style={{ border: "1px solid var(--color-kp-border)" }}
             />
