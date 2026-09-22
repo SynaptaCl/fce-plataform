@@ -50,9 +50,13 @@ Reusar tal cual; agregar por migration **solo si falta**:
 - [ ] La RPC marca `usado_at` de forma atómica con la firma (o invalida el token al validar OTP) — sin ventana de reuso.
 - [ ] Fallback tablet en box: mismo flujo QR/tablet, nunca una sesión del staff.
 
-## 3. DECISIÓN PENDIENTE (para el dueño de producto) — ¿dónde vive la página pública?
+## 3. ✅ DECIDIDO (2026-09-22) — la página pública vive en `fce-plataform`
 
-| Criterio | `fce-plataform` | `synapta` (como dice AMB-1 §5/nota cross-repo) |
+**Decisión del dueño de producto**: la página pública de firma por token vive en ESTE repo (`fce-plataform`), ruta `/consentimiento/[token]` (ajustable). Se mantiene abajo la tabla de trade-offs evaluados como registro de la decisión.
+
+> Consecuencias: (a) la excepción cross-repo de AMB-1 §5 (synapta escribiendo en `fce_consentimientos`) queda sin efecto — el canal paciente y su escritura viven aquí; (b) revisar CSP/proxy de `fce-plataform` para la nueva ruta pública anónima; (c) branding multi-tenant ya resuelto vía `BrandingInjector`/`clinicas_fce_config`.
+
+| Criterio | `fce-plataform` ✅ ELEGIDO | `synapta` (descartado) |
 |---|---|---|
 | Acceso a datos | RPC service-role igual de viable en ambos (DB compartida) | Ídem |
 | Dominio/branding | Subdominio FCE (ej. `fce.clinica.cl`) — coherente con documento clínico | Dominio público de la clínica (ya tiene branding + WhatsApp + agendamiento) |
@@ -61,7 +65,7 @@ Reusar tal cual; agregar por migration **solo si falta**:
 | Riesgo de fuga | Un bug en la página pública toca el repo de la FCE | Aislado en el repo de cara al paciente |
 | AMB-1 ya lo suponía | No | Sí (`POST /api/consentimiento/grabacion` en synapta) |
 
-- [ ] **Trade-off resumido**: `synapta` gana en aislamiento y coherencia de canal paciente (AMB-1 ya lo diseñó así); `fce-plataform` gana si se quiere cerrar el loop legal del documento en el mismo producto. La escritura a `fce_consentimientos` desde synapta ya está declarada como excepción deliberada en AMB-1 §5 — solo aplica si se decide synapta.
+- [x] **Trade-off resumido** (registro de la evaluación): `synapta` ganaba en aislamiento y coherencia de canal paciente (AMB-1 ya lo diseñó así); `fce-plataform` ganaba si se quiere cerrar el loop legal del documento en el mismo producto — **se priorizó este último criterio**. La escritura a `fce_consentimientos` desde synapta (excepción de AMB-1 §5) queda descartada junto con la opción.
 
 ## 4. OTP al paciente
 
