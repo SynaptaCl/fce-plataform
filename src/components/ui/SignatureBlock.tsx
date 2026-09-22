@@ -25,7 +25,7 @@ export function SignatureBlock({
     <div className={cn("border border-kp-border rounded-xl bg-surface-0 p-6", className)}>
       <h4 className="text-sm font-bold text-ink-1 mb-4 flex items-center gap-2">
         <ShieldCheck className="w-5 h-5 text-kp-accent" />
-        Firma Electrónica Avanzada
+        Firma electrónica simple
       </h4>
 
       <div className="flex items-center justify-between">

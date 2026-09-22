@@ -4,10 +4,17 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { FileSignature, Plus, CheckCircle2, Clock, PenLine, RotateCcw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/Button";
+import { Input } from "@/components/ui/Input";
+import { Select } from "@/components/ui/Select";
 import { AlertBanner } from "@/components/ui/AlertBanner";
 import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
 import { createConsentimiento, signConsentimiento } from "@/app/actions/consentimiento";
+import {
+  PARENTESCO_REPRESENTANTE,
+  PARENTESCO_REPRESENTANTE_LABELS,
+  type ParentescoRepresentante,
+} from "@/lib/validations";
 import type { Consent, ConsentType } from "@/types";
 
 // ── Templates legales ──────────────────────────────────────────────────────
@@ -41,6 +48,7 @@ Autorizo expresamente la realización de los procedimientos clínicos indicados 
 
 Declaro que la información entregada fue clara, comprensible y suficiente para tomar esta decisión de forma libre e informada.
 
+Nombre del representante legal: ______________________
 Parentesco con el/la paciente: ______________________
 RUT del representante legal: ______________________`,
   },
@@ -241,7 +249,10 @@ function ConsentCard({ consent }: { consent: Consent }) {
       </div>
       {consent.firmado && consent.firma_profesional && (
         <p className="text-xs text-ink-3 border-t border-kp-border pt-2">
-          Hash: <span className="font-mono">{consent.firma_profesional.hash}</span>
+          Huella SHA-256:{" "}
+          <span className="font-mono">
+            {consent.firma_profesional.hash.slice(0, 12)}
+          </span>
           {" · "}
           {new Date(consent.firma_profesional.timestamp).toLocaleString("es-CL")}
         </p>
@@ -268,6 +279,14 @@ interface ConsentManagerProps {
 
 type Step = "list" | "select-type" | "preview" | "sign";
 
+interface RepresentanteState {
+  nombre: string;
+  rut: string;
+  parentesco: ParentescoRepresentante | "";
+}
+
+const REPRESENTANTE_INICIAL: RepresentanteState = { nombre: "", rut: "", parentesco: "" };
+
 export function ConsentManager({ patientId, consentimientos }: ConsentManagerProps) {
   const [step, setStep] = useState<Step>("list");
   const [selectedType, setSelectedType] = useState<ConsentType>("general");
@@ -276,8 +295,18 @@ export function ConsentManager({ patientId, consentimientos }: ConsentManagerPro
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  // T5: datos del representante legal (tipo 'menores') — se validan de nuevo
+  // server-side en createConsentimiento (zod superRefine + RUT módulo 11).
+  const [representante, setRepresentante] = useState<RepresentanteState>(REPRESENTANTE_INICIAL);
+  // T7: declaración obligatoria del profesional antes de firmar.
+  const [declaroInformado, setDeclaroInformado] = useState(false);
 
   const template = CONSENT_TEMPLATES[selectedType];
+  const esMenores = selectedType === "menores";
+  const representanteValido =
+    representante.nombre.trim().length >= 3 &&
+    representante.rut.trim().length >= 7 &&
+    representante.parentesco !== "";
 
   const resetFlow = () => {
     setStep("list");
@@ -285,6 +314,8 @@ export function ConsentManager({ patientId, consentimientos }: ConsentManagerPro
     setFirmaDataUrl(null);
     setPendingConsentId(null);
     setSuccess(null);
+    setRepresentante(REPRESENTANTE_INICIAL);
+    setDeclaroInformado(false);
   };
 
   const handleCreate = async () => {
@@ -293,7 +324,13 @@ export function ConsentManager({ patientId, consentimientos }: ConsentManagerPro
     const result = await createConsentimiento(patientId, {
       tipo: selectedType,
       contenido: template.texto,
-      // firma_paciente_data_url removed — not needed at creation time
+      ...(esMenores
+        ? {
+            nombre_representante: representante.nombre.trim(),
+            rut_representante: representante.rut.trim(),
+            parentesco: representante.parentesco,
+          }
+        : {}),
     });
     setLoading(false);
     if (!result.success) { setError(result.error); return; }
@@ -306,9 +343,18 @@ export function ConsentManager({ patientId, consentimientos }: ConsentManagerPro
       setError("Error: no hay firma o consentimiento pendiente. Intente nuevamente.");
       return;
     }
+    if (!declaroInformado) {
+      setError("Debe marcar la declaración de información al paciente antes de firmar.");
+      return;
+    }
     setLoading(true);
     setError(null);
-    const result = await signConsentimiento(pendingConsentId, patientId, firmaDataUrl);
+    const result = await signConsentimiento(
+      pendingConsentId,
+      patientId,
+      firmaDataUrl,
+      declaroInformado
+    );
     setLoading(false);
     if (!result.success) { setError(result.error); return; }
     setSuccess("Consentimiento firmado y guardado correctamente.");
@@ -393,11 +439,59 @@ export function ConsentManager({ patientId, consentimientos }: ConsentManagerPro
               {template.texto}
             </pre>
           </div>
+
+          {/* T5: datos del representante legal — obligatorios para 'menores'.
+              Se validan de nuevo en el server action (zod + RUT módulo 11). */}
+          {esMenores && (
+            <div className="space-y-3 border border-kp-border rounded-xl p-4 bg-surface-1">
+              <p className="text-xs font-semibold text-ink-1">
+                Representante legal que firmará <span className="text-kp-danger">*</span>
+              </p>
+              <Input
+                label="Nombre del representante"
+                required
+                value={representante.nombre}
+                maxLength={120}
+                onChange={(e) => setRepresentante((r) => ({ ...r, nombre: e.target.value }))}
+              />
+              <Input
+                label="RUT del representante"
+                required
+                placeholder="12.345.678-5"
+                value={representante.rut}
+                maxLength={12}
+                onChange={(e) => setRepresentante((r) => ({ ...r, rut: e.target.value }))}
+                hint="Se valida el dígito verificador antes de guardar."
+              />
+              <Select
+                label="Parentesco"
+                required
+                placeholder="Seleccione…"
+                value={representante.parentesco}
+                options={PARENTESCO_REPRESENTANTE.map((p) => ({
+                  value: p,
+                  label: PARENTESCO_REPRESENTANTE_LABELS[p],
+                }))}
+                onChange={(e) =>
+                  setRepresentante((r) => ({
+                    ...r,
+                    parentesco: e.target.value as ParentescoRepresentante,
+                  }))
+                }
+              />
+            </div>
+          )}
+
           <div className="flex gap-3">
             <Button variant="secondary" size="sm" onClick={() => setStep("select-type")}>
               Cambiar tipo
             </Button>
-            <Button variant="primary" size="sm" onClick={handleCreate} disabled={loading}>
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={handleCreate}
+              disabled={loading || (esMenores && !representanteValido)}
+            >
               <PenLine className="w-3.5 h-3.5 mr-1.5" />
               {loading ? "Guardando..." : "Proceder a firmar"}
             </Button>
@@ -423,12 +517,33 @@ export function ConsentManager({ patientId, consentimientos }: ConsentManagerPro
               </p>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={firmaDataUrl} alt="Firma paciente" className="border border-kp-border rounded-lg max-h-40" />
+
+              {/* T7: declaración obligatoria del profesional — queda registrada en
+                  el audit log del acto de firma. */}
+              <label className="flex items-start gap-2 text-xs text-ink-2 cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={declaroInformado}
+                  onChange={(e) => setDeclaroInformado(e.target.checked)}
+                  className="mt-0.5 accent-[var(--color-kp-primary)]"
+                />
+                <span>
+                  Declaro haber informado al paciente sobre el contenido de este consentimiento
+                  y que la firma capturada corresponde al paciente (o a su representante legal).
+                </span>
+              </label>
+
               <div className="flex gap-3">
                 <Button variant="ghost" size="sm" onClick={() => setFirmaDataUrl(null)}>
                   <RotateCcw className="w-3.5 h-3.5 mr-1.5" />
                   Repetir firma
                 </Button>
-                <Button variant="primary" size="sm" onClick={handleSign} disabled={loading}>
+                <Button
+                  variant="primary"
+                  size="sm"
+                  onClick={handleSign}
+                  disabled={loading || !declaroInformado}
+                >
                   <CheckCircle2 className="w-3.5 h-3.5 mr-1.5" />
                   {loading ? "Firmando..." : "Firmar y guardar"}
                 </Button>

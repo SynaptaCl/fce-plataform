@@ -3,7 +3,9 @@
 import { revalidatePath } from "next/cache";
 import { requireContext } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
-import { dbError, type ActionResult } from "@/lib/modules/guards";
+import { assertPuedeFirmar, dbError, type ActionResult } from "@/lib/modules/guards";
+import type { Rol } from "@/lib/modules/registry";
+import { validarFirmaDataUrl } from "@/lib/consentimientos/firma";
 import {
   TIPO_CONSENTIMIENTO_GRABACION,
   getUltimaVersionGrabacion,
@@ -11,9 +13,22 @@ import {
 
 /**
  * AMB-1 F1 — captura presencial (fallback en box/mesón) y revocación del
- * consentimiento de grabación. No usa requireAccesoFCE: la recepcionista debe
- * poder registrar/revocar consentimiento SIN acceso a la FCE (criterio F1,
- * AMB-1-ambient-scribe.md). requireContext() solo exige admin_users activo.
+ * consentimiento de grabación.
+ *
+ * T4 (Fase 0 hotfix M5, 2026-09-21): el criterio original de AMB-1 F1 — "la
+ * recepcionista puede escribir consentimiento sin acceso a FCE" — queda
+ * CORREGIDO. La RLS real de fce_consentimientos (tiene_acceso_clinico) ya
+ * bloquea a la recepcionista: cualquier INSERT suyo falla con error genérico de
+ * DB. Este flujo nunca funcionó para recepcionistas — los tests de AMB-1 son de
+ * funciones puras sin DB y no lo detectaron.
+ *
+ * TODO(CI-1 — docs/plan-redisenio/sprints/CI-1-consentimiento-canal-paciente.md):
+ * este flujo presencial desaparece como vía principal. Recepcionista (y
+ * profesional) solo podrán ENVIAR LA SOLICITUD de consentimiento (link/QR con
+ * token de un solo uso); la FIRMA la hace el paciente desde su propio
+ * dispositivo. Mientras CI-1 no exista, ningún rol no-profesional puede crear
+ * una fila con firmado=true — un consentimiento "firmado por el paciente" no
+ * puede originarse en la sesión del staff.
  *
  * Texto legal — AMB-1-ambient-scribe.md §8, borrador pendiente de revisión de
  * abogado (P4, bloqueante para producción — no modificar sin ese visto bueno).
@@ -31,10 +46,26 @@ export async function crearConsentimientoGrabacionPresencial(
   patientId: string,
   firmaDataUrl: string
 ): Promise<ActionResult<{ id: string }>> {
-  if (!firmaDataUrl.startsWith("data:image/")) {
-    return { success: false, error: "Firma inválida" };
+  // T6 (Fase 0): misma validación de firma que M5 — PNG, tamaño máximo, canvas vacío.
+  const validacion = validarFirmaDataUrl(firmaDataUrl);
+  if (!validacion.ok) return { success: false, error: validacion.error };
+
+  const { supabase, user, idClinica, rol, profesionalId } = await requireContext();
+
+  // T4: solo rol profesional puede crear un consentimiento firmado por el
+  // paciente. assertPuedeFirmar = ROLES_QUE_PUEDEN_FIRMAR = ['profesional'].
+  const gate = assertPuedeFirmar(rol as Rol);
+  if (!gate.success) {
+    return {
+      success: false,
+      error:
+        "Solo un profesional puede registrar un consentimiento firmado de grabación. " +
+        "La recepcionista solo podrá enviar la solicitud al paciente (CI-1).",
+    };
   }
-  const { supabase, user, idClinica, profesionalId } = await requireContext();
+  if (!profesionalId) {
+    return { success: false, error: "No se encontró el profesional asociado al usuario." };
+  }
 
   const ultima = await getUltimaVersionGrabacion(supabase, patientId);
   if (ultima?.firmado) {

@@ -23,6 +23,7 @@
     "test:sprint-amb1": "tsx scripts/test-sprint-amb1.ts",
     "test:sprint-d7": "tsx scripts/test-sprint-d7.ts",
     "test:sprint-m13": "tsx scripts/test-sprint-m13-estetica.ts",
+    "test:m5-consentimientos": "tsx scripts/test-m5-consentimientos.ts",
     "test:copiloto-modelos": "tsx scripts/test-copiloto-modelos.ts",
     "test:sprint-pre1": "tsx scripts/test-sprint-pre1.ts",
     "test:resumen-ia-parcial": "tsx scripts/test-resumen-ia-parcial.ts"

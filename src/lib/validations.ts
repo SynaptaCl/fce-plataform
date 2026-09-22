@@ -162,10 +162,40 @@ export type NotaClinicaSchemaType = z.infer<typeof notaClinicaSchema>;
 
 // ── Consentimiento ──
 
+// T5 (Fase 0 hotfix M5): datos del representante legal para tipo='menores'.
+// Obligatorios SOLO para menores (superRefine). Se interpolan en `contenido`
+// server-side antes del INSERT, así quedan cubiertos por la huella SHA-256 y
+// por el trigger de inmutabilidad — sin columnas nuevas.
+export const PARENTESCO_REPRESENTANTE = ["madre", "padre", "tutor_legal", "otro"] as const;
+export type ParentescoRepresentante = (typeof PARENTESCO_REPRESENTANTE)[number];
+
+export const PARENTESCO_REPRESENTANTE_LABELS: Record<ParentescoRepresentante, string> = {
+  madre: "Madre",
+  padre: "Padre",
+  tutor_legal: "Tutor/a legal",
+  otro: "Otro representante legal",
+};
+
 export const consentSchema = z.object({
   tipo: z.enum(["general", "menores", "teleconsulta", "procedimiento_estetico"]),
   contenido: z.string().min(10, "Contenido es obligatorio"),
   firma_paciente_data_url: z.string().optional(),  // not inserted in createConsentimiento
+  nombre_representante: z.string().trim().min(3, "Nombre del representante es obligatorio").max(120).optional(),
+  rut_representante: z.string().trim().min(7, "RUT del representante es obligatorio").max(12).optional(),
+  parentesco: z.enum(PARENTESCO_REPRESENTANTE).optional(),
+}).superRefine((v, ctx) => {
+  if (v.tipo !== "menores") return;
+  if (!v.nombre_representante) {
+    ctx.addIssue({ code: "custom", path: ["nombre_representante"], message: "Nombre del representante es obligatorio" });
+  }
+  if (!v.rut_representante) {
+    ctx.addIssue({ code: "custom", path: ["rut_representante"], message: "RUT del representante es obligatorio" });
+  } else if (!validateRut(v.rut_representante)) {
+    ctx.addIssue({ code: "custom", path: ["rut_representante"], message: "RUT del representante inválido" });
+  }
+  if (!v.parentesco) {
+    ctx.addIssue({ code: "custom", path: ["parentesco"], message: "Parentesco es obligatorio" });
+  }
 });
 
 export type ConsentSchemaType = z.infer<typeof consentSchema>;
