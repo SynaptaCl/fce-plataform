@@ -42,7 +42,7 @@ export default async function ExportarPdfPage({
   const [pacienteRes, egresoRes] = await Promise.all([
     supabase
       .from("pacientes")
-      .select("nombre, apellido_paterno, apellido_materno")
+      .select("nombre, apellido_paterno, apellido_materno, rut, fecha_nacimiento")
       .eq("id", id)
       .eq("id_clinica", idClinica)
       .single(),
@@ -92,7 +92,16 @@ export default async function ExportarPdfPage({
       <div className="max-w-[860px] mx-auto">
         {activeTab === "ficha" && <FichaCompletaExport patientId={id} />}
         {activeTab === "presupuestos" && <PresupuestoList idPaciente={id} />}
-        {activeTab === "informes" && <InformeList idPaciente={id} />}
+        {activeTab === "informes" && (
+          <InformeList
+            idPaciente={id}
+            paciente={{
+              nombreCompleto: fullName,
+              rut: pacienteRes.data.rut,
+              fechaNacimiento: pacienteRes.data.fecha_nacimiento,
+            }}
+          />
+        )}
         {activeTab === "epicrisis" && egresoFirmadoId && (
           <EpicrisisPdfView egresoId={egresoFirmadoId} patientId={id} />
         )}

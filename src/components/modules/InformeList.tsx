@@ -29,9 +29,16 @@ const TIPO_BADGE_STYLES: Record<TipoInforme, { background: string; color: string
 
 // ── Props ─────────────────────────────────────────────────────────────────────
 
+interface PacienteInfo {
+  nombreCompleto: string;
+  rut: string | null;
+  fechaNacimiento: string | null;
+}
+
 interface Props {
   idPaciente: string;
   idEncuentro?: string;
+  paciente?: PacienteInfo;
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -47,7 +54,7 @@ function formatFecha(iso: string): string {
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export function InformeList({ idPaciente, idEncuentro }: Props) {
+export function InformeList({ idPaciente, idEncuentro, paciente }: Props) {
   const config = useClinicaConfig();
   const [informes, setInformes] = useState<InformeClinico[]>([]);
   const [loading, setLoading] = useState(true);
@@ -144,6 +151,7 @@ export function InformeList({ idPaciente, idEncuentro }: Props) {
           idPaciente={idPaciente}
           idEncuentro={idEncuentro}
           informe={selectedInforme}
+          pacienteInfo={paciente}
           onSuccess={handleFormSuccess}
           onCancel={handleFormCancel}
         />

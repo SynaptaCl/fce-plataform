@@ -9,6 +9,7 @@ import {
   firmarInforme,
 } from "@/app/actions/informes";
 import { estructurarInforme } from "@/app/actions/informes-ia";
+import { formatRut, calculateAge } from "@/lib/utils";
 import type { InformeClinico, InformeFormData, TipoInforme } from "@/types/informe";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -25,13 +26,39 @@ const TIPOS: TipoInforme[] = ["isapre", "colegio", "laboral", "judicial", "otro"
 
 // ── Props ─────────────────────────────────────────────────────────────────────
 
+interface PacienteInfo {
+  nombreCompleto: string;
+  rut: string | null;
+  fechaNacimiento: string | null;
+}
+
 interface Props {
   idPaciente: string;
   idEncuentro?: string;
   informe?: InformeClinico; // edit mode if provided
+  pacienteInfo?: PacienteInfo;
   tieneCopilotoIA?: boolean;
   onSuccess?: (i: InformeClinico) => void;
   onCancel?: () => void;
+}
+
+// ── Prefill helper ────────────────────────────────────────────────────────────
+// Encabezado de identificación del paciente — le ahorra al profesional
+// tener que tipear estos datos a mano en cada informe/certificado nuevo.
+
+function buildEncabezadoPaciente(p: PacienteInfo): string {
+  const lineas = [`Paciente: ${p.nombreCompleto}`, `RUT: ${formatRut(p.rut)}`];
+  if (p.fechaNacimiento) {
+    const fecha = new Date(p.fechaNacimiento).toLocaleDateString("es-CL", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+      timeZone: "America/Santiago",
+    });
+    const edad = calculateAge(p.fechaNacimiento);
+    lineas.push(`Fecha de nacimiento: ${fecha}${edad !== null ? ` (${edad} años)` : ""}`);
+  }
+  return `${lineas.join("\n")}\n\n`;
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -40,6 +67,7 @@ export function InformeForm({
   idPaciente,
   idEncuentro,
   informe,
+  pacienteInfo,
   tieneCopilotoIA,
   onSuccess,
   onCancel,
@@ -50,7 +78,9 @@ export function InformeForm({
   const [tipo, setTipo] = useState<TipoInforme>(informe?.tipo ?? "isapre");
   const [destinatario, setDestinatario] = useState(informe?.destinatario ?? "");
   const [titulo, setTitulo] = useState(informe?.titulo ?? "");
-  const [contenido, setContenido] = useState(informe?.contenido ?? "");
+  const [contenido, setContenido] = useState(
+    informe?.contenido ?? (pacienteInfo ? buildEncabezadoPaciente(pacienteInfo) : "")
+  );
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [borrador, setBorrador] = useState<string | null>(null);

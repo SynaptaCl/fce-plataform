@@ -27,7 +27,8 @@ import type { PlantillaDominio } from "@/types/plantilla-dominio";
 interface PlanIntervencionPanelProps {
   planId: string;
   patientId: string;
-  encuentroId: string;
+  /** undefined cuando se accede desde el panel del paciente sin encuentro activo */
+  encuentroId?: string;
   onClose: () => void;
   onFirmado?: () => void;
 }

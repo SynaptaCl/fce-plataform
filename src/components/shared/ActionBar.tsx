@@ -8,6 +8,7 @@ import {
   Activity,
   FileSignature,
   ClipboardList,
+  ListChecks,
   Download,
   Code,
   MoreHorizontal,
@@ -81,6 +82,7 @@ export function ActionBar({ patientId, paciente, primaryAction }: ActionBarProps
 
   const hasM2 = modulosActivos.includes("M2_anamnesis");
   const hasM5 = modulosActivos.includes("M5_consentimiento");
+  const hasM10 = modulosActivos.includes("M10_plan_intervencion");
   const hasM7 = modulosActivos.includes("M7_prescripciones");
   const hasM8 = modulosActivos.includes("M8_examenes");
   const puedePrescribir = profesionalActivo?.puede_prescribir ?? false;
@@ -153,6 +155,17 @@ export function ActionBar({ patientId, paciente, primaryAction }: ActionBarProps
           >
             <IconBox><FileSignature style={{ width: 12, height: 12 }} /></IconBox>
             Consentimiento
+          </Link>
+        )}
+
+        {hasM10 && (
+          <Link
+            href={`${base}/plan-intervencion`}
+            style={chipBase}
+            className="hover:border-kp-accent hover:text-kp-accent"
+          >
+            <IconBox><ListChecks style={{ width: 12, height: 12 }} /></IconBox>
+            Plan de intervención
           </Link>
         )}
 

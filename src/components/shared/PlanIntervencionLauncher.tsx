@@ -9,7 +9,8 @@ import type { PlanIntervencion } from "@/types/plan-intervencion";
 
 interface PlanIntervencionLauncherProps {
   patientId: string;
-  encuentroId: string;
+  /** undefined cuando se accede desde el panel del paciente sin encuentro activo */
+  encuentroId?: string;
   planActivo?: PlanIntervencion | null;
   onPlanCreated?: (planId: string) => void;
 }

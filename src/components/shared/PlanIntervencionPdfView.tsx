@@ -58,6 +58,19 @@ function estadoLabel(estado: string): string {
   return map[estado] ?? estado;
 }
 
+const GAS_LABELS: Record<number, string> = {
+  [-2]: "Mucho peor que lo esperado",
+  [-1]: "Algo peor que lo esperado",
+  [0]: "Resultado esperado",
+  [1]: "Algo mejor que lo esperado",
+  [2]: "Mucho mejor que lo esperado",
+};
+
+function gasLabel(nivel: number): string {
+  const signo = nivel > 0 ? "+" : "";
+  return `${signo}${nivel} — ${GAS_LABELS[nivel] ?? "Sin clasificar"}`;
+}
+
 // ── Builder HTML del PDF (hex hardcoded — html2pdf.js no resuelve CSS vars) ──
 
 function buildPdfHtml(plan: PlanIntervencionDetalle, paciente: Patient): string {
@@ -85,12 +98,40 @@ function buildPdfHtml(plan: PlanIntervencionDetalle, paciente: Patient): string 
           const gasHtml = obj.gas_0
             ? `<p style="margin:2px 0;font-size:11px;color:#475569;">Objetivo esperado (0): ${escapeHtml(obj.gas_0)}</p>`
             : "";
+
+          // Historial de progreso registrado para este objetivo
+          const progreso = (plan.progresoPorObjetivo[obj.id] ?? []);
+          const progresoHtml = progreso.length
+            ? `
+              <div style="margin-top:8px;padding-top:6px;border-top:1px dashed #CBD5E1;">
+                <p style="margin:0 0 4px 0;font-size:11px;font-weight:bold;color:#1E293B;">Progreso registrado</p>
+                ${progreso
+                  .map((p) => {
+                    const fecha = formatFechaCorta(p.registrado_at);
+                    const obsHtml = p.observacion
+                      ? `<p style="margin:1px 0;font-size:10px;color:#475569;">${escapeHtml(p.observacion)}</p>`
+                      : "";
+                    const estrategiasHtml = p.estrategias
+                      ? `<p style="margin:1px 0;font-size:10px;color:#475569;font-style:italic;">Estrategias: ${escapeHtml(p.estrategias)}</p>`
+                      : "";
+                    return `
+                      <div style="margin-bottom:6px;">
+                        <p style="margin:0;font-size:10px;"><strong>${fecha}</strong> — ${escapeHtml(gasLabel(p.nivel_gas))}</p>
+                        ${obsHtml}
+                        ${estrategiasHtml}
+                      </div>`;
+                  })
+                  .join("")}
+              </div>`
+            : `<p style="margin-top:8px;font-size:10px;color:#94A3B8;">Sin progreso registrado aún.</p>`;
+
           return `
             <div style="margin-bottom:12px;padding:8px;background:#F1F5F9;border-radius:4px;">
               <p style="font-weight:bold;margin:0 0 4px 0;font-size:13px;">${escapeHtml(obj.dominio_label)}</p>
               <p style="margin:2px 0;font-size:13px;">${escapeHtml(obj.descripcion)}</p>
-              <p style="margin:2px 0;font-size:11px;color:#475569;">Nivel actual: ${escapeHtml(obj.nivel_actual)} | Prioridad: ${escapeHtml(obj.prioridad)}</p>
+              <p style="margin:2px 0;font-size:11px;color:#475569;">Nivel basal: ${escapeHtml(obj.nivel_basal)} | Nivel actual: ${escapeHtml(obj.nivel_actual)} | Prioridad: ${escapeHtml(obj.prioridad)}</p>
               ${gasHtml}
+              ${progresoHtml}
             </div>`;
         })
         .join("");
@@ -103,7 +144,7 @@ function buildPdfHtml(plan: PlanIntervencionDetalle, paciente: Patient): string 
   <!-- Header -->
   <div style="text-align:center;margin-bottom:20px;border-bottom:2px solid #006B6B;padding-bottom:10px;">
     <h2 style="color:#006B6B;margin:0;font-size:20px;">PLAN DE INTERVENCIÓN</h2>
-    <p style="margin:4px 0;font-size:12px;color:#475569;">Plan de Neurodesarrollo</p>
+    <p style="margin:4px 0;font-size:12px;color:#475569;">${escapeHtml(plan.titulo)}</p>
   </div>
 
   <!-- Datos del paciente -->
@@ -119,9 +160,9 @@ function buildPdfHtml(plan: PlanIntervencionDetalle, paciente: Patient): string 
   <!-- Diagnóstico -->
   ${diagnosticoHtml}
 
-  <!-- Objetivos -->
+  <!-- Objetivos + progreso -->
   <h3 style="color:#006B6B;border-bottom:1px solid #E2E8F0;padding-bottom:4px;font-size:15px;margin-top:20px;">
-    Objetivos de Intervención
+    Objetivos de Intervención y Progreso
   </h3>
   ${objetivosHtml.trim() || '<p style="color:#94A3B8;font-size:13px;">Sin objetivos registrados.</p>'}
 
@@ -178,14 +219,19 @@ export function PlanIntervencionPdfView({ planId, patientId }: PlanIntervencionP
 
       const htmlContent = buildPdfHtml(plan, paciente);
 
-      // Crear contenedor temporal fuera del viewport
-      const container = document.createElement("div");
-      container.style.position = "absolute";
-      container.style.left = "-9999px";
-      container.style.top = "0";
-      container.style.width = "210mm";
-      container.innerHTML = htmlContent;
-      document.body.appendChild(container);
+      // Wrapper fuera del viewport (position:absolute) + nodo de contenido
+      // capturado por html2canvas SIN position:absolute — si el propio
+      // elemento pasado a .from() es position:absolute, html2canvas
+      // devuelve canvas con height:0 (PDF en blanco).
+      const wrapper = document.createElement("div");
+      wrapper.style.position = "absolute";
+      wrapper.style.left = "-9999px";
+      wrapper.style.top = "0";
+      const content = document.createElement("div");
+      content.style.width = "210mm";
+      content.innerHTML = htmlContent;
+      wrapper.appendChild(content);
+      document.body.appendChild(wrapper);
 
       const opt = {
         margin: [10, 10, 10, 10],
@@ -195,9 +241,9 @@ export function PlanIntervencionPdfView({ planId, patientId }: PlanIntervencionP
         jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
       };
 
-      await html2pdf().set(opt).from(container).save();
+      await html2pdf().set(opt).from(content).save();
 
-      document.body.removeChild(container);
+      document.body.removeChild(wrapper);
     } catch {
       setError("Error al generar el PDF.");
     } finally {

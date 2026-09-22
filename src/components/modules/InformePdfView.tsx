@@ -204,14 +204,18 @@ export async function exportInformePdf(
 ): Promise<void> {
   const html2pdf = (await import("html2pdf.js")).default;
 
+  // CRÍTICO: position:absolute va en el wrapper, NUNCA en el elemento
+  // capturado — html2canvas devuelve canvas con height:0 (PDF en blanco)
+  // si el propio elemento pasado a .from() es position:absolute.
   const container = document.createElement("div");
   container.style.cssText = "position:absolute;left:-9999px;top:0;";
-  container.appendChild(buildInformeDom(informe, clinicaNombre));
+  const content = buildInformeDom(informe, clinicaNombre);
+  container.appendChild(content);
   document.body.appendChild(container);
 
   try {
     await html2pdf()
-      .from(container)
+      .from(content)
       .set({
         margin: [10, 10, 10, 10],
         filename: `informe-${informe.id.slice(0, 8)}.pdf`,
