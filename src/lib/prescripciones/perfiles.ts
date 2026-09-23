@@ -19,6 +19,10 @@ const PERFIL_POR_ESPECIALIDAD: Record<string, PerfilPrescripcion> = {
   "Masoterapia":                "medico",
   "Odontología":                "odontologo",
   "Obstetricia y Puericultura": "matrona",
+  "Medicina Familiar":          "medico",
+  "Fisiatría":                  "medico",
+  "Neurología Infantil":        "medico",
+  "Psiquiatría Infantil":       "medico",
 };
 
 /**

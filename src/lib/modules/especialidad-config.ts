@@ -425,6 +425,235 @@ export const ESPECIALIDAD_CONFIG: Record<string, EspecialidadConfig> = {
       { id: "instrumento", label: "Aplicar instrumento", modulo: "instrumento", icon: "ListChecks" },
     ],
   },
+  "Medicina Familiar": {
+    modelo: "clinico_general",
+    instrumentosSugeridos: ["phq9", "gad7", "mmse", "glasgow", "barthel", "downton", "lawton", "apgar", "eva", "conners3"],
+    modulosHabilitados: ["M7", "M8", "M10"],
+    tieneContraindicaciones: false,
+    tieneEscalaFuncional: false,
+    tieneCopilotoIA: true,
+    tieneResumenIA: true,
+    tienePresupuesto: true,
+    tieneInformes: true,
+    tieneAmbientScribe: true,
+    diagnostico: { tipo: 'icd11_mms', label: 'Diagnóstico (ICD-11)', mostrarCIE10: true },
+    secciones: [
+      {
+        id: "motivo", label: "Motivo de consulta",
+        descripcion: "Razón de la consulta actual",
+        colapsable: false, defaultAbierta: true,
+        campos: [
+          { id: "motivo_principal", label: "Motivo principal", tipo: "texto_largo", obligatorio: true, placeholder: "¿Cuál es el motivo de consulta del paciente?" },
+        ],
+      },
+      {
+        id: "contenido", label: "Evolución",
+        descripcion: "Anamnesis próxima, contexto familiar/longitudinal y examen físico",
+        colapsable: false, defaultAbierta: true,
+        campos: [
+          { id: "anamnesis_proxima", label: "Anamnesis próxima", tipo: "texto_largo", obligatorio: false, placeholder: "Historia de la enfermedad actual, inicio, duración, factores agravantes/aliviantes…" },
+          { id: "contexto_familiar", label: "Contexto familiar / longitudinal", tipo: "texto_largo", obligatorio: false, placeholder: "Antecedentes familiares relevantes, seguimiento de controles previos, entorno del paciente…" },
+          { id: "examen_fisico", label: "Examen físico", tipo: "texto_largo", obligatorio: false, placeholder: "Hallazgos del examen físico segmentario…" },
+        ],
+      },
+      {
+        id: "plan", label: "Plan",
+        descripcion: "Indicaciones y plan de tratamiento",
+        colapsable: true, defaultAbierta: false,
+        campos: [
+          { id: "indicaciones", label: "Indicaciones / Plan de tratamiento", tipo: "texto_largo", obligatorio: false, placeholder: "Indicaciones farmacológicas, no farmacológicas, derivaciones, control…" },
+        ],
+      },
+    ],
+    accionesRapidas: [
+      { id: "prescribir", label: "Prescripción", modulo: "M7", icon: "Pill", requierePermiso: "puede_prescribir" },
+      { id: "examen", label: "Orden de examen", modulo: "M8", icon: "FlaskConical", requierePermiso: "puede_indicar_examenes" },
+      { id: "instrumento", label: "Aplicar instrumento", modulo: "instrumento", icon: "ListChecks" },
+    ],
+  },
+  "Fisiatría": {
+    modelo: "clinico_general",
+    instrumentosSugeridos: ["eva", "barthel", "downton", "lawton"],
+    modulosHabilitados: ["M7", "M8", "M10"],
+    tieneContraindicaciones: false,
+    tieneEscalaFuncional: true,
+    tieneCopilotoIA: true,
+    tieneResumenIA: true,
+    tienePresupuesto: true,
+    tieneInformes: true,
+    tieneAmbientScribe: true,
+    diagnostico: { tipo: 'icd11_mms', label: 'Diagnóstico (ICD-11)', mostrarCIE10: true },
+    secciones: [
+      {
+        id: "motivo", label: "Motivo de consulta",
+        descripcion: "Razón de la consulta actual",
+        colapsable: false, defaultAbierta: true,
+        campos: [
+          { id: "motivo_principal", label: "Motivo principal", tipo: "texto_largo", obligatorio: true, placeholder: "¿Cuál es el motivo de consulta del paciente?" },
+        ],
+      },
+      {
+        id: "contenido", label: "Evolución",
+        descripcion: "Examen físico y evaluación funcional",
+        colapsable: false, defaultAbierta: true,
+        campos: [
+          { id: "examen_fisico", label: "Examen físico / musculoesquelético", tipo: "texto_largo", obligatorio: false, placeholder: "Hallazgos del examen físico, rango articular, fuerza, marcha…" },
+          { id: "evaluacion_funcional", label: "Evaluación funcional", tipo: "texto_largo", obligatorio: false, placeholder: "Nivel de independencia, capacidad funcional, resultado de escalas aplicadas…" },
+        ],
+      },
+      {
+        id: "plan", label: "Plan",
+        descripcion: "Indicaciones y plan de rehabilitación",
+        colapsable: true, defaultAbierta: false,
+        campos: [
+          { id: "indicaciones", label: "Indicaciones / Plan de rehabilitación", tipo: "texto_largo", obligatorio: false, placeholder: "Indicaciones farmacológicas, derivación a terapia, órtesis/ayudas técnicas, control…" },
+        ],
+      },
+    ],
+    accionesRapidas: [
+      { id: "prescribir", label: "Prescripción", modulo: "M7", icon: "Pill", requierePermiso: "puede_prescribir" },
+      { id: "examen", label: "Orden de examen", modulo: "M8", icon: "FlaskConical", requierePermiso: "puede_indicar_examenes" },
+      { id: "instrumento", label: "Aplicar instrumento", modulo: "instrumento", icon: "ListChecks" },
+      { id: "plan", label: "Plan de intervención", modulo: "M10", icon: "ClipboardList" },
+    ],
+  },
+  "Neurología Infantil": {
+    modelo: "clinico_general",
+    instrumentosSugeridos: ["conners3", "mmse", "glasgow", "eva"],
+    modulosHabilitados: ["M7", "M8", "M10"],
+    tieneContraindicaciones: false,
+    tieneEscalaFuncional: false,
+    tieneCopilotoIA: true,
+    tieneResumenIA: true,
+    tienePresupuesto: true,
+    tieneInformes: true,
+    tieneAmbientScribe: false, // AMB-1: neurodesarrollo — no activar (ver comentario tieneAmbientScribe arriba)
+    diagnostico: { tipo: 'icd11_mms', label: 'Diagnóstico (ICD-11)', mostrarCIE10: true },
+    secciones: [
+      {
+        id: "motivo", label: "Motivo de consulta",
+        descripcion: "Razón de la consulta actual",
+        colapsable: false, defaultAbierta: true,
+        campos: [
+          { id: "motivo_principal", label: "Motivo principal", tipo: "texto_largo", obligatorio: true, placeholder: "¿Cuál es el motivo de consulta? (derivación, sospecha diagnóstica…)" },
+        ],
+      },
+      {
+        id: "contenido", label: "Evolución",
+        descripcion: "Anamnesis perinatal/desarrollo y examen neurológico",
+        colapsable: false, defaultAbierta: true,
+        campos: [
+          { id: "anamnesis_desarrollo", label: "Anamnesis perinatal y del desarrollo", tipo: "texto_largo", obligatorio: false, placeholder: "Antecedentes perinatales, hitos del desarrollo psicomotor, antecedentes familiares…" },
+          { id: "examen_neurologico", label: "Examen neurológico", tipo: "texto_largo", obligatorio: false, placeholder: "Pares craneanos, tono, fuerza, reflejos, coordinación, marcha…" },
+        ],
+      },
+      {
+        id: "plan", label: "Plan",
+        descripcion: "Indicaciones y plan de tratamiento",
+        colapsable: true, defaultAbierta: false,
+        campos: [
+          { id: "indicaciones", label: "Indicaciones / Plan de tratamiento", tipo: "texto_largo", obligatorio: false, placeholder: "Indicaciones farmacológicas, derivaciones, exámenes, control…" },
+        ],
+      },
+    ],
+    accionesRapidas: [
+      { id: "prescribir", label: "Prescripción", modulo: "M7", icon: "Pill", requierePermiso: "puede_prescribir" },
+      { id: "examen", label: "Orden de examen", modulo: "M8", icon: "FlaskConical", requierePermiso: "puede_indicar_examenes" },
+      { id: "instrumento", label: "Aplicar instrumento", modulo: "instrumento", icon: "ListChecks" },
+      { id: "plan", label: "Plan de intervención", modulo: "M10", icon: "ClipboardList" },
+    ],
+  },
+  "Psiquiatría Infantil": {
+    modelo: "clinico_general",
+    instrumentosSugeridos: ["gad7", "phq9", "conners3", "cars2"],
+    modulosHabilitados: ["M7", "M8", "M10"],
+    tieneContraindicaciones: false,
+    tieneEscalaFuncional: false,
+    tieneCopilotoIA: true,
+    tieneResumenIA: true,
+    tienePresupuesto: true,
+    tieneInformes: true,
+    tieneAmbientScribe: false, // AMB-1: salud mental — no activar (ver comentario tieneAmbientScribe arriba)
+    diagnostico: { tipo: 'icd11_mms', label: 'Diagnóstico psiquiátrico (CIE-11)', mostrarCIE10: false, chaptersFilter: '06' },
+    secciones: [
+      {
+        id: "motivo", label: "Motivo de consulta",
+        descripcion: "Motivo de consulta (frecuentemente reportado por cuidadores)",
+        colapsable: false, defaultAbierta: true,
+        campos: [
+          { id: "motivo_principal", label: "Motivo de consulta", tipo: "texto_largo", obligatorio: true, placeholder: "¿Qué motiva la consulta? ¿Quién deriva o reporta el problema?" },
+        ],
+      },
+      {
+        id: "contenido", label: "Evolución de sesión",
+        descripcion: "Estado mental infantil y entrevista con cuidadores",
+        colapsable: false, defaultAbierta: true,
+        campos: [
+          { id: "estado_mental", label: "Estado mental / Observaciones clínicas", tipo: "texto_largo", obligatorio: false, placeholder: "Presentación, ánimo, conducta, interacción, desarrollo cognitivo observado…" },
+          { id: "entrevista_cuidadores", label: "Entrevista con cuidadores", tipo: "texto_largo", obligatorio: false, placeholder: "Información reportada por padres/cuidadores, funcionamiento escolar y familiar…" },
+        ],
+      },
+      {
+        id: "plan", label: "Plan",
+        descripcion: "Plan terapéutico y farmacológico",
+        colapsable: true, defaultAbierta: false,
+        campos: [
+          { id: "indicaciones", label: "Indicaciones / Plan de tratamiento", tipo: "texto_largo", obligatorio: false, placeholder: "Indicaciones farmacológicas, psicoeducación, derivaciones, control…" },
+        ],
+      },
+    ],
+    accionesRapidas: [
+      { id: "prescribir", label: "Prescripción", modulo: "M7", icon: "Pill", requierePermiso: "puede_prescribir" },
+      { id: "examen", label: "Orden de examen", modulo: "M8", icon: "FlaskConical", requierePermiso: "puede_indicar_examenes" },
+      { id: "instrumento", label: "Aplicar instrumento", modulo: "instrumento", icon: "ListChecks" },
+    ],
+  },
+  "Psicopedagogía": {
+    modelo: "clinico_general",
+    instrumentosSugeridos: ["brief2", "vineland3", "conners3"],
+    modulosHabilitados: ["M10"],
+    tieneContraindicaciones: false,
+    tieneEscalaFuncional: false,
+    tieneCopilotoIA: true,
+    tieneResumenIA: true,
+    tienePresupuesto: true,
+    tieneInformes: true,
+    tieneAmbientScribe: false, // AMB-1: neurodesarrollo — no activar (ver comentario tieneAmbientScribe arriba)
+    diagnostico: { tipo: 'icd11_mms', label: 'Diagnóstico psicopedagógico (CIE-11)', mostrarCIE10: false, chaptersFilter: '06' },
+    secciones: [
+      {
+        id: "motivo", label: "Motivo de consulta",
+        descripcion: "Motivo de consulta o derivación",
+        colapsable: false, defaultAbierta: true,
+        campos: [
+          { id: "motivo_principal", label: "Motivo de consulta / derivación", tipo: "texto_largo", obligatorio: true, placeholder: "¿Qué trae al paciente a evaluación psicopedagógica? ¿Quién deriva?" },
+        ],
+      },
+      {
+        id: "contenido", label: "Evaluación psicopedagógica",
+        descripcion: "Áreas evaluadas y desempeño académico",
+        colapsable: false, defaultAbierta: true,
+        campos: [
+          { id: "areas_evaluadas", label: "Áreas evaluadas", tipo: "multi_select", obligatorio: false,
+            opciones: ["Lectura", "Escritura", "Cálculo", "Atención", "Funciones ejecutivas", "Lenguaje", "Memoria", "Habilidades sociales", "Otra"] },
+          { id: "desempeno_academico", label: "Desempeño académico / observaciones", tipo: "texto_largo", obligatorio: false, placeholder: "Rendimiento escolar, dificultades específicas, fortalezas observadas…" },
+        ],
+      },
+      {
+        id: "plan", label: "Plan de intervención",
+        descripcion: "Plan y tareas intersesión",
+        colapsable: true, defaultAbierta: false,
+        campos: [
+          { id: "plan_tareas", label: "Plan de intervención / Tareas intersesión", tipo: "texto_largo", obligatorio: false, placeholder: "Objetivos, estrategias de apoyo, tareas para la próxima sesión…" },
+          { id: "proxima_sesion_fecha", label: "Próxima sesión", tipo: "fecha", obligatorio: false },
+        ],
+      },
+    ],
+    accionesRapidas: [
+      { id: "instrumento", label: "Aplicar instrumento", modulo: "instrumento", icon: "ListChecks" },
+      { id: "plan", label: "Plan de intervención", modulo: "M10", icon: "ClipboardList" },
+    ],
+  },
   "Administración Clínica": {
     modelo: "ninguno",
     instrumentosSugeridos: [],

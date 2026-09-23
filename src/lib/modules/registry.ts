@@ -48,7 +48,12 @@ export type EspecialidadCodigo =
   | "Podología"
   | "Enfermería"
   | "Obstetricia y Puericultura"
-  | "Ginecología y Obstetricia";
+  | "Ginecología y Obstetricia"
+  | "Psicopedagogía"
+  | "Neurología Infantil"
+  | "Psiquiatría Infantil"
+  | "Fisiatría"
+  | "Medicina Familiar";
 
 // ============================================================================
 // Modelo clínico (bifurcación por especialidad)
@@ -340,6 +345,13 @@ export const ESPECIALIDADES_REGISTRY: Record<string, EspecialidadRegistro> = {
   // Modelo clínico general — obstetricia
   "Obstetricia y Puericultura": { codigo: "Obstetricia y Puericultura", label: "Obstetricia y Puericultura", modelo: "clinico_general", tieneContraindicaciones: false, tieneEscalaFuncional: false, estado: "estable" },
   "Ginecología y Obstetricia":  { codigo: "Ginecología y Obstetricia",  label: "Ginecología y Obstetricia",  modelo: "clinico_general", tieneContraindicaciones: false, tieneEscalaFuncional: false, estado: "estable" },
+
+  // Modelo clínico general — alta 2026-09-23 (Inclúyeme, ver especialidades_catalogo)
+  "Medicina Familiar":     { codigo: "Medicina Familiar",     label: "Medicina Familiar",     modelo: "clinico_general", tieneContraindicaciones: false, tieneEscalaFuncional: false, estado: "beta" },
+  "Fisiatría":             { codigo: "Fisiatría",             label: "Fisiatría",             modelo: "clinico_general", tieneContraindicaciones: false, tieneEscalaFuncional: true,  estado: "beta" },
+  "Neurología Infantil":   { codigo: "Neurología Infantil",   label: "Neurología Infantil",   modelo: "clinico_general", tieneContraindicaciones: false, tieneEscalaFuncional: false, estado: "beta" },
+  "Psiquiatría Infantil":  { codigo: "Psiquiatría Infantil",  label: "Psiquiatría Infantil",  modelo: "clinico_general", tieneContraindicaciones: false, tieneEscalaFuncional: false, estado: "beta" },
+  "Psicopedagogía":        { codigo: "Psicopedagogía",        label: "Psicopedagogía",        modelo: "clinico_general", tieneContraindicaciones: false, tieneEscalaFuncional: false, estado: "beta" },
 
   // Modelo ninguno
   "Administración Clínica": { codigo: "Administración Clínica", label: "Administración Clínica", modelo: "ninguno", tieneContraindicaciones: false, tieneEscalaFuncional: false, estado: "estable" },

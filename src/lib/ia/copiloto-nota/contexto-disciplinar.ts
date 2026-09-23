@@ -78,6 +78,43 @@ Atención podológica centrada en evaluación y tratamiento del pie.
 Marcos: biomecánica del pie, evaluación vascular periférica, clasificación de riesgo de pie diabético (Wagner, Texas).
 Terminología clave: onicocriptosis, onicomicosis, hiperqueratosis, heloma, tiloma, hallux valgus, pie plano/cavo, pulsos pedios, llenado capilar, monofilamento, índice tobillo-brazo (ITB), dermatitis, fisuras.
 Notas documentan: inspección visual del pie, hallazgos ungueales y dérmicos, evaluación vascular/neurológica cuando aplica, procedimiento realizado, indicaciones de cuidado, derivación si riesgo alto.`,
+
+  'Medicina Familiar': `
+Atención médica integral centrada en la persona y su contexto familiar/longitudinal, ambulatoria.
+Marcos: razonamiento clínico hipotético-deductivo, medicina basada en evidencia, enfoque biopsicosocial, continuidad del cuidado.
+Terminología clave: anamnesis próxima/remota, antecedentes familiares, ciclo vital familiar, examen físico segmentario, hipótesis diagnóstica, diagnóstico diferencial, indicaciones farmacológicas, plan terapéutico, derivación, control.
+Estructura típica: motivo de consulta → anamnesis (incluyendo contexto familiar) → examen físico → hipótesis diagnóstica → plan (indicaciones, fármacos, exámenes, derivaciones, control).
+Notas documentan: hallazgos positivos y negativos pertinentes, contexto familiar relevante, impresión diagnóstica con fundamentación, conducta terapéutica con posología cuando aplica.`,
+
+  'Fisiatría': `
+Medicina física y rehabilitación: diagnóstico y tratamiento de discapacidad funcional de origen musculoesquelético o neurológico.
+Marcos: modelo biopsicosocial, CIF (funciones corporales, actividades, participación), medicina basada en evidencia.
+Terminología clave: rango articular, fuerza muscular, tono muscular, capacidad funcional, independencia en AVD, órtesis/ayudas técnicas, dolor musculoesquelético/neuropático, plan de rehabilitación interdisciplinario.
+Pruebas frecuentes: EVA, Índice de Barthel, escala de Downton, escala de Lawton-Brody, goniometría.
+Notas documentan: hallazgos del examen físico/musculoesquelético, resultado de escalas funcionales, impresión diagnóstica, indicaciones farmacológicas y de rehabilitación, derivación a terapia.`,
+
+  'Neurología Infantil': `
+Diagnóstico y tratamiento de trastornos del sistema nervioso en población pediátrica, incluyendo hitos del desarrollo.
+Marcos: neurodesarrollo, semiología neurológica pediátrica, medicina basada en evidencia.
+Terminología clave: hitos del desarrollo psicomotor, tono, reflejos arcaicos/osteotendinosos, pares craneanos, crisis convulsivas, cefalea, retraso del desarrollo, antecedentes perinatales.
+Pruebas frecuentes: examen neurológico segmentario, escalas de desarrollo, Glasgow (si aplica trauma/compromiso de conciencia), Conners-3 (screening TDAH comórbido).
+Notas documentan: anamnesis perinatal y del desarrollo, hallazgos del examen neurológico, impresión diagnóstica, plan farmacológico/exámenes/derivaciones.
+Sensibilidad: uso de terminología orientada al neurodesarrollo, evitando etiquetas estigmatizantes; contenido puede incluir información de cuidadores.`,
+
+  'Psiquiatría Infantil': `
+Atención de salud mental en población infanto-adolescente, con participación frecuente de cuidadores.
+Marcos: modelo biopsicosocial del desarrollo, psicofarmacología pediátrica, clasificación CIE-11 capítulo 06.
+Terminología clave: estado mental (orientación, afecto, conducta, interacción), funcionamiento escolar/familiar, hipótesis diagnóstica, indicación farmacológica, psicoeducación, riesgo.
+Evaluaciones frecuentes: GAD-7, PHQ-9 (adolescentes), Conners-3, CARS-2.
+Notas documentan: motivo de consulta (frecuentemente reportado por terceros), estado mental observado, información de la entrevista con cuidadores, plan terapéutico/farmacológico, riesgo si aplica.
+Sensibilidad: respetar confidencialidad; documentar con cuidado información sensible de menores y su entorno familiar.`,
+
+  'Psicopedagogía': `
+Evaluación e intervención de dificultades de aprendizaje y procesos cognitivos asociados al desempeño académico.
+Marcos: enfoque psicoeducativo, modelo de funciones ejecutivas, CIE-11 trastornos específicos del aprendizaje (capítulo 06).
+Terminología clave: dificultad específica de aprendizaje (lectura/escritura/cálculo), funciones ejecutivas, atención, procesamiento fonológico, estrategias de apoyo, adecuaciones curriculares, plan de intervención psicopedagógica.
+Evaluaciones frecuentes: BRIEF-2, Vineland-3, Conners-3, pruebas de rendimiento académico según edad.
+Notas documentan: motivo de consulta/derivación (frecuentemente escolar), áreas evaluadas, desempeño académico observado, plan de intervención con objetivos y tareas intersesión.`,
 }
 
 /**
