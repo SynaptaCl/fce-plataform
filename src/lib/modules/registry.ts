@@ -70,12 +70,15 @@ export type Rol =
   | "director"
   | "admin"
   | "profesional"
-  | "recepcionista";
+  | "recepcionista"
+  | "coordinador";
 
-export const ROLES_CON_ACCESO_FCE: Rol[] = ["superadmin", "director", "admin", "profesional"];
+export const ROLES_CON_ACCESO_FCE: Rol[] = ["superadmin", "director", "admin", "profesional", "coordinador"];
 export const ROLES_QUE_PUEDEN_ESCRIBIR: Rol[] = ["superadmin", "director", "admin", "profesional"];
 export const ROLES_QUE_PUEDEN_FIRMAR: Rol[] = ["profesional"];
 export const ROLES_QUE_CONFIGURAN: Rol[] = ["superadmin", "director", "admin"];
+/** Roles con acceso de solo lectura a plan de intervención (M10) y plan de tratamiento dental. */
+export const ROLES_QUE_VEN_PLANES: Rol[] = ["superadmin", "director", "admin", "profesional", "coordinador"];
 
 // ============================================================================
 // Definición de módulo
