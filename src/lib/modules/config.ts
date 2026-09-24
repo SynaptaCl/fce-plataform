@@ -3,15 +3,16 @@
  *
  * Lee de DOS fuentes:
  *   - clinicas_fce_config: módulos FCE activos, especialidades activas, overrides
- *   - clinicas: metadatos (nombre, slug) + config.branding (paleta de colores)
+ *   - clinicas + clinicas_branding: metadatos (nombre, slug) y branding (logo, colores)
  *
  * mapBrandingToTokens() unifica la paleta del chatbot/marketing con la del FCE.
  */
 
 import { createClient } from "@/lib/supabase/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { ModuleId, EspecialidadCodigo, FceTokens, BrandingConfig } from "./registry";
+import type { ModuleId, EspecialidadCodigo, FceTokens } from "./registry";
 import { mapBrandingToTokens } from "./registry";
+import { getClinicaBranding } from "./branding";
 
 // ============================================================================
 // TIPO DE CONFIG RUNTIME
@@ -44,10 +45,10 @@ export async function getClinicaConfig(
 ): Promise<ClinicaConfig | null> {
   const supabase = supabaseClient ?? (await createClient());
 
-  // Query 1: datos base + branding desde clinicas
+  // Query 1: datos base de la clínica
   const { data: clinica, error: errClinica } = await supabase
     .from("clinicas")
-    .select("id, nombre, slug, config")
+    .select("id, nombre, slug")
     .eq("id", idClinica)
     .single();
 
@@ -75,8 +76,8 @@ export async function getClinicaConfig(
     return null;
   }
 
-  // Mapear branding → tokens FCE
-  const branding = (clinica.config?.branding ?? null) as BrandingConfig | null;
+  // Branding desde clinicas_branding (SSOT) → tokens FCE
+  const branding = await getClinicaBranding(supabase, idClinica);
   const tokens = mapBrandingToTokens(branding);
   const clinicInitials = branding?.clinic_initials ?? clinica.nombre.slice(0, 2).toUpperCase();
   const logoUrl = branding?.logo_url ?? null;

@@ -1,10 +1,12 @@
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { DashboardShell } from "@/components/layout/DashboardShell";
 import { BrandingInjector } from "@/components/layout/BrandingInjector";
 import { requireAccesoFCE } from "@/lib/modules/guards";
 import { mapBrandingToTokens, type Rol, type BrandingConfig } from "@/lib/modules/registry";
 import { getClinicaConfig, type ClinicaConfig } from "@/lib/modules/config";
+import { getClinicaBranding } from "@/lib/modules/branding";
 import { ClinicaSessionProvider } from "@/lib/modules/provider";
 import { getProfesionalActivo, getProfesionalesDelUsuario } from "@/lib/fce/profesional";
 
@@ -43,19 +45,37 @@ export default async function DashboardLayout({
   // Guard: recepcionista no accede a FCE
   requireAccesoFCE(rol);
 
-  // Fetch paralelo: branding (para Sidebar) + FCE config (para ClinicaSessionProvider) + perfil profesional
-  const [brandingResult, fceConfig, profesionalActivo, perfilesProfesional] = await Promise.all([
+  // Guard: coordinador solo accede a la lista de pacientes y a la ficha
+  // reducida de un paciente (pacientes/[id]/page.tsx bifurca a
+  // CoordinadorPatientView) — cualquier otra ruta de /dashboard/* (anamnesis,
+  // consentimiento, encuentro clínico, egresos, auditoría, exportar-pdf,
+  // configuración, etc.) queda fuera, incluso si RLS la dejaría leer algo.
+  // Ver hallazgo CRITICAL de la revisión de rama 2026-09-23: agregar
+  // 'coordinador' a ROLES_CON_ACCESO_FCE por sí solo no bastaba, exponía
+  // todas las rutas clínicas por URL directa.
+  if (rol === "coordinador") {
+    const headersList = await headers();
+    const pathname = headersList.get("x-pathname") ?? "";
+    const rutaPermitida =
+      pathname === "/dashboard/pacientes" || /^\/dashboard\/pacientes\/[^/]+$/.test(pathname);
+    if (!rutaPermitida) {
+      redirect("/dashboard/pacientes");
+    }
+  }
+
+  // Fetch paralelo: branding (para Sidebar) + nombre clínica + FCE config + perfil profesional
+  const [brandingResult, clinicaRes, fceConfig, profesionalActivo, perfilesProfesional] = await Promise.all([
+    idClinica ? getClinicaBranding(supabase, idClinica) : Promise.resolve(null),
     idClinica
-      ? supabase.from("clinicas").select("nombre, config").eq("id", idClinica).single()
+      ? supabase.from("clinicas").select("nombre").eq("id", idClinica).single()
       : Promise.resolve({ data: null }),
     idClinica ? getClinicaConfig(idClinica, supabase) : Promise.resolve(null),
     getProfesionalActivo(supabase, user.id, idClinica ?? undefined),
     getProfesionalesDelUsuario(supabase, user.id, idClinica ?? undefined),
   ]);
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const branding: BrandingConfig | null = (brandingResult.data?.config as any)?.branding ?? null;
-  const clinicFullName: string = (brandingResult.data as { nombre?: string } | null)?.nombre ?? "Clínica";
+  const branding: BrandingConfig | null = brandingResult;
+  const clinicFullName: string = (clinicaRes.data as { nombre?: string } | null)?.nombre ?? "Clínica";
 
   // Fallback session config si la clínica no tiene clinicas_fce_config aún
   const sessionConfig: ClinicaConfig = fceConfig ?? {

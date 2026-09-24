@@ -27,7 +27,8 @@ function safeToken(key: keyof FceTokens, value: string): string {
  * El <style> tag no layered overridea los valores @theme inline de globals.css (fallback).
  *
  * Cada valor se valida contra COLOR_RE antes de interpolar — este repo se defiende solo,
- * sin confiar en la validación del panel synapta que escribe clinicas.config.branding.
+ * sin confiar en la validación del panel synapta. El branding se lee de clinicas_branding
+ * (escrita por synapta) vía lib/modules/branding.ts.
  */
 export function BrandingInjector({ tokens }: BrandingInjectorProps) {
   const css =

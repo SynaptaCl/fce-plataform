@@ -430,7 +430,8 @@ export function getDependentes(moduleId: ModuleId): ModuleId[] {
 // ============================================================================
 
 /**
- * Estructura de clinicas.config.branding (ejemplo):
+ * Estructura de BrandingConfig (claves legacy de config.branding; hoy se alimenta
+ * desde clinicas_branding vía lib/modules/branding.ts). Ejemplo:
  * {
  *   "navy": "#006B6B",
  *   "accent": "#F5A623",
@@ -478,7 +479,7 @@ export const DEFAULT_FCE_TOKENS: FceTokens = {
 };
 
 /**
- * Convierte el branding existente en clinicas.config.branding a tokens FCE.
+ * Convierte el branding (BrandingConfig, alimentado desde clinicas_branding) a tokens FCE.
  * Si alguna clave falta, usa el fallback default.
  */
 export function mapBrandingToTokens(branding: BrandingConfig | null | undefined): FceTokens {

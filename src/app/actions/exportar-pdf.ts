@@ -6,6 +6,7 @@ import { logAudit } from "@/lib/audit";
 import type { ActionResult } from "@/lib/modules/guards";
 import type { Patient } from "@/types";
 import type { FichaClinicaData, AdendaPdfRow } from "@/lib/ficha-clinica/pdf-renderer";
+import { clinicasBrandingToConfig, type ClinicaBrandingRow } from "@/lib/modules/branding";
 import type { OdontogramaEntry } from "@/types/odontograma";
 import type { Periograma } from "@/types/periograma";
 import type { PlanTratamiento, PlanTratamientoItem } from "@/types/plan-tratamiento";
@@ -90,6 +91,7 @@ export async function exportarFichaCompletaPdf(
     planesRes,
     egresoRes,
     clinicaRes,
+    brandingRes,
     adendasRes,
     odontogramaRes,
     periogramaRes,
@@ -196,6 +198,13 @@ export async function exportarFichaCompletaPdf(
       .maybeSingle(),
     supabase.from("clinicas").select("nombre, config").eq("id", idClinica).single(),
     supabase
+      .from("clinicas_branding")
+      .select(
+        "primary_color, navy_color, navy_deep_color, accent_color, light_bg_color, clinic_short_name, clinic_initials, logo_url"
+      )
+      .eq("id_clinica", idClinica)
+      .maybeSingle(),
+    supabase
       .from("fce_adendas")
       .select("id_documento, tipo_adenda, motivo, contenido, override_director, override_motivo, created_at, created_by")
       .eq("id_paciente", idPaciente)
@@ -264,7 +273,7 @@ export async function exportarFichaCompletaPdf(
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const clinicaRow = clinicaRes.data as any;
-  const branding = clinicaRow?.config?.branding ?? null;
+  const branding = clinicasBrandingToConfig(brandingRes.data as ClinicaBrandingRow | null);
   const sucursal = clinicaRow?.config?.sucursales?.[0] ?? null;
 
   const generadoEl = new Date().toLocaleString("es-CL", {

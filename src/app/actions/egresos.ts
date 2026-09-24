@@ -11,6 +11,7 @@ import { getIdClinica } from "@/app/actions/patients";
 import type { ActionResult } from "@/app/actions/patients";
 import type { Egreso, SnapshotEquipoTratante } from "@/types/egreso";
 import { calcularSnapshotEquipoTratante } from "@/lib/egresos/snapshot";
+import { clinicasBrandingToConfig, type ClinicaBrandingRow } from "@/lib/modules/branding";
 
 // ── Shared types ──────────────────────────────────────────────────────────────
 
@@ -334,14 +335,23 @@ export async function getEgresoConContexto(
     profesionalData = prof ?? null;
   }
 
-  // 4. Fetch clinica config/nombre
-  const { data: clinicaData } = await supabase
-    .from("clinicas")
-    .select("nombre, config")
-    .eq("id", idClinica)
-    .single();
+  // 4. Fetch clinica nombre + branding
+  const [{ data: clinicaData }, brandingRes] = await Promise.all([
+    supabase
+      .from("clinicas")
+      .select("nombre")
+      .eq("id", idClinica)
+      .single(),
+    supabase
+      .from("clinicas_branding")
+      .select(
+        "primary_color, navy_color, navy_deep_color, accent_color, light_bg_color, clinic_short_name, clinic_initials, logo_url"
+      )
+      .eq("id_clinica", idClinica)
+      .maybeSingle(),
+  ]);
 
-  const branding = (clinicaData?.config as { branding?: { logo_url?: string; direccion?: string } } | null)?.branding ?? null;
+  const branding = clinicasBrandingToConfig(brandingRes.data as ClinicaBrandingRow | null);
 
   // 5. Fetch fecha del primer encuentro del paciente (fecha_ingreso)
   const { data: primerEncuentro } = await supabase
@@ -368,7 +378,7 @@ export async function getEgresoConContexto(
       profesional: profesionalData,
       clinica: {
         nombre: clinicaData?.nombre ?? "Clínica",
-        direccion: branding?.direccion ?? null,
+        direccion: null,
         logo_url: branding?.logo_url ?? null,
       },
       fechaIngreso: primerEncuentro?.created_at ?? null,
