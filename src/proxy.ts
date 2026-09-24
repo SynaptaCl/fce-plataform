@@ -67,6 +67,11 @@ export async function proxy(request: NextRequest) {
   const requestHeaders = new Headers(request.headers)
   requestHeaders.set('x-nonce', nonce)
   requestHeaders.set('Content-Security-Policy', csp)
+  // Permite a Server Components (ej. dashboard/layout.tsx) conocer la ruta
+  // solicitada sin depender de APIs internas no soportadas de Next.js — usado
+  // para el allowlist de rutas del rol coordinador (acceso administrativo
+  // limitado, ver docs/superpowers/specs/2026-09-23-rol-coordinador-design.md).
+  requestHeaders.set('x-pathname', pathname)
 
   let supabaseResponse = NextResponse.next({
     request: { headers: requestHeaders },

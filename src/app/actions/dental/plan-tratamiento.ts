@@ -1,12 +1,13 @@
 "use server";
 
-import { dbError } from "@/lib/modules/guards";
+import { assertPuedeEscribir, dbError } from "@/lib/modules/guards";
 import { revalidatePath } from "next/cache";
 import { requireAuth, requireContext } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import { getProfesionalActivo } from "@/lib/fce/profesional";
 import { getIdClinica } from "@/app/actions/patients";
 import type { ActionResult } from "@/app/actions/patients";
+import type { Rol } from "@/lib/modules/registry";
 import type {
   PlanTratamiento,
   PlanTratamientoItem,
@@ -112,7 +113,10 @@ export async function addItemPlan(
     notas?: string;
   },
 ): Promise<ActionResult<PlanTratamientoItem>> {
-  const { supabase, user, idClinica } = await requireContext();
+  const { supabase, user, idClinica, rol: rolCtx } = await requireContext();
+
+  const escrituraGuard = assertPuedeEscribir(rolCtx as Rol);
+  if (!escrituraGuard.success) return escrituraGuard;
 
   // Verificar que el plan pertenece a esta clínica
   const { data: plan } = await supabase
@@ -255,7 +259,10 @@ export async function removeItemPlan(
   planId: string,
   patientId: string,
 ): Promise<ActionResult<undefined>> {
-  const { supabase, idClinica } = await requireContext();
+  const { supabase, idClinica, rol: rolCtx } = await requireContext();
+
+  const escrituraGuard = assertPuedeEscribir(rolCtx as Rol);
+  if (!escrituraGuard.success) return escrituraGuard;
 
   // Solo se pueden eliminar items pendientes o rechazados
   const { data: item } = await supabase
@@ -378,7 +385,10 @@ export async function generarPresupuestoDesdePlan(
   patientId: string,
   itemIds: string[],
 ): Promise<ActionResult<Presupuesto>> {
-  const { supabase, idClinica } = await requireContext();
+  const { supabase, idClinica, rol: rolCtx } = await requireContext();
+
+  const escrituraGuard = assertPuedeEscribir(rolCtx as Rol);
+  if (!escrituraGuard.success) return escrituraGuard;
 
   const { data: plan } = await supabase
     .from("fce_plan_tratamiento")

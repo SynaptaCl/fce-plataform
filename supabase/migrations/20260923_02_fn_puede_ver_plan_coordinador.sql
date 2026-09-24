@@ -1,6 +1,14 @@
 -- Función aditiva: no reemplaza tiene_acceso_clinico(), la extiende para
 -- lecturas específicas de plan de intervención / plan de tratamiento / notas
 -- administrativas. PENDIENTE APLICAR.
+--
+-- CAVEAT operativo (hallazgo revisión 2026-09-23): tiene_acceso_clinico()
+-- devuelve true para cualquier admin_users con fila en admin_user_profesionales,
+-- SIN mirar el rol. Si una cuenta coordinador llegara a tener fila en
+-- admin_user_profesionales, obtendría acceso clínico completo (SOAP,
+-- consentimientos, prescripciones, etc.) por esa vía, no por esta función.
+-- Regla de onboarding: NUNCA vincular un admin_users con rol='coordinador'
+-- en admin_user_profesionales.
 CREATE OR REPLACE FUNCTION public.puede_ver_plan_coordinador(p_id_clinica uuid)
 RETURNS boolean
 LANGUAGE sql

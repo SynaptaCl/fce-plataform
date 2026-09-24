@@ -4,7 +4,7 @@ import { requireAuth, requireContext } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import { getIdClinica } from "@/app/actions/patients";
 import { getClinicaConfig } from "@/lib/modules/config";
-import { assertModuleEnabled, assertPuedeFirmar, dbError } from "@/lib/modules/guards";
+import { assertModuleEnabled, assertPuedeEscribir, assertPuedeFirmar, dbError } from "@/lib/modules/guards";
 import { getProfesionalActivo } from "@/lib/fce/profesional";
 import type { ActionResult } from "@/lib/modules/guards";
 import type { Rol } from "@/lib/modules/registry";
@@ -121,11 +121,14 @@ export async function crearPlanIntervencion(params: {
   condicionCodigo?: string;
   titulo: string;
 }): Promise<ActionResult<{ planId: string }>> {
-  const { supabase, user, idClinica } = await requireContext();
+  const { supabase, user, idClinica, rol: rolCtx } = await requireContext();
 
   const config = await getClinicaConfig(idClinica, supabase);
   const moduleGuard = assertModuleEnabled(config, "M10_plan_intervencion");
   if (!moduleGuard.success) return moduleGuard;
+
+  const escrituraGuard = assertPuedeEscribir(rolCtx as Rol);
+  if (!escrituraGuard.success) return escrituraGuard;
 
   const fechaInicio = new Date().toLocaleDateString("sv-SE", {
     timeZone: "America/Santiago",
@@ -177,11 +180,14 @@ export async function actualizarPlanIntervencion(
     >
   >
 ): Promise<ActionResult> {
-  const { supabase, user, idClinica } = await requireContext();
+  const { supabase, user, idClinica, rol: rolCtx } = await requireContext();
 
   const config = await getClinicaConfig(idClinica, supabase);
   const moduleGuard = assertModuleEnabled(config, "M10_plan_intervencion");
   if (!moduleGuard.success) return moduleGuard;
+
+  const escrituraGuard = assertPuedeEscribir(rolCtx as Rol);
+  if (!escrituraGuard.success) return escrituraGuard;
 
   // Verificar que el plan pertenece a la clínica y no está cerrado
   const { data: plan, error: fetchError } = await supabase
@@ -240,11 +246,14 @@ export async function upsertObjetivo(
     orden?: number;
   }
 ): Promise<ActionResult<{ id: string }>> {
-  const { supabase, user, idClinica } = await requireContext();
+  const { supabase, user, idClinica, rol: rolCtx } = await requireContext();
 
   const config = await getClinicaConfig(idClinica, supabase);
   const moduleGuard = assertModuleEnabled(config, "M10_plan_intervencion");
   if (!moduleGuard.success) return moduleGuard;
+
+  const escrituraGuard = assertPuedeEscribir(rolCtx as Rol);
+  if (!escrituraGuard.success) return escrituraGuard;
 
   // Verificar que el plan existe, pertenece a la clínica y no está cerrado
   const { data: plan, error: planError } = await supabase
@@ -368,11 +377,14 @@ export async function upsertObjetivo(
 // ── eliminarObjetivo ───────────────────────────────────────────────────────
 
 export async function eliminarObjetivo(objetivoId: string): Promise<ActionResult> {
-  const { supabase, user, idClinica } = await requireContext();
+  const { supabase, user, idClinica, rol: rolCtx } = await requireContext();
 
   const config = await getClinicaConfig(idClinica, supabase);
   const moduleGuard = assertModuleEnabled(config, "M10_plan_intervencion");
   if (!moduleGuard.success) return moduleGuard;
+
+  const escrituraGuard = assertPuedeEscribir(rolCtx as Rol);
+  if (!escrituraGuard.success) return escrituraGuard;
 
   // Fetch objetivo para verificar id_clinica y estado del plan
   const { data: obj, error: fetchError } = await supabase

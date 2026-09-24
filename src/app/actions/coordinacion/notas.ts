@@ -40,6 +40,20 @@ export async function crearNotaAdministrativa(
     return { success: false, error: "No se encontró tu usuario administrativo en esta clínica." };
   }
 
+  // Defense-in-depth: RLS ya exige que el paciente sea de la misma clínica
+  // (ver migration 20260923_03), pero se verifica explícitamente antes del
+  // INSERT para devolver un error claro en vez de un rechazo genérico de RLS.
+  const { data: paciente, error: pacienteError } = await supabase
+    .from("pacientes")
+    .select("id")
+    .eq("id", patientId)
+    .eq("id_clinica", idClinica)
+    .maybeSingle();
+
+  if (pacienteError || !paciente) {
+    return { success: false, error: "Paciente no encontrado en esta clínica." };
+  }
+
   const { data, error } = await supabase
     .from("fce_notas_administrativas")
     .insert({
