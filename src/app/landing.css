@@ -1,0 +1,202 @@
+/* ═════════════════════════ Kliniva Landing ═════════════════════════ */
+
+html:has(.kl-landing) {
+  scroll-behavior: smooth;
+}
+
+/* ── Hero: deep teal con textura de papel clínico ── */
+.kl-hero {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background:
+    radial-gradient(
+      56rem 32rem at 88% -12%,
+      color-mix(in oklab, var(--color-kp-accent) 20%, transparent),
+      transparent 62%
+    ),
+    radial-gradient(
+      44rem 30rem at -12% 115%,
+      color-mix(in oklab, var(--color-kp-accent) 13%, transparent),
+      transparent 60%
+    ),
+    linear-gradient(
+      158deg,
+      color-mix(in oklab, var(--color-kp-primary-deep) 72%, #010f0e) 0%,
+      var(--color-kp-primary-deep) 48%,
+      color-mix(in oklab, var(--color-kp-primary) 82%, var(--color-kp-primary-deep))
+        100%
+    );
+}
+
+.kl-hero::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-image: linear-gradient(
+      rgba(255, 255, 255, 0.05) 1px,
+      transparent 1px
+    ),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+  background-size: 44px 44px;
+  -webkit-mask-image: radial-gradient(
+    72% 68% at 50% 18%,
+    black 28%,
+    transparent 100%
+  );
+  mask-image: radial-gradient(72% 68% at 50% 18%, black 28%, transparent 100%);
+}
+
+/* ── Banda de seguridad ── */
+.kl-secure-band {
+  background: linear-gradient(
+    160deg,
+    color-mix(in oklab, var(--color-kp-primary-deep) 82%, #010c0b) 0%,
+    var(--color-kp-primary-deep) 100%
+  );
+}
+
+/* ── Footer ── */
+.kl-footer {
+  background: color-mix(in oklab, var(--color-kp-primary-deep) 55%, #01100f);
+}
+
+/* ── Tiles de módulos ── */
+.kl-tile {
+  transition:
+    border-color 0.2s ease,
+    transform 0.2s ease,
+    background-color 0.2s ease;
+}
+
+.kl-tile:hover {
+  border-color: color-mix(
+    in oklab,
+    var(--color-kp-accent) 45%,
+    var(--color-kp-border)
+  );
+  background-color: #ffffff;
+  transform: translateY(-2px);
+}
+
+/* ── Mock de producto ── */
+.kl-mock {
+  box-shadow: 0 22px 44px -22px rgba(1, 45, 45, 0.45);
+}
+
+.kl-chip-float {
+  box-shadow: 0 4px 10px -4px rgba(1, 45, 45, 0.28);
+}
+
+/* ── Línea ECG (divisor hero → módulos) ── */
+.kl-ecg path {
+  stroke-dasharray: 1900;
+  stroke-dashoffset: 1900;
+}
+
+/* ── Nav links ── */
+.kl-navlink {
+  position: relative;
+}
+
+.kl-navlink::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 100%;
+  bottom: -4px;
+  height: 2px;
+  background: var(--color-kp-accent);
+  transition: right 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.kl-navlink:hover::after {
+  right: 0;
+}
+
+/* ── Botón flecha ── */
+.kl-arrow {
+  transition: transform 0.2s ease;
+}
+
+a:hover .kl-arrow,
+button:hover .kl-arrow {
+  transform: translateX(3px);
+}
+
+/* ═══════════ Animaciones (solo si el usuario acepta motion) ═══════════ */
+@media (prefers-reduced-motion: no-preference) {
+  .kl-rise {
+    opacity: 0;
+    animation: kl-rise 0.85s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  .kl-rise-1 { animation-delay: 0.05s; }
+  .kl-rise-2 { animation-delay: 0.15s; }
+  .kl-rise-3 { animation-delay: 0.25s; }
+  .kl-rise-4 { animation-delay: 0.35s; }
+  .kl-rise-5 { animation-delay: 0.45s; }
+  .kl-rise-6 { animation-delay: 0.55s; }
+
+  @keyframes kl-rise {
+    from {
+      opacity: 0;
+      transform: translateY(16px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .kl-float {
+    animation: kl-float 7s ease-in-out infinite;
+  }
+
+  .kl-float-slow {
+    animation: kl-float 9s ease-in-out 1.2s infinite;
+  }
+
+  @keyframes kl-float {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-8px);
+    }
+  }
+
+  .kl-ecg path {
+    animation: kl-draw 3s 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  }
+
+  @keyframes kl-draw {
+    to {
+      stroke-dashoffset: 0;
+    }
+  }
+
+  .kl-pulse-dot {
+    animation: kl-pulse 2.4s ease-out infinite;
+  }
+
+  @keyframes kl-pulse {
+    0% {
+      box-shadow: 0 0 0 0 color-mix(in oklab, var(--color-kp-accent) 55%, transparent);
+    }
+    70% {
+      box-shadow: 0 0 0 9px transparent;
+    }
+    100% {
+      box-shadow: 0 0 0 0 transparent;
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html:has(.kl-landing) {
+    scroll-behavior: auto;
+  }
+}
