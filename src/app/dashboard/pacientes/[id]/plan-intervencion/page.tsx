@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
-import Link from "next/link";
-import { ChevronLeft, ClipboardList } from "lucide-react";
+import { ClipboardList } from "lucide-react";
+import { BackLink } from "@/components/ui/BackLink";
 import { requireModule } from "@/lib/modules/guards";
 import { getClinicaConfigFromSession } from "@/lib/modules/config";
 import { getPatientById } from "@/app/actions/patients";
@@ -41,18 +41,11 @@ export default async function PlanIntervencionPage({
 
   return (
     <div className="max-w-3xl space-y-5">
-      {/* Breadcrumb */}
-      <div className="flex items-center gap-1.5 text-sm text-ink-3">
-        <Link
-          href={`/dashboard/pacientes/${id}`}
-          className="flex items-center gap-1 hover:text-kp-accent transition-colors"
-        >
-          <ChevronLeft className="w-4 h-4" />
-          {fullName}
-        </Link>
-        <span>/</span>
-        <span className="text-ink-2 font-medium">M10 · Plan de Intervención</span>
-      </div>
+      <BackLink
+        href={`/dashboard/pacientes/${id}`}
+        label={fullName}
+        current="M10 · Plan de Intervención"
+      />
 
       {/* Patient summary */}
       <div className="bg-surface-1 rounded-xl border border-kp-border px-5 py-3 flex items-center gap-3">

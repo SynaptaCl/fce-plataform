@@ -1,6 +1,6 @@
 import { notFound, redirect } from "next/navigation";
-import Link from "next/link";
-import { ChevronLeft, Share2, Info } from "lucide-react";
+import { Share2, Info } from "lucide-react";
+import { BackLink } from "@/components/ui/BackLink";
 import { createClient } from "@/lib/supabase/server";
 import { getPatientById } from "@/app/actions/patients";
 import {
@@ -101,18 +101,11 @@ export default async function FhirPage({
 
   return (
     <div className="space-y-4 max-w-4xl">
-      {/* Breadcrumb */}
-      <div className="flex items-center gap-1.5 text-sm text-ink-3">
-        <Link
-          href={`/dashboard/pacientes/${id}`}
-          className="flex items-center gap-1 hover:text-kp-accent transition-colors"
-        >
-          <ChevronLeft className="w-4 h-4" />
-          {fullName}
-        </Link>
-        <span>/</span>
-        <span className="text-ink-2 font-medium">FHIR Preview</span>
-      </div>
+      <BackLink
+        href={`/dashboard/pacientes/${id}`}
+        label={fullName}
+        current="FHIR Preview"
+      />
 
       {/* Page header */}
       <div className="flex items-start justify-between flex-wrap gap-3">

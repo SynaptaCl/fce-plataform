@@ -1,11 +1,11 @@
 import { notFound } from "next/navigation";
-import Link from "next/link";
-import { ChevronLeft, ClipboardList, Activity } from "lucide-react";
+import { ClipboardList, Activity } from "lucide-react";
 import { requireModule } from "@/lib/modules/guards";
 import { getClinicaConfigFromSession } from "@/lib/modules/config";
 import { getPatientById } from "@/app/actions/patients";
 import { getAnamnesis, getLatestVitalSigns } from "@/app/actions/anamnesis";
 import { Card } from "@/components/ui/Card";
+import { BackLink } from "@/components/ui/BackLink";
 import { AnamnesisForm } from "@/components/shared/AnamnesisForm";
 import { VitalSignsPanel } from "@/components/shared/VitalSignsPanel";
 import { calculateAge, formatRut } from "@/lib/utils";
@@ -51,18 +51,11 @@ export default async function AnamnesisPage({
 
   return (
     <div className="max-w-3xl space-y-5">
-      {/* Breadcrumb */}
-      <div className="flex items-center gap-1.5 text-sm text-ink-3">
-        <Link
-          href={`/dashboard/pacientes/${id}`}
-          className="flex items-center gap-1 hover:text-kp-accent transition-colors"
-        >
-          <ChevronLeft className="w-4 h-4" />
-          {fullName}
-        </Link>
-        <span>/</span>
-        <span className="text-ink-2 font-medium">M2 · Anamnesis</span>
-      </div>
+      <BackLink
+        href={`/dashboard/pacientes/${id}`}
+        label={fullName}
+        current="M2 · Anamnesis"
+      />
 
       {/* Patient summary */}
       <div className="bg-surface-1 rounded-xl border border-kp-border px-5 py-3 flex items-center gap-3">

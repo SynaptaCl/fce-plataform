@@ -1,25 +1,14 @@
-import Link from "next/link";
-import { ChevronLeft, FilePlus } from "lucide-react";
+import { FilePlus } from "lucide-react";
 import { PatientForm } from "@/components/shared/PatientForm";
 import { Card } from "@/components/ui/Card";
+import { BackLink } from "@/components/ui/BackLink";
 
 export const metadata = { title: "Nueva Ficha de Paciente" };
 
 export default function NuevoPacientePage() {
   return (
     <div className="max-w-2xl space-y-5">
-      {/* Breadcrumb */}
-      <div className="flex items-center gap-1.5 text-sm text-ink-3">
-        <Link
-          href="/dashboard/pacientes"
-          className="flex items-center gap-1 hover:text-kp-accent transition-colors"
-        >
-          <ChevronLeft className="w-4 h-4" />
-          Pacientes
-        </Link>
-        <span>/</span>
-        <span className="text-ink-2 font-medium">Nueva ficha</span>
-      </div>
+      <BackLink href="/dashboard/pacientes" label="Pacientes" current="Nueva ficha" />
 
       <div>
         <h2 className="text-2xl font-bold text-ink-1 flex items-center gap-2">

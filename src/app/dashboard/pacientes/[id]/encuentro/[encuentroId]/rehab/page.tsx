@@ -1,6 +1,6 @@
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { notFound, redirect } from "next/navigation";
+import { BackLink } from "@/components/ui/BackLink";
 import { PatientHeader } from "@/components/layout/PatientHeader";
 import {
   SoapForm,
@@ -116,6 +116,11 @@ export default async function RehabPage({
   const encuentroFinalizado = encuentro.status === "finalizado";
   const readOnly = encuentroFinalizado || (soapNote?.firmado ?? false);
 
+  const fullName =
+    [patient.nombre, patient.apellido_paterno, patient.apellido_materno]
+      .filter(Boolean)
+      .join(" ") || "Paciente";
+
   const horaInicio = encuentro.created_at
     ? new Date(encuentro.created_at).toLocaleTimeString("es-CL", {
         hour: "2-digit",
@@ -192,6 +197,12 @@ export default async function RehabPage({
 
   return (
     <div className="space-y-4">
+      <BackLink
+        href={`/dashboard/pacientes/${id}`}
+        label={fullName}
+        current="Encuentro rehabilitación"
+      />
+
       {/* PatientHeader sticky — badge estado + Firmar y cerrar siempre visibles */}
       <div className="sticky top-0 z-20">
         <PatientHeader
@@ -252,15 +263,6 @@ export default async function RehabPage({
             {renderEval()}
           </div>
         </div>
-      </div>
-
-      <div className="flex justify-start">
-        <Link
-          href={`/dashboard/pacientes/${id}`}
-          className="text-sm text-ink-3 hover:text-kp-accent transition-colors"
-        >
-          ← Volver a la ficha
-        </Link>
       </div>
     </div>
   );

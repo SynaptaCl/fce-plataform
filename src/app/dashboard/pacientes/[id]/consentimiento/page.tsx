@@ -1,6 +1,6 @@
 import { notFound, redirect } from "next/navigation";
-import Link from "next/link";
-import { ChevronLeft, FileSignature } from "lucide-react";
+import { FileSignature } from "lucide-react";
+import { BackLink } from "@/components/ui/BackLink";
 import { createClient } from "@/lib/supabase/server";
 import { requireModule } from "@/lib/modules/guards";
 import { getClinicaConfigFromSession } from "@/lib/modules/config";
@@ -57,18 +57,11 @@ export default async function ConsentimientoPage({
 
   return (
     <div className="max-w-3xl space-y-5">
-      {/* Breadcrumb */}
-      <div className="flex items-center gap-1.5 text-sm text-ink-3">
-        <Link
-          href={`/dashboard/pacientes/${id}`}
-          className="flex items-center gap-1 hover:text-kp-accent transition-colors"
-        >
-          <ChevronLeft className="w-4 h-4" />
-          {fullName}
-        </Link>
-        <span>/</span>
-        <span className="text-ink-2 font-medium">M5 · Consentimiento</span>
-      </div>
+      <BackLink
+        href={`/dashboard/pacientes/${id}`}
+        label={fullName}
+        current="M5 · Consentimiento"
+      />
 
       {/* Patient summary */}
       <div className="bg-surface-1 rounded-xl border border-kp-border px-5 py-4 flex items-center gap-4">

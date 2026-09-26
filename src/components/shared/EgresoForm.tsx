@@ -326,7 +326,7 @@ export function EgresoForm({
               onClick={() => router.push(`/dashboard/pacientes/${patientId}`)}
               className="text-sm text-ink-3 hover:text-kp-accent transition-colors underline"
             >
-              Volver a la ficha del paciente →
+              ← Volver a la ficha del paciente
             </button>
           </div>
         </div>

@@ -1,9 +1,9 @@
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
-import { ChevronLeft } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getClinicaConfigFromSession } from "@/lib/modules/config";
 import { requirePresupuestos, requireInformes } from "@/lib/modules/guards";
+import { BackLink } from "@/components/ui/BackLink";
 import { FichaCompletaExport } from "@/components/shared/FichaCompletaExport";
 import { EpicrisisPdfView } from "@/components/shared/EpicrisisPdfView";
 import { PresupuestoList } from "@/components/modules/PresupuestoList";
@@ -86,7 +86,12 @@ export default async function ExportarPdfPage({
 
   return (
     <div>
-      <Breadcrumb id={id} fullName={fullName} />
+      <BackLink
+        href={`/dashboard/pacientes/${id}`}
+        label={fullName}
+        current="Documentos"
+        className="max-w-[860px] mx-auto mb-3"
+      />
       <TabBar id={id} tabs={tabs} activeTab={activeTab} />
 
       <div className="max-w-[860px] mx-auto">
@@ -111,24 +116,6 @@ export default async function ExportarPdfPage({
 }
 
 // ── Sub-components ─────────────────────────────────────────────────────────────
-
-function Breadcrumb({ id, fullName }: { id: string; fullName: string }) {
-  return (
-    <div
-      className="max-w-[860px] mx-auto mb-3 flex items-center gap-1.5 text-sm"
-      style={{ color: "var(--color-ink-3)" }}
-    >
-      <Link
-        href={`/dashboard/pacientes/${id}`}
-        className="flex items-center gap-1 transition-colors hover:opacity-80"
-        style={{ color: "var(--color-ink-3)" }}
-      >
-        <ChevronLeft className="w-4 h-4" />
-        Volver a ficha de {fullName}
-      </Link>
-    </div>
-  );
-}
 
 function TabBar({
   id,

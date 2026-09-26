@@ -1,9 +1,9 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ChevronLeft, Pencil } from "lucide-react";
+import { Pencil } from "lucide-react";
 import { getPatientById } from "@/app/actions/patients";
 import { PatientForm } from "@/components/shared/PatientForm";
 import { Card } from "@/components/ui/Card";
+import { BackLink } from "@/components/ui/BackLink";
 import { formatRut } from "@/lib/utils";
 
 export async function generateMetadata({
@@ -33,25 +33,12 @@ export default async function EditarPacientePage({
 
   return (
     <div className="max-w-2xl space-y-5">
-      {/* Breadcrumb */}
-      <div className="flex items-center gap-1.5 text-sm text-ink-3">
-        <Link
-          href="/dashboard/pacientes"
-          className="flex items-center gap-1 hover:text-kp-accent transition-colors"
-        >
-          <ChevronLeft className="w-4 h-4" />
-          Pacientes
-        </Link>
-        <span>/</span>
-        <Link
-          href={`/dashboard/pacientes/${id}`}
-          className="hover:text-kp-accent transition-colors truncate max-w-[160px]"
-        >
-          {fullName}
-        </Link>
-        <span>/</span>
-        <span className="text-ink-2 font-medium">Editar M1</span>
-      </div>
+      <BackLink
+        href="/dashboard/pacientes"
+        label="Pacientes"
+        intermediate={{ href: `/dashboard/pacientes/${id}`, label: fullName }}
+        current="Editar M1"
+      />
 
       <div>
         <h2 className="text-2xl font-bold text-ink-1 flex items-center gap-2">

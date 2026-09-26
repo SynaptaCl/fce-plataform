@@ -4,6 +4,7 @@ export { Textarea } from "./Textarea";
 export { Select } from "./Select";
 export { Badge } from "./Badge";
 export { Card } from "./Card";
+export { BackLink } from "./BackLink";
 export { AlertBanner } from "./AlertBanner";
 export { SignatureBlock } from "./SignatureBlock";
 export { LoadingSpinner } from "./LoadingSpinner";

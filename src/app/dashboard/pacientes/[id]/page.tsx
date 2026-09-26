@@ -1,10 +1,9 @@
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { ChevronLeft } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getPatientById } from "@/app/actions/patients";
 import { getPatientTimeline } from "@/app/actions/timeline";
 import { PatientHeader } from "@/components/layout/PatientHeader";
+import { BackLink } from "@/components/ui/BackLink";
 import { ActionBar } from "@/components/shared/ActionBar";
 import { ClinicalTimeline } from "@/components/modules/ClinicalTimeline";
 import { SummaryPanel } from "@/components/shared/SummaryPanel";
@@ -171,18 +170,12 @@ async function _patientDetailPage(
 
   return (
     <div className="flex flex-col" style={{ gap: 0 }}>
-      {/* Breadcrumb */}
-      <div className="flex items-center gap-1.5 text-sm text-ink-3 px-5 py-3">
-        <Link
-          href="/dashboard/pacientes"
-          className="flex items-center gap-1 hover:text-kp-accent transition-colors"
-        >
-          <ChevronLeft className="w-4 h-4" />
-          Pacientes
-        </Link>
-        <span>/</span>
-        <span className="text-ink-2 font-medium truncate">{fullName}</span>
-      </div>
+      <BackLink
+        href="/dashboard/pacientes"
+        label="Pacientes"
+        current={fullName}
+        className="px-5 py-3"
+      />
 
       {/* PatientHeader — compact single line */}
       <PatientHeader

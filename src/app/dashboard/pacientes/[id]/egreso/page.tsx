@@ -5,6 +5,7 @@ import { getEgresosByPaciente } from "@/app/actions/egresos";
 import { getPatientById } from "@/app/actions/patients";
 import { EgresoForm } from "@/components/shared/EgresoForm";
 import { AlertBanner } from "@/components/ui/AlertBanner";
+import { BackLink } from "@/components/ui/BackLink";
 
 export default async function EgresoPage({
   params,
@@ -37,6 +38,12 @@ export default async function EgresoPage({
 
   return (
     <div className="space-y-6 max-w-3xl">
+      <BackLink
+        href={`/dashboard/pacientes/${id}`}
+        label={fullName}
+        current="Egreso"
+      />
+
       <div>
         <h1 className="text-xl font-bold text-ink-1">Egreso de {fullName}</h1>
         <p className="text-sm text-ink-3 mt-1">
