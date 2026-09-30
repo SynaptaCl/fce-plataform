@@ -4,6 +4,7 @@ import { assertPuedeEscribir, dbError } from "@/lib/modules/guards";
 import { requireAuth, requireContext } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import { getModeloDeEspecialidad } from "@/lib/modules/modelos";
+import { getNombreServicioDeProfesionalServicio } from "@/lib/servicios/nombre-servicio";
 import type { ModeloClinico, Rol } from "@/lib/modules/registry";
 import type { ActionResult } from "./patients";
 import { getIdClinica } from "./patients";
@@ -143,13 +144,7 @@ export async function getEncuentroContext(encuentroId: string): Promise<ActionRe
       .maybeSingle();
 
     if (cita?.id_profesional_servicio) {
-      const { data: servicio } = await supabase
-        .from("servicios")
-        .select("nombre")
-        .eq("id", cita.id_profesional_servicio)
-        .maybeSingle();
-
-      nombreServicio = (servicio?.nombre as string) ?? null;
+      nombreServicio = await getNombreServicioDeProfesionalServicio(supabase, cita.id_profesional_servicio);
     }
   }
 

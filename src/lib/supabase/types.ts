@@ -260,23 +260,17 @@ export type Database = {
           created_at: string
           direccion: string | null
           email: string | null
-          fecha_ingreso_programa: string | null
           id: string
           instagram_handle: string | null
           nombre: string
           owner_id: string
           permisos_cliente: Json
           plan: string
-          precio_fundador_uf: number | null
           precio_uf: number | null
-          programa: string | null
           rut_empresa: string | null
           sitio_web: string | null
           slug: string | null
           status: string
-          stripe_account_id: string | null
-          stripe_charges_enabled: boolean | null
-          stripe_onboarding_complete: boolean | null
           telefono: string | null
           tipo_clinica: string | null
           updated_at: string
@@ -297,23 +291,17 @@ export type Database = {
           created_at?: string
           direccion?: string | null
           email?: string | null
-          fecha_ingreso_programa?: string | null
           id?: string
           instagram_handle?: string | null
           nombre: string
           owner_id: string
           permisos_cliente?: Json
           plan?: string
-          precio_fundador_uf?: number | null
           precio_uf?: number | null
-          programa?: string | null
           rut_empresa?: string | null
           sitio_web?: string | null
           slug?: string | null
           status?: string
-          stripe_account_id?: string | null
-          stripe_charges_enabled?: boolean | null
-          stripe_onboarding_complete?: boolean | null
           telefono?: string | null
           tipo_clinica?: string | null
           updated_at?: string
@@ -334,23 +322,17 @@ export type Database = {
           created_at?: string
           direccion?: string | null
           email?: string | null
-          fecha_ingreso_programa?: string | null
           id?: string
           instagram_handle?: string | null
           nombre?: string
           owner_id?: string
           permisos_cliente?: Json
           plan?: string
-          precio_fundador_uf?: number | null
           precio_uf?: number | null
-          programa?: string | null
           rut_empresa?: string | null
           sitio_web?: string | null
           slug?: string | null
           status?: string
-          stripe_account_id?: string | null
-          stripe_charges_enabled?: boolean | null
-          stripe_onboarding_complete?: boolean | null
           telefono?: string | null
           tipo_clinica?: string | null
           updated_at?: string
