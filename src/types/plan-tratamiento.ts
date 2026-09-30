@@ -47,7 +47,7 @@ export interface PlanTratamientoItem {
 
 /**
  * Prestación del catálogo dental (prestaciones_catalogo, ambito='dental').
- * Reemplaza al procedimientos_catalogo deprecado (0 filas en prod).
+ * Sustituye a la extinta procedimientos_catalogo (tabla eliminada 2026-09-29).
  */
 export interface ProcedimientoCatalogo {
   id: string;

@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.4"
+    PostgrestVersion: "14.5"
   }
   public: {
     Tables: {
@@ -70,6 +70,10 @@ export type Database = {
           id_clinica: string
           nombre: string
           rol: string
+          telefono: string | null
+          whatsapp_optin: boolean
+          whatsapp_optin_at: string | null
+          whatsapp_optin_canal: string | null
         }
         Insert: {
           activo?: boolean
@@ -80,6 +84,10 @@ export type Database = {
           id_clinica: string
           nombre: string
           rol?: string
+          telefono?: string | null
+          whatsapp_optin?: boolean
+          whatsapp_optin_at?: string | null
+          whatsapp_optin_canal?: string | null
         }
         Update: {
           activo?: boolean
@@ -90,6 +98,10 @@ export type Database = {
           id_clinica?: string
           nombre?: string
           rol?: string
+          telefono?: string | null
+          whatsapp_optin?: boolean
+          whatsapp_optin_at?: string | null
+          whatsapp_optin_canal?: string | null
         }
         Relationships: [
           {
@@ -494,6 +506,7 @@ export type Database = {
           abono_requerido: boolean
           cancel_note: string | null
           created_at: string
+          descuento_max_pct: number
           flow_merchant_approved_at: string | null
           flow_merchant_id: string | null
           flow_merchant_requested_at: string | null
@@ -503,7 +516,9 @@ export type Database = {
           metodos_aceptados: string[]
           minutos_expiracion_link: number
           modalidades_atencion: string[]
+          modelo_precio: string
           monto_abono_default: number
+          permite_descuento_item: boolean
           proveedor_electronico: string | null
           sin_permanencia: boolean
           trial_dias: number | null
@@ -514,6 +529,7 @@ export type Database = {
           abono_requerido?: boolean
           cancel_note?: string | null
           created_at?: string
+          descuento_max_pct?: number
           flow_merchant_approved_at?: string | null
           flow_merchant_id?: string | null
           flow_merchant_requested_at?: string | null
@@ -523,7 +539,9 @@ export type Database = {
           metodos_aceptados?: string[]
           minutos_expiracion_link?: number
           modalidades_atencion?: string[]
+          modelo_precio?: string
           monto_abono_default?: number
+          permite_descuento_item?: boolean
           proveedor_electronico?: string | null
           sin_permanencia?: boolean
           trial_dias?: number | null
@@ -534,6 +552,7 @@ export type Database = {
           abono_requerido?: boolean
           cancel_note?: string | null
           created_at?: string
+          descuento_max_pct?: number
           flow_merchant_approved_at?: string | null
           flow_merchant_id?: string | null
           flow_merchant_requested_at?: string | null
@@ -543,7 +562,9 @@ export type Database = {
           metodos_aceptados?: string[]
           minutos_expiracion_link?: number
           modalidades_atencion?: string[]
+          modelo_precio?: string
           monto_abono_default?: number
+          permite_descuento_item?: boolean
           proveedor_electronico?: string | null
           sin_permanencia?: boolean
           trial_dias?: number | null
@@ -627,6 +648,89 @@ export type Database = {
           },
         ]
       }
+      consentimiento_tokens: {
+        Row: {
+          created_at: string
+          expira_at: string
+          id: string
+          id_cita: string | null
+          id_clinica: string
+          id_paciente: string
+          token_hash: string
+          usado_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          expira_at: string
+          id?: string
+          id_cita?: string | null
+          id_clinica: string
+          id_paciente: string
+          token_hash: string
+          usado_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          expira_at?: string
+          id?: string
+          id_cita?: string | null
+          id_clinica?: string
+          id_paciente?: string
+          token_hash?: string
+          usado_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "consentimiento_tokens_id_cita_fkey"
+            columns: ["id_cita"]
+            isOneToOne: false
+            referencedRelation: "citas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "consentimiento_tokens_id_cita_fkey"
+            columns: ["id_cita"]
+            isOneToOne: false
+            referencedRelation: "citas_hoy"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "consentimiento_tokens_id_cita_fkey"
+            columns: ["id_cita"]
+            isOneToOne: false
+            referencedRelation: "vista_agenda_diaria"
+            referencedColumns: ["id_cita"]
+          },
+          {
+            foreignKeyName: "consentimiento_tokens_id_clinica_fkey"
+            columns: ["id_clinica"]
+            isOneToOne: false
+            referencedRelation: "clinicas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "consentimiento_tokens_id_paciente_fkey"
+            columns: ["id_paciente"]
+            isOneToOne: false
+            referencedRelation: "pacientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "consentimiento_tokens_id_paciente_fkey"
+            columns: ["id_paciente"]
+            isOneToOne: false
+            referencedRelation: "vista_agenda_diaria"
+            referencedColumns: ["id_paciente"]
+          },
+          {
+            foreignKeyName: "consentimiento_tokens_id_paciente_fkey"
+            columns: ["id_paciente"]
+            isOneToOne: false
+            referencedRelation: "vista_pacientes_clinicos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       conversaciones: {
         Row: {
           canal: Database["public"]["Enums"]["canal_contacto"]
@@ -700,6 +804,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      demo_requests: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: number
+          ip_address: string | null
+          nombre: string | null
+          origen_seccion: string
+          telefono: string | null
+          user_agent: string | null
+          utm_campaign: string | null
+          utm_medium: string | null
+          utm_source: string | null
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id?: never
+          ip_address?: string | null
+          nombre?: string | null
+          origen_seccion: string
+          telefono?: string | null
+          user_agent?: string | null
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: never
+          ip_address?: string | null
+          nombre?: string | null
+          origen_seccion?: string
+          telefono?: string | null
+          user_agent?: string | null
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+        }
+        Relationships: []
       }
       disponibilidad: {
         Row: {
@@ -893,6 +1039,112 @@ export type Database = {
         }
         Relationships: []
       }
+      fce_adendas: {
+        Row: {
+          contenido: string
+          created_at: string
+          created_by: string
+          firmado: boolean
+          firmado_at: string | null
+          firmado_por: string | null
+          id: string
+          id_clinica: string
+          id_documento: string
+          id_encuentro: string | null
+          id_paciente: string
+          motivo: string
+          override_director: boolean
+          override_motivo: string | null
+          override_por: string | null
+          tipo_adenda: string
+          tipo_documento: string
+          updated_at: string
+        }
+        Insert: {
+          contenido: string
+          created_at?: string
+          created_by: string
+          firmado?: boolean
+          firmado_at?: string | null
+          firmado_por?: string | null
+          id?: string
+          id_clinica: string
+          id_documento: string
+          id_encuentro?: string | null
+          id_paciente: string
+          motivo: string
+          override_director?: boolean
+          override_motivo?: string | null
+          override_por?: string | null
+          tipo_adenda: string
+          tipo_documento: string
+          updated_at?: string
+        }
+        Update: {
+          contenido?: string
+          created_at?: string
+          created_by?: string
+          firmado?: boolean
+          firmado_at?: string | null
+          firmado_por?: string | null
+          id?: string
+          id_clinica?: string
+          id_documento?: string
+          id_encuentro?: string | null
+          id_paciente?: string
+          motivo?: string
+          override_director?: boolean
+          override_motivo?: string | null
+          override_por?: string | null
+          tipo_adenda?: string
+          tipo_documento?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fce_adendas_id_clinica_fkey"
+            columns: ["id_clinica"]
+            isOneToOne: false
+            referencedRelation: "clinicas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fce_adendas_id_encuentro_fkey"
+            columns: ["id_encuentro"]
+            isOneToOne: false
+            referencedRelation: "fce_encuentros"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fce_adendas_id_encuentro_fkey"
+            columns: ["id_encuentro"]
+            isOneToOne: false
+            referencedRelation: "vista_agenda_diaria"
+            referencedColumns: ["id_encuentro"]
+          },
+          {
+            foreignKeyName: "fce_adendas_id_paciente_fkey"
+            columns: ["id_paciente"]
+            isOneToOne: false
+            referencedRelation: "pacientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fce_adendas_id_paciente_fkey"
+            columns: ["id_paciente"]
+            isOneToOne: false
+            referencedRelation: "vista_agenda_diaria"
+            referencedColumns: ["id_paciente"]
+          },
+          {
+            foreignKeyName: "fce_adendas_id_paciente_fkey"
+            columns: ["id_paciente"]
+            isOneToOne: false
+            referencedRelation: "vista_pacientes_clinicos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fce_anamnesis: {
         Row: {
           alergias: Json | null
@@ -1002,6 +1254,7 @@ export type Database = {
           circ_cintura_cm: number | null
           clasificacion: string | null
           created_at: string
+          edad_meses_registro: number | null
           formula_grasa: string | null
           id: string
           id_clinica: string
@@ -1032,6 +1285,7 @@ export type Database = {
           circ_cintura_cm?: number | null
           clasificacion?: string | null
           created_at?: string
+          edad_meses_registro?: number | null
           formula_grasa?: string | null
           id?: string
           id_clinica: string
@@ -1062,6 +1316,7 @@ export type Database = {
           circ_cintura_cm?: number | null
           clasificacion?: string | null
           created_at?: string
+          edad_meses_registro?: number | null
           formula_grasa?: string | null
           id?: string
           id_clinica?: string
@@ -1145,6 +1400,7 @@ export type Database = {
           id_clinica: string
           id_paciente: string
           tipo: string
+          updated_at: string | null
           version: number
         }
         Insert: {
@@ -1159,6 +1415,7 @@ export type Database = {
           id_clinica: string
           id_paciente: string
           tipo: string
+          updated_at?: string | null
           version?: number
         }
         Update: {
@@ -1173,6 +1430,7 @@ export type Database = {
           id_clinica?: string
           id_paciente?: string
           tipo?: string
+          updated_at?: string | null
           version?: number
         }
         Relationships: [
@@ -1354,6 +1612,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "fce_encuentros_especialidad_fkey"
+            columns: ["especialidad"]
+            isOneToOne: false
+            referencedRelation: "especialidades_catalogo"
+            referencedColumns: ["codigo"]
+          },
+          {
             foreignKeyName: "fce_encuentros_id_cita_fkey"
             columns: ["id_cita"]
             isOneToOne: false
@@ -1471,6 +1736,13 @@ export type Database = {
             referencedColumns: ["id_profesional"]
           },
           {
+            foreignKeyName: "fce_evaluaciones_especialidad_fkey"
+            columns: ["especialidad"]
+            isOneToOne: false
+            referencedRelation: "especialidades_catalogo"
+            referencedColumns: ["codigo"]
+          },
+          {
             foreignKeyName: "fce_evaluaciones_id_clinica_fkey"
             columns: ["id_clinica"]
             isOneToOne: false
@@ -1507,6 +1779,222 @@ export type Database = {
           },
           {
             foreignKeyName: "fce_evaluaciones_id_paciente_fkey"
+            columns: ["id_paciente"]
+            isOneToOne: false
+            referencedRelation: "vista_pacientes_clinicos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fce_ficha_estetica_fotos: {
+        Row: {
+          created_by: string
+          id: string
+          id_clinica: string
+          id_ficha_estetica: string | null
+          id_paciente: string
+          region: string | null
+          storage_path: string
+          tipo: string
+          tomada_at: string
+          zona_codigo: string | null
+        }
+        Insert: {
+          created_by: string
+          id?: string
+          id_clinica: string
+          id_ficha_estetica?: string | null
+          id_paciente: string
+          region?: string | null
+          storage_path: string
+          tipo: string
+          tomada_at: string
+          zona_codigo?: string | null
+        }
+        Update: {
+          created_by?: string
+          id?: string
+          id_clinica?: string
+          id_ficha_estetica?: string | null
+          id_paciente?: string
+          region?: string | null
+          storage_path?: string
+          tipo?: string
+          tomada_at?: string
+          zona_codigo?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fce_ficha_estetica_fotos_id_clinica_fkey"
+            columns: ["id_clinica"]
+            isOneToOne: false
+            referencedRelation: "clinicas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fce_ficha_estetica_fotos_id_ficha_estetica_fkey"
+            columns: ["id_ficha_estetica"]
+            isOneToOne: false
+            referencedRelation: "fce_fichas_esteticas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fce_ficha_estetica_fotos_id_paciente_fkey"
+            columns: ["id_paciente"]
+            isOneToOne: false
+            referencedRelation: "pacientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fce_ficha_estetica_fotos_id_paciente_fkey"
+            columns: ["id_paciente"]
+            isOneToOne: false
+            referencedRelation: "vista_agenda_diaria"
+            referencedColumns: ["id_paciente"]
+          },
+          {
+            foreignKeyName: "fce_ficha_estetica_fotos_id_paciente_fkey"
+            columns: ["id_paciente"]
+            isOneToOne: false
+            referencedRelation: "vista_pacientes_clinicos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fce_ficha_estetica_zonas: {
+        Row: {
+          dosis: number | null
+          id: string
+          id_ficha_estetica: string
+          id_procedimiento: string | null
+          lote: string | null
+          observaciones: string | null
+          producto_comercial: string | null
+          region: string
+          tecnica: string | null
+          unidad_dosis: string | null
+          zona_codigo: string
+        }
+        Insert: {
+          dosis?: number | null
+          id?: string
+          id_ficha_estetica: string
+          id_procedimiento?: string | null
+          lote?: string | null
+          observaciones?: string | null
+          producto_comercial?: string | null
+          region: string
+          tecnica?: string | null
+          unidad_dosis?: string | null
+          zona_codigo: string
+        }
+        Update: {
+          dosis?: number | null
+          id?: string
+          id_ficha_estetica?: string
+          id_procedimiento?: string | null
+          lote?: string | null
+          observaciones?: string | null
+          producto_comercial?: string | null
+          region?: string
+          tecnica?: string | null
+          unidad_dosis?: string | null
+          zona_codigo?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fce_ficha_estetica_zonas_id_ficha_estetica_fkey"
+            columns: ["id_ficha_estetica"]
+            isOneToOne: false
+            referencedRelation: "fce_fichas_esteticas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      fce_fichas_esteticas: {
+        Row: {
+          created_at: string
+          created_by: string
+          firmado: boolean
+          firmado_at: string | null
+          firmado_por: string | null
+          id: string
+          id_clinica: string
+          id_encuentro: string
+          id_paciente: string
+          motivo: string | null
+          observaciones_generales: string | null
+          tipo_ficha: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          firmado?: boolean
+          firmado_at?: string | null
+          firmado_por?: string | null
+          id?: string
+          id_clinica: string
+          id_encuentro: string
+          id_paciente: string
+          motivo?: string | null
+          observaciones_generales?: string | null
+          tipo_ficha: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          firmado?: boolean
+          firmado_at?: string | null
+          firmado_por?: string | null
+          id?: string
+          id_clinica?: string
+          id_encuentro?: string
+          id_paciente?: string
+          motivo?: string | null
+          observaciones_generales?: string | null
+          tipo_ficha?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fce_fichas_esteticas_id_clinica_fkey"
+            columns: ["id_clinica"]
+            isOneToOne: false
+            referencedRelation: "clinicas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fce_fichas_esteticas_id_encuentro_fkey"
+            columns: ["id_encuentro"]
+            isOneToOne: false
+            referencedRelation: "fce_encuentros"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fce_fichas_esteticas_id_encuentro_fkey"
+            columns: ["id_encuentro"]
+            isOneToOne: false
+            referencedRelation: "vista_agenda_diaria"
+            referencedColumns: ["id_encuentro"]
+          },
+          {
+            foreignKeyName: "fce_fichas_esteticas_id_paciente_fkey"
+            columns: ["id_paciente"]
+            isOneToOne: false
+            referencedRelation: "pacientes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fce_fichas_esteticas_id_paciente_fkey"
+            columns: ["id_paciente"]
+            isOneToOne: false
+            referencedRelation: "vista_agenda_diaria"
+            referencedColumns: ["id_paciente"]
+          },
+          {
+            foreignKeyName: "fce_fichas_esteticas_id_paciente_fkey"
             columns: ["id_paciente"]
             isOneToOne: false
             referencedRelation: "vista_pacientes_clinicos"
@@ -1749,6 +2237,7 @@ export type Database = {
         Row: {
           analisis_cif: Json | null
           created_at: string | null
+          created_by: string | null
           firmado: boolean
           firmado_at: string | null
           firmado_por: string | null
@@ -1762,10 +2251,12 @@ export type Database = {
           proxima_sesion: string | null
           subjetivo: string | null
           tareas_domiciliarias: string | null
+          updated_at: string
         }
         Insert: {
           analisis_cif?: Json | null
           created_at?: string | null
+          created_by?: string | null
           firmado?: boolean
           firmado_at?: string | null
           firmado_por?: string | null
@@ -1779,10 +2270,12 @@ export type Database = {
           proxima_sesion?: string | null
           subjetivo?: string | null
           tareas_domiciliarias?: string | null
+          updated_at?: string
         }
         Update: {
           analisis_cif?: Json | null
           created_at?: string | null
+          created_by?: string | null
           firmado?: boolean
           firmado_at?: string | null
           firmado_por?: string | null
@@ -1796,6 +2289,7 @@ export type Database = {
           proxima_sesion?: string | null
           subjetivo?: string | null
           tareas_domiciliarias?: string | null
+          updated_at?: string
         }
         Relationships: [
           {
@@ -2025,6 +2519,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "vista_pacientes_clinicos"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fce_odontograma_historial_registrado_por_fkey"
+            columns: ["registrado_por"]
+            isOneToOne: false
+            referencedRelation: "profesionales"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fce_odontograma_historial_registrado_por_fkey"
+            columns: ["registrado_por"]
+            isOneToOne: false
+            referencedRelation: "vista_agenda_diaria"
+            referencedColumns: ["id_profesional"]
           },
         ]
       }
@@ -2890,33 +3398,82 @@ export type Database = {
       }
       fce_presupuesto_items: {
         Row: {
+          afecta_iva: boolean
           cantidad: number
+          codigo: string | null
           created_at: string
           descripcion: string
+          descuento_clp: number
+          descuento_pct: number
+          honorario_clp: number | null
+          honorario_tipo: string | null
+          honorario_valor: number | null
           id: string
+          id_prestacion: string | null
           id_presupuesto: string
+          id_profesional: string | null
           orden: number
+          pieza: number | null
+          precio_base: number
           precio_unitario: number
+          recargo_pct: number
+          superficie: string | null
+          total_linea_clp: number
         }
         Insert: {
+          afecta_iva?: boolean
           cantidad?: number
+          codigo?: string | null
           created_at?: string
           descripcion: string
+          descuento_clp?: number
+          descuento_pct?: number
+          honorario_clp?: number | null
+          honorario_tipo?: string | null
+          honorario_valor?: number | null
           id?: string
+          id_prestacion?: string | null
           id_presupuesto: string
+          id_profesional?: string | null
           orden?: number
+          pieza?: number | null
+          precio_base?: number
           precio_unitario: number
+          recargo_pct?: number
+          superficie?: string | null
+          total_linea_clp?: number
         }
         Update: {
+          afecta_iva?: boolean
           cantidad?: number
+          codigo?: string | null
           created_at?: string
           descripcion?: string
+          descuento_clp?: number
+          descuento_pct?: number
+          honorario_clp?: number | null
+          honorario_tipo?: string | null
+          honorario_valor?: number | null
           id?: string
+          id_prestacion?: string | null
           id_presupuesto?: string
+          id_profesional?: string | null
           orden?: number
+          pieza?: number | null
+          precio_base?: number
           precio_unitario?: number
+          recargo_pct?: number
+          superficie?: string | null
+          total_linea_clp?: number
         }
         Relationships: [
+          {
+            foreignKeyName: "fce_presupuesto_items_id_prestacion_fkey"
+            columns: ["id_prestacion"]
+            isOneToOne: false
+            referencedRelation: "prestaciones_catalogo"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "fce_presupuesto_items_id_presupuesto_fkey"
             columns: ["id_presupuesto"]
@@ -2924,11 +3481,27 @@ export type Database = {
             referencedRelation: "fce_presupuestos"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "fce_presupuesto_items_id_profesional_fkey"
+            columns: ["id_profesional"]
+            isOneToOne: false
+            referencedRelation: "profesionales"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fce_presupuesto_items_id_profesional_fkey"
+            columns: ["id_profesional"]
+            isOneToOne: false
+            referencedRelation: "vista_agenda_diaria"
+            referencedColumns: ["id_profesional"]
+          },
         ]
       }
       fce_presupuestos: {
         Row: {
           created_at: string
+          created_by: string | null
+          descuento_clp: number
           estado: string
           firmado: boolean
           firmado_at: string | null
@@ -2936,13 +3509,22 @@ export type Database = {
           id_clinica: string
           id_encuentro: string | null
           id_paciente: string
+          id_plan_tratamiento: string | null
           id_profesional: string
+          iva_clp: number
+          modelo_precio: string | null
+          neto_clp: number
           notas: string | null
+          subtotal_clp: number
           titulo: string
+          total_clp: number
           updated_at: string
+          validez_dias: number | null
         }
         Insert: {
           created_at?: string
+          created_by?: string | null
+          descuento_clp?: number
           estado?: string
           firmado?: boolean
           firmado_at?: string | null
@@ -2950,13 +3532,22 @@ export type Database = {
           id_clinica: string
           id_encuentro?: string | null
           id_paciente: string
+          id_plan_tratamiento?: string | null
           id_profesional: string
+          iva_clp?: number
+          modelo_precio?: string | null
+          neto_clp?: number
           notas?: string | null
+          subtotal_clp?: number
           titulo: string
+          total_clp?: number
           updated_at?: string
+          validez_dias?: number | null
         }
         Update: {
           created_at?: string
+          created_by?: string | null
+          descuento_clp?: number
           estado?: string
           firmado?: boolean
           firmado_at?: string | null
@@ -2964,10 +3555,17 @@ export type Database = {
           id_clinica?: string
           id_encuentro?: string | null
           id_paciente?: string
+          id_plan_tratamiento?: string | null
           id_profesional?: string
+          iva_clp?: number
+          modelo_precio?: string | null
+          neto_clp?: number
           notas?: string | null
+          subtotal_clp?: number
           titulo?: string
+          total_clp?: number
           updated_at?: string
+          validez_dias?: number | null
         }
         Relationships: [
           {
@@ -3010,6 +3608,13 @@ export type Database = {
             columns: ["id_paciente"]
             isOneToOne: false
             referencedRelation: "vista_pacientes_clinicos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fce_presupuestos_id_plan_tratamiento_fkey"
+            columns: ["id_plan_tratamiento"]
+            isOneToOne: false
+            referencedRelation: "fce_plan_tratamiento"
             referencedColumns: ["id"]
           },
           {
@@ -3341,6 +3946,190 @@ export type Database = {
         }
         Relationships: []
       }
+      lead_diagnosticos: {
+        Row: {
+          cantidad_prof: string | null
+          created_at: string
+          desafios: string[] | null
+          especialidad: string | null
+          herramienta: string | null
+          id: number
+          id_lead: string
+          ip_address: string | null
+          plan_recomendado: string | null
+          precio_uf: number | null
+          responsable_wa: string | null
+          score: number
+          urgencia: string | null
+          user_agent: string | null
+          volumen: string | null
+        }
+        Insert: {
+          cantidad_prof?: string | null
+          created_at?: string
+          desafios?: string[] | null
+          especialidad?: string | null
+          herramienta?: string | null
+          id?: never
+          id_lead: string
+          ip_address?: string | null
+          plan_recomendado?: string | null
+          precio_uf?: number | null
+          responsable_wa?: string | null
+          score?: number
+          urgencia?: string | null
+          user_agent?: string | null
+          volumen?: string | null
+        }
+        Update: {
+          cantidad_prof?: string | null
+          created_at?: string
+          desafios?: string[] | null
+          especialidad?: string | null
+          herramienta?: string | null
+          id?: never
+          id_lead?: string
+          ip_address?: string | null
+          plan_recomendado?: string | null
+          precio_uf?: number | null
+          responsable_wa?: string | null
+          score?: number
+          urgencia?: string | null
+          user_agent?: string | null
+          volumen?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_diagnosticos_id_lead_fkey"
+            columns: ["id_lead"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lead_pipeline: {
+        Row: {
+          created_at: string
+          datos_legacy: Json | null
+          etapa: string
+          id: string
+          id_lead: string
+          plan_recomendado: string | null
+          precio_uf: number | null
+          score: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          datos_legacy?: Json | null
+          etapa?: string
+          id?: string
+          id_lead: string
+          plan_recomendado?: string | null
+          precio_uf?: number | null
+          score?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          datos_legacy?: Json | null
+          etapa?: string
+          id?: string
+          id_lead?: string
+          plan_recomendado?: string | null
+          precio_uf?: number | null
+          score?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lead_pipeline_id_lead_fkey"
+            columns: ["id_lead"]
+            isOneToOne: true
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      leads: {
+        Row: {
+          clinica: string
+          created_at: string
+          diagnostico_at: string | null
+          diagnostico_completado: boolean
+          email: string
+          email_bienvenida_at: string | null
+          email_bienvenida_enviado: boolean
+          estado: string
+          id: string
+          ip_address: string | null
+          mensaje: string | null
+          nombre: string
+          origen: string
+          telefono: string
+          updated_at: string
+          user_agent: string | null
+          utm_campaign: string | null
+          utm_medium: string | null
+          utm_source: string | null
+          whatsapp_optin: boolean
+          whatsapp_optin_at: string | null
+          whatsapp_optin_canal: string | null
+          whatsapp_optin_texto: string | null
+        }
+        Insert: {
+          clinica: string
+          created_at?: string
+          diagnostico_at?: string | null
+          diagnostico_completado?: boolean
+          email: string
+          email_bienvenida_at?: string | null
+          email_bienvenida_enviado?: boolean
+          estado?: string
+          id?: string
+          ip_address?: string | null
+          mensaje?: string | null
+          nombre: string
+          origen?: string
+          telefono: string
+          updated_at?: string
+          user_agent?: string | null
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          whatsapp_optin?: boolean
+          whatsapp_optin_at?: string | null
+          whatsapp_optin_canal?: string | null
+          whatsapp_optin_texto?: string | null
+        }
+        Update: {
+          clinica?: string
+          created_at?: string
+          diagnostico_at?: string | null
+          diagnostico_completado?: boolean
+          email?: string
+          email_bienvenida_at?: string | null
+          email_bienvenida_enviado?: boolean
+          estado?: string
+          id?: string
+          ip_address?: string | null
+          mensaje?: string | null
+          nombre?: string
+          origen?: string
+          telefono?: string
+          updated_at?: string
+          user_agent?: string | null
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+          whatsapp_optin?: boolean
+          whatsapp_optin_at?: string | null
+          whatsapp_optin_canal?: string | null
+          whatsapp_optin_texto?: string | null
+        }
+        Relationships: []
+      }
       logs_auditoria: {
         Row: {
           accion: string
@@ -3355,7 +4144,9 @@ export type Database = {
           id_paciente: string | null
           ip_address: string | null
           registro_id: string | null
+          session_id: string | null
           tabla_afectada: string
+          tipo_evento: string | null
           user_agent: string | null
         }
         Insert: {
@@ -3371,7 +4162,9 @@ export type Database = {
           id_paciente?: string | null
           ip_address?: string | null
           registro_id?: string | null
+          session_id?: string | null
           tabla_afectada: string
+          tipo_evento?: string | null
           user_agent?: string | null
         }
         Update: {
@@ -3387,7 +4180,9 @@ export type Database = {
           id_paciente?: string | null
           ip_address?: string | null
           registro_id?: string | null
+          session_id?: string | null
           tabla_afectada?: string
+          tipo_evento?: string | null
           user_agent?: string | null
         }
         Relationships: [
@@ -3421,6 +4216,92 @@ export type Database = {
           },
         ]
       }
+      medicamentos: {
+        Row: {
+          activo: boolean
+          advertencias_importantes: string[] | null
+          codigo_atc: string | null
+          concentracion: string | null
+          contraindicaciones_clave: string[] | null
+          created_at: string
+          dosis_adulto_sugerida: string | null
+          dosis_pediatrica_sugerida: string | null
+          es_controlado: boolean
+          especialidades_comunes: string[] | null
+          forma_farmaceutica: string | null
+          grupo_terapeutico: string | null
+          id: string
+          id_clinica: string | null
+          indicaciones_comunes: string[] | null
+          notas: string | null
+          origen: string | null
+          perfiles_autorizados: string[]
+          principio_activo: string
+          requiere_receta: boolean
+          updated_at: string
+          validado_clinicamente: boolean
+          via_administracion: string | null
+        }
+        Insert: {
+          activo?: boolean
+          advertencias_importantes?: string[] | null
+          codigo_atc?: string | null
+          concentracion?: string | null
+          contraindicaciones_clave?: string[] | null
+          created_at?: string
+          dosis_adulto_sugerida?: string | null
+          dosis_pediatrica_sugerida?: string | null
+          es_controlado?: boolean
+          especialidades_comunes?: string[] | null
+          forma_farmaceutica?: string | null
+          grupo_terapeutico?: string | null
+          id: string
+          id_clinica?: string | null
+          indicaciones_comunes?: string[] | null
+          notas?: string | null
+          origen?: string | null
+          perfiles_autorizados?: string[]
+          principio_activo: string
+          requiere_receta?: boolean
+          updated_at?: string
+          validado_clinicamente?: boolean
+          via_administracion?: string | null
+        }
+        Update: {
+          activo?: boolean
+          advertencias_importantes?: string[] | null
+          codigo_atc?: string | null
+          concentracion?: string | null
+          contraindicaciones_clave?: string[] | null
+          created_at?: string
+          dosis_adulto_sugerida?: string | null
+          dosis_pediatrica_sugerida?: string | null
+          es_controlado?: boolean
+          especialidades_comunes?: string[] | null
+          forma_farmaceutica?: string | null
+          grupo_terapeutico?: string | null
+          id?: string
+          id_clinica?: string | null
+          indicaciones_comunes?: string[] | null
+          notas?: string | null
+          origen?: string | null
+          perfiles_autorizados?: string[]
+          principio_activo?: string
+          requiere_receta?: boolean
+          updated_at?: string
+          validado_clinicamente?: boolean
+          via_administracion?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "medicamentos_id_clinica_fkey"
+            columns: ["id_clinica"]
+            isOneToOne: false
+            referencedRelation: "clinicas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       medicamentos_catalogo: {
         Row: {
           activo: boolean
@@ -3443,6 +4324,7 @@ export type Database = {
           nombre_comercial: string | null
           notas: string | null
           origen: string
+          perfiles_autorizados: string[]
           presentacion: string
           principio_activo: string
           requiere_receta: boolean
@@ -3470,6 +4352,7 @@ export type Database = {
           nombre_comercial?: string | null
           notas?: string | null
           origen?: string
+          perfiles_autorizados?: string[]
           presentacion: string
           principio_activo: string
           requiere_receta?: boolean
@@ -3497,6 +4380,7 @@ export type Database = {
           nombre_comercial?: string | null
           notas?: string | null
           origen?: string
+          perfiles_autorizados?: string[]
           presentacion?: string
           principio_activo?: string
           requiere_receta?: boolean
@@ -3509,6 +4393,68 @@ export type Database = {
             columns: ["id_clinica"]
             isOneToOne: false
             referencedRelation: "clinicas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      medicamentos_presentaciones: {
+        Row: {
+          activo: boolean
+          bioequivalente: boolean | null
+          created_at: string
+          es_generico: boolean
+          estado: string
+          fuente_url: string | null
+          id: string
+          id_medicamento: string
+          laboratorio: string | null
+          nombre_comercial: string
+          notas: string | null
+          presentacion: string | null
+          registro_isp: string | null
+          tipo_comercial: string | null
+          updated_at: string
+        }
+        Insert: {
+          activo?: boolean
+          bioequivalente?: boolean | null
+          created_at?: string
+          es_generico?: boolean
+          estado?: string
+          fuente_url?: string | null
+          id?: string
+          id_medicamento: string
+          laboratorio?: string | null
+          nombre_comercial: string
+          notas?: string | null
+          presentacion?: string | null
+          registro_isp?: string | null
+          tipo_comercial?: string | null
+          updated_at?: string
+        }
+        Update: {
+          activo?: boolean
+          bioequivalente?: boolean | null
+          created_at?: string
+          es_generico?: boolean
+          estado?: string
+          fuente_url?: string | null
+          id?: string
+          id_medicamento?: string
+          laboratorio?: string | null
+          nombre_comercial?: string
+          notas?: string | null
+          presentacion?: string | null
+          registro_isp?: string | null
+          tipo_comercial?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "medicamentos_presentaciones_id_medicamento_fkey"
+            columns: ["id_medicamento"]
+            isOneToOne: false
+            referencedRelation: "medicamentos"
             referencedColumns: ["id"]
           },
         ]
@@ -3681,6 +4627,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      page_events: {
+        Row: {
+          created_at: string
+          event_data: Json
+          event_type: string
+          id: number
+          ip_address: string | null
+          page_path: string | null
+          referrer: string | null
+          session_id: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          created_at?: string
+          event_data?: Json
+          event_type: string
+          id?: never
+          ip_address?: string | null
+          page_path?: string | null
+          referrer?: string | null
+          session_id?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          created_at?: string
+          event_data?: Json
+          event_type?: string
+          id?: never
+          ip_address?: string | null
+          page_path?: string | null
+          referrer?: string | null
+          session_id?: string | null
+          user_agent?: string | null
+        }
+        Relationships: []
       }
       pagos: {
         Row: {
@@ -3952,9 +4934,11 @@ export type Database = {
           },
         ]
       }
-      procedimientos_catalogo: {
+      prestaciones_catalogo: {
         Row: {
           activo: boolean
+          afecta_iva: boolean
+          ambito: string
           categoria: string
           codigo: string
           created_at: string
@@ -3962,13 +4946,17 @@ export type Database = {
           duracion_min: number | null
           id: string
           id_clinica: string
+          id_servicio: string | null
           nombre: string
           orden: number
-          precio_base: number | null
+          precio_base: number
+          requiere_pieza: boolean
           updated_at: string
         }
         Insert: {
           activo?: boolean
+          afecta_iva?: boolean
+          ambito?: string
           categoria: string
           codigo: string
           created_at?: string
@@ -3976,13 +4964,17 @@ export type Database = {
           duracion_min?: number | null
           id?: string
           id_clinica: string
+          id_servicio?: string | null
           nombre: string
           orden?: number
-          precio_base?: number | null
+          precio_base?: number
+          requiere_pieza?: boolean
           updated_at?: string
         }
         Update: {
           activo?: boolean
+          afecta_iva?: boolean
+          ambito?: string
           categoria?: string
           codigo?: string
           created_at?: string
@@ -3990,18 +4982,129 @@ export type Database = {
           duracion_min?: number | null
           id?: string
           id_clinica?: string
+          id_servicio?: string | null
           nombre?: string
           orden?: number
-          precio_base?: number | null
+          precio_base?: number
+          requiere_pieza?: boolean
           updated_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: "procedimientos_catalogo_id_clinica_fkey"
+            foreignKeyName: "prestaciones_catalogo_id_clinica_fkey"
             columns: ["id_clinica"]
             isOneToOne: false
             referencedRelation: "clinicas"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prestaciones_catalogo_id_servicio_fkey"
+            columns: ["id_servicio"]
+            isOneToOne: false
+            referencedRelation: "servicios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      procedimientos_esteticos_catalogo: {
+        Row: {
+          activo: boolean
+          categoria: string
+          contraindicaciones_clave: string[]
+          descripcion: string | null
+          id: string
+          id_clinica: string | null
+          nombre: string
+          requiere_consentimiento_especifico: boolean
+        }
+        Insert: {
+          activo?: boolean
+          categoria: string
+          contraindicaciones_clave?: string[]
+          descripcion?: string | null
+          id?: string
+          id_clinica?: string | null
+          nombre: string
+          requiere_consentimiento_especifico?: boolean
+        }
+        Update: {
+          activo?: boolean
+          categoria?: string
+          contraindicaciones_clave?: string[]
+          descripcion?: string | null
+          id?: string
+          id_clinica?: string | null
+          nombre?: string
+          requiere_consentimiento_especifico?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "procedimientos_esteticos_catalogo_id_clinica_fkey"
+            columns: ["id_clinica"]
+            isOneToOne: false
+            referencedRelation: "clinicas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profesional_prestaciones: {
+        Row: {
+          activo: boolean
+          created_at: string
+          honorario_tipo: string | null
+          honorario_valor: number | null
+          id: string
+          id_prestacion: string
+          id_profesional: string
+          precio_override: number | null
+          recargo_pct: number | null
+          updated_at: string
+        }
+        Insert: {
+          activo?: boolean
+          created_at?: string
+          honorario_tipo?: string | null
+          honorario_valor?: number | null
+          id?: string
+          id_prestacion: string
+          id_profesional: string
+          precio_override?: number | null
+          recargo_pct?: number | null
+          updated_at?: string
+        }
+        Update: {
+          activo?: boolean
+          created_at?: string
+          honorario_tipo?: string | null
+          honorario_valor?: number | null
+          id?: string
+          id_prestacion?: string
+          id_profesional?: string
+          precio_override?: number | null
+          recargo_pct?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "profesional_prestaciones_id_prestacion_fkey"
+            columns: ["id_prestacion"]
+            isOneToOne: false
+            referencedRelation: "prestaciones_catalogo"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profesional_prestaciones_id_profesional_fkey"
+            columns: ["id_profesional"]
+            isOneToOne: false
+            referencedRelation: "profesionales"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profesional_prestaciones_id_profesional_fkey"
+            columns: ["id_profesional"]
+            isOneToOne: false
+            referencedRelation: "vista_agenda_diaria"
+            referencedColumns: ["id_profesional"]
           },
         ]
       }
@@ -4010,39 +5113,30 @@ export type Database = {
           activo: boolean
           atiende_domicilio: boolean
           created_at: string
-          duracion_min: number
           duracion_override_min: number | null
           id: string
           id_profesional: string
           id_servicio: string
-          precio_domicilio: number | null
-          precio_local: number | null
           updated_at: string
         }
         Insert: {
           activo?: boolean
           atiende_domicilio?: boolean
           created_at?: string
-          duracion_min?: number
           duracion_override_min?: number | null
           id?: string
           id_profesional: string
           id_servicio: string
-          precio_domicilio?: number | null
-          precio_local?: number | null
           updated_at?: string
         }
         Update: {
           activo?: boolean
           atiende_domicilio?: boolean
           created_at?: string
-          duracion_min?: number
           duracion_override_min?: number | null
           id?: string
           id_profesional?: string
           id_servicio?: string
-          precio_domicilio?: number | null
-          precio_local?: number | null
           updated_at?: string
         }
         Relationships: [
@@ -4083,6 +5177,7 @@ export type Database = {
           id_clinica: string
           nombre: string
           numero_registro: string | null
+          puede_estetica: boolean
           puede_indicar_examenes: boolean
           puede_prescribir: boolean
           recibe_notificaciones: boolean
@@ -4104,6 +5199,7 @@ export type Database = {
           id_clinica: string
           nombre: string
           numero_registro?: string | null
+          puede_estetica?: boolean
           puede_indicar_examenes?: boolean
           puede_prescribir?: boolean
           recibe_notificaciones?: boolean
@@ -4125,6 +5221,7 @@ export type Database = {
           id_clinica?: string
           nombre?: string
           numero_registro?: string | null
+          puede_estetica?: boolean
           puede_indicar_examenes?: boolean
           puede_prescribir?: boolean
           recibe_notificaciones?: boolean
@@ -4134,6 +5231,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "profesionales_especialidad_fkey"
+            columns: ["especialidad"]
+            isOneToOne: false
+            referencedRelation: "especialidades_catalogo"
+            referencedColumns: ["codigo"]
+          },
           {
             foreignKeyName: "profesionales_id_clinica_fkey"
             columns: ["id_clinica"]
@@ -4556,6 +5660,35 @@ export type Database = {
           },
         ]
       }
+      whatsapp_conversaciones_leidas: {
+        Row: {
+          id_clinica: string
+          leido_hasta: string
+          updated_at: string
+          wa_phone: string
+        }
+        Insert: {
+          id_clinica: string
+          leido_hasta: string
+          updated_at?: string
+          wa_phone: string
+        }
+        Update: {
+          id_clinica?: string
+          leido_hasta?: string
+          updated_at?: string
+          wa_phone?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "whatsapp_conversaciones_leidas_id_clinica_fkey"
+            columns: ["id_clinica"]
+            isOneToOne: false
+            referencedRelation: "clinicas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       whatsapp_jobs: {
         Row: {
           completed_at: string | null
@@ -4626,6 +5759,7 @@ export type Database = {
           direction: string
           error_code: string | null
           error_message: string | null
+          estado_respuesta: string | null
           id: string
           id_clinica: string
           message_type: string
@@ -4648,6 +5782,7 @@ export type Database = {
           direction: string
           error_code?: string | null
           error_message?: string | null
+          estado_respuesta?: string | null
           id?: string
           id_clinica: string
           message_type?: string
@@ -4670,6 +5805,7 @@ export type Database = {
           direction?: string
           error_code?: string | null
           error_message?: string | null
+          estado_respuesta?: string | null
           id?: string
           id_clinica?: string
           message_type?: string
@@ -4699,6 +5835,7 @@ export type Database = {
         Row: {
           context: Json | null
           created_at: string
+          estado: string
           id: string
           id_clinica: string
           id_paciente: string | null
@@ -4711,6 +5848,7 @@ export type Database = {
         Insert: {
           context?: Json | null
           created_at?: string
+          estado?: string
           id?: string
           id_clinica: string
           id_paciente?: string | null
@@ -4723,6 +5861,7 @@ export type Database = {
         Update: {
           context?: Json | null
           created_at?: string
+          estado?: string
           id?: string
           id_clinica?: string
           id_paciente?: string | null
@@ -4831,6 +5970,13 @@ export type Database = {
             referencedRelation: "clinicas"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "profesionales_especialidad_fkey"
+            columns: ["especialidad"]
+            isOneToOne: false
+            referencedRelation: "especialidades_catalogo"
+            referencedColumns: ["codigo"]
+          },
         ]
       }
       metricas_canal: {
@@ -4888,6 +6034,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "clinicas"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "profesionales_especialidad_fkey"
+            columns: ["profesional_especialidad"]
+            isOneToOne: false
+            referencedRelation: "especialidades_catalogo"
+            referencedColumns: ["codigo"]
           },
         ]
       }
@@ -4947,10 +6100,6 @@ export type Database = {
           servicio_nota: string
         }[]
       }
-      buscar_profesional: {
-        Args: { p_id_clinica: string; p_servicio?: string }
-        Returns: Json
-      }
       cancelar_cita:
         | { Args: { p_id_cita: string; p_motivo?: string }; Returns: Json }
         | {
@@ -4961,30 +6110,28 @@ export type Database = {
             }
             Returns: Json
           }
-      confirmar_pago_cita: {
-        Args: { p_id_cita: string; p_metodo: string; p_referencia?: string }
-        Returns: Json
+      completar_diagnostico: {
+        Args: {
+          p_cantidad_prof: string
+          p_desafios: string[]
+          p_especialidad: string
+          p_herramienta: string
+          p_ip?: string
+          p_lead_id: string
+          p_responsable_wa: string
+          p_urgencia: string
+          p_user_agent?: string
+          p_volumen: string
+        }
+        Returns: {
+          pipeline_id: string
+          plan: string
+          precio: number
+          score: number
+        }[]
       }
       confirmar_pago_webhook: {
         Args: { p_payment_id?: string; p_session_id: string }
-        Returns: Json
-      }
-      consultar_faq: {
-        Args: { p_id_clinica: string; p_pregunta?: string }
-        Returns: Json
-      }
-      consultar_info_clinica: { Args: { p_id_clinica: string }; Returns: Json }
-      consultar_normas: { Args: { p_id_clinica: string }; Returns: Json }
-      consultar_precios: {
-        Args: {
-          p_id_clinica: string
-          p_modalidad?: string
-          p_servicio?: string
-        }
-        Returns: Json
-      }
-      consultar_servicios: {
-        Args: { p_id_clinica: string; p_query?: string }
         Returns: Json
       }
       crear_clinica_completa: {
@@ -4994,6 +6141,10 @@ export type Database = {
       crear_pago_pendiente: {
         Args: { p_id_cita: string; p_metodo: string; p_session_id?: string }
         Returns: Json
+      }
+      es_profesional_clinico: {
+        Args: { p_id_clinica: string }
+        Returns: boolean
       }
       fce_modulos_por_plan: { Args: { p_plan: string }; Returns: string[] }
       fn_checkin_paciente: {
@@ -5113,8 +6264,7 @@ export type Database = {
             }
             Returns: Json
           }
-      show_limit: { Args: never; Returns: number }
-      show_trgm: { Args: { "": string }; Returns: string[] }
+      tiene_acceso_clinico: { Args: { p_id_clinica: string }; Returns: boolean }
       upgrade_plan_clinica: {
         Args: {
           p_id_clinica: string
@@ -5179,12 +6329,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -5208,11 +6358,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -5233,11 +6383,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -5258,11 +6408,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -5275,11 +6425,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }

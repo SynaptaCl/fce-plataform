@@ -8,7 +8,7 @@ import type { ProcedimientoCatalogo } from "@/types/plan-tratamiento";
 
 /**
  * Catálogo dental del FCE: prestaciones_catalogo (dominio synapta, solo-read)
- * con ambito='dental'. Reemplaza a procedimientos_catalogo (deprecado, 0 filas).
+ * con ambito='dental'. Sustituye a la extinta procedimientos_catalogo (tabla eliminada 2026-09-29).
  */
 export async function getProcedimientosCatalogo(): Promise<
   ActionResult<ProcedimientoCatalogo[]>
