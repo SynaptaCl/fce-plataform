@@ -5,7 +5,8 @@ import { requireContext } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import { getProfesionalActivo } from "@/lib/fce/profesional";
 import { getClinicaConfig } from "@/lib/modules/config";
-import { assertModuleEnabled, dbError } from "@/lib/modules/guards";
+import { assertModuleEnabled, assertPuedeEscribir, assertPuedeFirmar, dbError } from "@/lib/modules/guards";
+import type { Rol } from "@/lib/modules/registry";
 import type { ActionResult } from "@/lib/modules/guards";
 import { log } from "@/lib/logger";
 import type { InformeClinico, InformeFormData } from "@/types/informe";
@@ -84,6 +85,9 @@ export async function crearInforme(
     supabase = ctx.supabase;
     user = ctx.user;
     idClinica = ctx.idClinica;
+    // admin/director/superadmin: solo lectura (decisión 2026-09-29)
+    const rolGuard = assertPuedeEscribir(ctx.rol as Rol);
+    if (!rolGuard.success) return rolGuard;
   } catch {
     return { success: false, error: "No se encontró la clínica asociada al usuario." };
   }
@@ -147,6 +151,9 @@ export async function actualizarInforme(
     supabase = ctx.supabase;
     user = ctx.user;
     idClinica = ctx.idClinica;
+    // admin/director/superadmin: solo lectura (decisión 2026-09-29)
+    const rolGuard = assertPuedeEscribir(ctx.rol as Rol);
+    if (!rolGuard.success) return rolGuard;
   } catch {
     return { success: false, error: "No se encontró la clínica asociada al usuario." };
   }
@@ -213,6 +220,9 @@ export async function firmarInforme(
     supabase = ctx.supabase;
     user = ctx.user;
     idClinica = ctx.idClinica;
+    // admin/director/superadmin: solo lectura (decisión 2026-09-29)
+    const rolGuard = assertPuedeFirmar(ctx.rol as Rol);
+    if (!rolGuard.success) return rolGuard;
   } catch {
     return { success: false, error: "No se encontró la clínica asociada al usuario." };
   }
@@ -287,6 +297,9 @@ export async function eliminarInforme(
     supabase = ctx.supabase;
     user = ctx.user;
     idClinica = ctx.idClinica;
+    // admin/director/superadmin: solo lectura (decisión 2026-09-29)
+    const rolGuard = assertPuedeEscribir(ctx.rol as Rol);
+    if (!rolGuard.success) return rolGuard;
   } catch {
     return { success: false, error: "No se encontró la clínica asociada al usuario." };
   }

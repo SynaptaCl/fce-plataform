@@ -17,7 +17,7 @@ import { logAudit } from "@/lib/audit";
 import { getEspecialidadConfig } from "@/lib/modules/especialidad-config";
 import { getUltimaVersionGrabacion } from "@/lib/ambient/consentimiento";
 import { AmbientConsentPanel } from "@/components/shared/AmbientConsentPanel";
-import { CoordinadorPatientView } from "@/components/coordinacion/CoordinadorPatientView";
+import { AdminPatientView } from "@/components/administracion/AdminPatientView";
 import type { PatientSummary } from "@/app/actions/timeline";
 
 export async function generateMetadata({
@@ -78,11 +78,11 @@ async function _patientDetailPage(
   const idClinica = adminRes.data?.id_clinica ?? null;
   const rol = adminRes.data?.rol ?? "";
 
-  // Coordinador: vista reducida sin timeline clínico — evita disparar
-  // getPatientTimeline/getEgresosByPaciente/getUltimaVersionGrabacion, que
-  // este rol no debe leer (ver docs/superpowers/specs/2026-09-23-rol-coordinador-design.md §4.3).
-  if (rol === "coordinador") {
-    return <CoordinadorPatientView patientId={id} />;
+  // admin / director / superadmin: vista administrativa de solo lectura — sin timeline
+  // clínico. Evita disparar getPatientTimeline/getEgresosByPaciente/getUltimaVersionGrabacion,
+  // que estos roles ya no pueden leer (RLS: es_profesional_clinico).
+  if (rol !== "profesional") {
+    return <AdminPatientView patientId={id} />;
   }
 
   // ── Fetch paralelo ─────────────────────────────────────────────────────
@@ -234,7 +234,6 @@ async function _patientDetailPage(
               currentUserId={profesional?.id ?? ""}
               patientId={id}
               especialidadesActivas={especialidadesActivas}
-              rolActual={rol}
             />
           </div>
 

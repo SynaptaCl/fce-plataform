@@ -26,7 +26,6 @@ const TABLA_POR_TIPO: Record<TipoDocumentoFirmable, string> = {
 
 const VENTANA_ERRATA_MS = 72 * 60 * 60 * 1000;
 
-const ROLES_AUTORIZADORES = ["director", "admin", "superadmin"];
 
 // ── Tipos de entrada ───────────────────────────────────────────────────────
 
@@ -38,7 +37,6 @@ interface CrearAdendaInput {
   tipoAdenda: TipoAdenda;
   motivo: string;
   contenido: string;
-  overrideMotivo?: string;
 }
 
 // ── crearAdenda ────────────────────────────────────────────────────────────
@@ -47,7 +45,7 @@ export async function crearAdenda(
   input: CrearAdendaInput
 ): Promise<ActionResult<{ id: string }>> {
   try {
-    const { supabase, user, idClinica, rol, profesionalId } =
+    const { supabase, user, idClinica, profesionalId } =
       await requireContext();
 
     if (!profesionalId) {
@@ -81,54 +79,37 @@ export async function crearAdenda(
       };
     }
 
-    const esAutorizador = ROLES_AUTORIZADORES.includes(rol);
+    // Decisión 2026-09-29: corregir o anular una nota es exclusivo de su autor.
+    // admin/director/superadmin son solo lectura — sin override. La adenda
+    // (complemento) queda abierta a cualquier profesional con perfil activo.
+    // Solo profesionales llegan acá: profesionalId null ya se rechazó arriba y
+    // RLS (fce_adendas_insert → es_profesional_clinico) lo respalda en DB.
     const esAutorOriginal = original.created_by === profesionalId;
-    let overrideDirector = false;
 
     if (input.tipoAdenda === "errata") {
+      if (!esAutorOriginal) {
+        return {
+          success: false,
+          error: "Solo el autor original puede corregir esta nota",
+        };
+      }
       const dentroVentana =
         Date.now() - new Date(original.firmado_at as string).getTime() <=
         VENTANA_ERRATA_MS;
-
-      if (dentroVentana) {
-        if (!esAutorOriginal && !esAutorizador) {
-          return {
-            success: false,
-            error:
-              "Solo el autor original puede corregir esta nota dentro de las primeras 72 horas",
-          };
-        }
-      } else {
-        if (!esAutorizador) {
-          return {
-            success: false,
-            error:
-              "Han pasado más de 72 horas. Esta corrección requiere autorización de un director",
-          };
-        }
-        if (!input.overrideMotivo?.trim()) {
-          return {
-            success: false,
-            error:
-              "Se requiere un motivo de autorización para erratas fuera de la ventana de 72 horas",
-          };
-        }
-        overrideDirector = true;
+      if (!dentroVentana) {
+        return {
+          success: false,
+          error:
+            "Han pasado más de 72 horas: la ventana de corrección está cerrada. Puedes agregar una adenda que complemente la nota",
+        };
       }
     } else if (input.tipoAdenda === "anulacion") {
-      if (!esAutorizador) {
+      if (!esAutorOriginal) {
         return {
           success: false,
-          error: "Solo un director o administrador puede anular documentos",
+          error: "Solo el autor original puede anular esta nota",
         };
       }
-      if (!input.overrideMotivo?.trim()) {
-        return {
-          success: false,
-          error: "Se requiere un motivo de autorización para anular documentos",
-        };
-      }
-      overrideDirector = true;
     }
 
     const ahora = new Date().toISOString();
@@ -144,11 +125,9 @@ export async function crearAdenda(
         tipo_adenda: input.tipoAdenda,
         motivo: input.motivo.trim(),
         contenido: input.contenido.trim(),
-        override_director: overrideDirector,
-        override_motivo: overrideDirector
-          ? (input.overrideMotivo?.trim() ?? null)
-          : null,
-        override_por: overrideDirector ? user.id : null,
+        override_director: false,
+        override_motivo: null,
+        override_por: null,
         firmado: true,
         firmado_at: ahora,
         firmado_por: profesionalId,
@@ -162,13 +141,11 @@ export async function crearAdenda(
     }
 
     const tipoEvento =
-      input.tipoAdenda === "errata" && overrideDirector
-        ? ("errata_post_ventana" as const)
-        : input.tipoAdenda === "errata"
-          ? ("create_errata" as const)
-          : input.tipoAdenda === "anulacion"
-            ? ("create_anulacion" as const)
-            : ("create_adenda" as const);
+      input.tipoAdenda === "errata"
+        ? ("create_errata" as const)
+        : input.tipoAdenda === "anulacion"
+          ? ("create_anulacion" as const)
+          : ("create_adenda" as const);
 
     await logAudit({
       supabase,
@@ -183,7 +160,6 @@ export async function crearAdenda(
         tipo_documento: input.tipoDocumento,
         id_documento: input.idDocumento,
         tipo_adenda: input.tipoAdenda,
-        override_director: overrideDirector,
       },
     });
 

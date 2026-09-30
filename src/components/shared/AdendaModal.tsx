@@ -9,7 +9,6 @@ import type { TipoAdenda, AdendaTarget } from "@/types/adenda";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
-const ROLES_AUTORIZADORES = ["director", "admin", "superadmin"];
 const VENTANA_ERRATA_MS = 72 * 60 * 60 * 1000;
 
 // ── Label helpers ─────────────────────────────────────────────────────────────
@@ -34,7 +33,6 @@ interface AdendaModalProps {
   target: AdendaTarget;
   idPaciente: string;
   profesionalIdActual: string;
-  rolActual: string;
   onSuccess: () => void;
 }
 
@@ -46,7 +44,6 @@ export function AdendaModal({
   target,
   idPaciente,
   profesionalIdActual,
-  rolActual,
   onSuccess,
 }: AdendaModalProps) {
   if (!open) return null;
@@ -57,7 +54,6 @@ export function AdendaModal({
       target={target}
       idPaciente={idPaciente}
       profesionalIdActual={profesionalIdActual}
-      rolActual={rolActual}
       onSuccess={onSuccess}
     />
   );
@@ -71,7 +67,6 @@ interface InnerProps {
   target: AdendaTarget;
   idPaciente: string;
   profesionalIdActual: string;
-  rolActual: string;
   onSuccess: () => void;
 }
 
@@ -80,43 +75,29 @@ function AdendaModalInner({
   target,
   idPaciente,
   profesionalIdActual,
-  rolActual,
   onSuccess,
 }: InnerProps) {
   // ── Permission logic (UX-only — server always revalidates) ─────────────────
-  const esAutorizador = ROLES_AUTORIZADORES.includes(rolActual);
   const esAutorOriginal = target.createdBy === profesionalIdActual;
   const firmadoAt = target.firmadoAt ? new Date(target.firmadoAt).getTime() : 0;
   // UX preview only — server always revalidates actual permissions
   // eslint-disable-next-line react-hooks/purity
   const dentroVentana = Date.now() - firmadoAt <= VENTANA_ERRATA_MS;
 
-  const puedeErrata = esAutorOriginal || esAutorizador;
-  const puedeAnulacion = esAutorizador;
+  // Corrección y anulación: exclusivo del autor. La errata además cierra a las 72 h.
+  const puedeErrata = esAutorOriginal && dentroVentana;
+  const puedeAnulacion = esAutorOriginal;
 
   // ── Form state ─────────────────────────────────────────────────────────────
   const [tipoAdenda, setTipoAdenda] = useState<TipoAdenda>("adenda");
   const [motivo, setMotivo] = useState("");
   const [contenido, setContenido] = useState("");
-  const [overrideMotivo, setOverrideMotivo] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
 
   // ── Derived ────────────────────────────────────────────────────────────────
-  const necesitaOverride =
-    (tipoAdenda === "errata" && !dentroVentana && esAutorizador) ||
-    tipoAdenda === "anulacion";
-
-  const errataBloqueada =
-    tipoAdenda === "errata" && !dentroVentana && !esAutorizador;
-
-  const submitDisabled =
-    isPending ||
-    errataBloqueada ||
-    !motivo.trim() ||
-    !contenido.trim() ||
-    (necesitaOverride && !overrideMotivo.trim());
+  const submitDisabled = isPending || !motivo.trim() || !contenido.trim();
 
   // ── Handlers ───────────────────────────────────────────────────────────────
 
@@ -137,7 +118,6 @@ function AdendaModalInner({
         tipoAdenda,
         motivo,
         contenido,
-        overrideMotivo: necesitaOverride ? overrideMotivo : undefined,
       });
       if (result.success) {
         router.refresh();
@@ -217,8 +197,10 @@ function AdendaModalInner({
 
                   const tooltip = isDisabled
                     ? tipo === "errata"
-                      ? "No tienes permiso para corregir esta nota"
-                      : "Solo un director puede anular"
+                      ? esAutorOriginal
+                        ? "La ventana de corrección de 72 horas está cerrada"
+                        : "Solo el autor de la nota puede corregirla"
+                      : "Solo el autor de la nota puede anularla"
                     : undefined;
 
                   return (
@@ -263,43 +245,6 @@ function AdendaModalInner({
                 })}
               </div>
             </div>
-
-            {/* Warning: errata fuera de ventana — autorizador */}
-            {tipoAdenda === "errata" && !dentroVentana && esAutorizador && (
-              <div
-                className="flex gap-2 rounded-lg px-3 py-2.5 text-xs"
-                style={{
-                  background: "var(--color-kp-warning-lt, #FFFBEB)",
-                  color: "#92400E",
-                  border: "1px solid #FCD34D",
-                }}
-              >
-                <AlertTriangle className="w-4 h-4 shrink-0 mt-px" aria-hidden />
-                <p>
-                  Esta nota supera el límite de 72 horas. Requiere justificación
-                  de dirección.
-                </p>
-              </div>
-            )}
-
-            {/* Warning: errata fuera de ventana — NO autorizador */}
-            {tipoAdenda === "errata" && !dentroVentana && !esAutorizador && (
-              <div
-                className="flex gap-2 rounded-lg px-3 py-2.5 text-xs"
-                style={{
-                  background: "var(--color-kp-danger-lt, #FEF2F2)",
-                  color: "#991B1B",
-                  border: "1px solid #FCA5A5",
-                }}
-              >
-                <AlertTriangle className="w-4 h-4 shrink-0 mt-px" aria-hidden />
-                <p>
-                  Han pasado más de 72 horas. Esta corrección requiere
-                  autorización de un director. Contacta al director de la
-                  clínica.
-                </p>
-              </div>
-            )}
 
             {/* Warning: anulación */}
             {tipoAdenda === "anulacion" && (
@@ -399,42 +344,6 @@ function AdendaModalInner({
                 }}
               />
             </div>
-
-            {/* Field: Motivo de autorización (override, conditional) */}
-            {necesitaOverride && (
-              <div className="space-y-1">
-                <label
-                  htmlFor="adenda-override"
-                  className="text-[0.65rem] font-semibold uppercase tracking-wide"
-                  style={{ color: "var(--color-ink-3)" }}
-                >
-                  Motivo de autorización{" "}
-                  <span style={{ color: "var(--color-kp-danger)" }}>*</span>
-                </label>
-                <textarea
-                  id="adenda-override"
-                  rows={3}
-                  value={overrideMotivo}
-                  onChange={(e) => setOverrideMotivo(e.target.value)}
-                  required
-                  placeholder="Justificación de dirección para esta operación..."
-                  disabled={isPending}
-                  className="w-full rounded-lg border px-3 py-2 text-sm resize-none focus:outline-none transition-shadow"
-                  style={{
-                    borderColor: "var(--color-kp-border)",
-                    color: "var(--color-ink-1)",
-                    background: "var(--color-surface-1)",
-                  }}
-                  onFocus={(e) => {
-                    e.currentTarget.style.boxShadow =
-                      "0 0 0 2px var(--color-kp-accent)";
-                  }}
-                  onBlur={(e) => {
-                    e.currentTarget.style.boxShadow = "none";
-                  }}
-                />
-              </div>
-            )}
 
             {/* Inline error banner */}
             {error && (

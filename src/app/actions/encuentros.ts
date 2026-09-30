@@ -1,10 +1,10 @@
 "use server";
 
-import { dbError } from "@/lib/modules/guards";
+import { assertPuedeEscribir, dbError } from "@/lib/modules/guards";
 import { requireAuth, requireContext } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import { getModeloDeEspecialidad } from "@/lib/modules/modelos";
-import type { ModeloClinico } from "@/lib/modules/registry";
+import type { ModeloClinico, Rol } from "@/lib/modules/registry";
 import type { ActionResult } from "./patients";
 import { getIdClinica } from "./patients";
 
@@ -17,20 +17,16 @@ export async function createEncuentro(
   try {
     const { supabase, user, idClinica, rol, profesionalId, especialidad: espActiva } = await requireContext();
 
-    // Validar coherencia profesional ↔ especialidad
-    // Admin/director/superadmin pueden crear encuentros de cualquier especialidad
-    const esAdminODirector = ["admin", "director", "superadmin"].includes(rol);
-    if (!esAdminODirector) {
-      if (!profesionalId) {
-        return { success: false, error: "No tienes un perfil de profesional activo" };
-      }
-      if (espActiva !== especialidad) {
-        return { success: false, error: "Solo puedes iniciar encuentros de tu especialidad" };
-      }
-    }
-
+    // admin/director/superadmin son solo lectura (decisión 2026-09-29): solo un
+    // profesional crea encuentros, y solo de su especialidad. RLS lo respalda
+    // (fce_encuentros_insert → es_profesional_clinico).
+    const escrituraGuard = assertPuedeEscribir(rol as Rol);
+    if (!escrituraGuard.success) return escrituraGuard;
     if (!profesionalId) {
-      return { success: false, error: "No se encontró perfil de profesional para este encuentro" };
+      return { success: false, error: "No tienes un perfil de profesional activo" };
+    }
+    if (espActiva !== especialidad) {
+      return { success: false, error: "Solo puedes iniciar encuentros de tu especialidad" };
     }
 
     // Lógica check-in / walk-in (mismo patrón que soap.ts)

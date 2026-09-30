@@ -45,21 +45,20 @@ export default async function DashboardLayout({
   // Guard: recepcionista no accede a FCE
   requireAccesoFCE(rol);
 
-  // Guard: coordinador solo accede a la lista de pacientes y a la ficha
-  // reducida de un paciente (pacientes/[id]/page.tsx bifurca a
-  // CoordinadorPatientView) — cualquier otra ruta de /dashboard/* (anamnesis,
-  // consentimiento, encuentro clínico, egresos, auditoría, exportar-pdf,
-  // configuración, etc.) queda fuera, incluso si RLS la dejaría leer algo.
-  // Ver hallazgo CRITICAL de la revisión de rama 2026-09-23: agregar
-  // 'coordinador' a ROLES_CON_ACCESO_FCE por sí solo no bastaba, exponía
-  // todas las rutas clínicas por URL directa.
-  if (rol === "coordinador") {
+  // Guard: admin / director / superadmin son SOLO lectura administrativa
+  // (decisión 2026-09-29, spec 2026-09-29-roles-admin-director-solo-lectura.md).
+  // No acceden a rutas de contenido clínico (anamnesis, consentimiento, encuentro,
+  // egreso, fhir) ni por URL directa. La defensa real de datos vive en RLS
+  // (es_profesional_clinico); este guard evita pantallas vacías/confusas y filtra
+  // rutas cuyos datos ya no pueden leer.
+  if (rol !== "profesional") {
     const headersList = await headers();
     const pathname = headersList.get("x-pathname") ?? "";
-    const rutaPermitida =
-      pathname === "/dashboard/pacientes" || /^\/dashboard\/pacientes\/[^/]+$/.test(pathname);
-    if (!rutaPermitida) {
-      redirect("/dashboard/pacientes");
+    const m = pathname.match(
+      /^\/dashboard\/pacientes\/([^/]+)\/(anamnesis|consentimiento|encuentro|egreso|fhir)(\/|$)/
+    );
+    if (m) {
+      redirect(`/dashboard/pacientes/${m[1]}`);
     }
   }
 

@@ -59,7 +59,6 @@ interface ClinicalTimelineProps {
   especialidadesActivas: string[];
   paciente?: Patient;
   clinica?: ClinicaConfig;
-  rolActual?: string;
 }
 
 type ViewMode = "todos" | "solo_notas";
@@ -585,7 +584,6 @@ export function ClinicalTimeline({
   especialidadesActivas,
   paciente,
   clinica,
-  rolActual = "",
 }: ClinicalTimelineProps) {
   const router = useRouter();
   const profesionalActivo = useProfesionalActivo();
@@ -827,7 +825,6 @@ export function ClinicalTimeline({
           target={adendaTarget}
           idPaciente={patientId}
           profesionalIdActual={currentUserId}
-          rolActual={rolActual}
           onSuccess={() => {
             setAdendaTarget(null);
             router.refresh();

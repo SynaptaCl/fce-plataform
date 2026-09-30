@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { logAudit } from "@/lib/audit";
 import type { ActionResult } from "@/lib/modules/guards";
+import { ROLES_QUE_PUEDEN_ESCRIBIR, type Rol } from "@/lib/modules/registry";
 import type { Patient } from "@/types";
 import type { FichaClinicaData, AdendaPdfRow } from "@/lib/ficha-clinica/pdf-renderer";
 import { clinicasBrandingToConfig, type ClinicaBrandingRow } from "@/lib/modules/branding";
@@ -57,13 +58,22 @@ export async function exportarFichaCompletaPdf(
 
   const adminRes = await supabase
     .from("admin_users")
-    .select("id_clinica")
+    .select("id_clinica, rol")
     .eq("auth_id", user.id)
     .eq("activo", true)
     .maybeSingle();
   const idClinica = adminRes.data?.id_clinica ?? null;
   if (!idClinica) {
     return { success: false, error: "No se encontró la clínica asociada al usuario." };
+  }
+  // La ficha completa incluye contenido clínico (SOAP, anamnesis, evaluaciones...).
+  // admin/director/superadmin son solo lectura administrativa: exportan por
+  // documento de salida, no la ficha completa (decisión 2026-09-29).
+  if (!ROLES_QUE_PUEDEN_ESCRIBIR.includes(adminRes.data?.rol as Rol)) {
+    return {
+      success: false,
+      error: "La ficha completa solo la puede exportar el profesional tratante.",
+    };
   }
 
   // Paciente con guard de tenant — el resto de las queries hereda este guard

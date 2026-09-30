@@ -70,15 +70,16 @@ export type Rol =
   | "director"
   | "admin"
   | "profesional"
-  | "recepcionista"
-  | "coordinador";
+  | "recepcionista";
 
-export const ROLES_CON_ACCESO_FCE: Rol[] = ["superadmin", "director", "admin", "profesional", "coordinador"];
-export const ROLES_QUE_PUEDEN_ESCRIBIR: Rol[] = ["superadmin", "director", "admin", "profesional"];
+/** Entran al dashboard. admin/director/superadmin: SOLO lectura administrativa (documentos de salida). */
+export const ROLES_CON_ACCESO_FCE: Rol[] = ["superadmin", "director", "admin", "profesional"];
+/** Único rol clínico: escribe contenido de ficha. Espeja es_profesional_clinico() en RLS (20260929_01). */
+export const ROLES_QUE_PUEDEN_ESCRIBIR: Rol[] = ["profesional"];
 export const ROLES_QUE_PUEDEN_FIRMAR: Rol[] = ["profesional"];
 export const ROLES_QUE_CONFIGURAN: Rol[] = ["superadmin", "director", "admin"];
 /** Roles con acceso de solo lectura a plan de intervención (M10) y plan de tratamiento dental. */
-export const ROLES_QUE_VEN_PLANES: Rol[] = ["superadmin", "director", "admin", "profesional", "coordinador"];
+export const ROLES_QUE_VEN_PLANES: Rol[] = ["superadmin", "director", "admin", "profesional"];
 
 // ============================================================================
 // Definición de módulo

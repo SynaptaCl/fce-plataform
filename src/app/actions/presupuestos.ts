@@ -5,7 +5,8 @@ import { requireContext } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import { getProfesionalActivo } from "@/lib/fce/profesional";
 import { getClinicaConfig } from "@/lib/modules/config";
-import { assertModuleEnabled, dbError } from "@/lib/modules/guards";
+import { assertModuleEnabled, assertPuedeEscribir, assertPuedeFirmar, dbError } from "@/lib/modules/guards";
+import type { Rol } from "@/lib/modules/registry";
 import type { ActionResult } from "@/lib/modules/guards";
 import { log } from "@/lib/logger";
 import { calcular, calcularSaldo, puedeFirmar, validarLineas } from "@/lib/tarificacion";
@@ -98,15 +99,28 @@ interface ContextoBasico {
   supabase: Awaited<ReturnType<typeof requireContext>>["supabase"];
   user: Awaited<ReturnType<typeof requireContext>>["user"];
   idClinica: string;
+  rol: Rol;
 }
 
 async function requireContextoBasico(): Promise<ContextoBasico | { error: string }> {
   try {
     const ctx = await requireContext();
-    return { supabase: ctx.supabase, user: ctx.user, idClinica: ctx.idClinica };
+    return { supabase: ctx.supabase, user: ctx.user, idClinica: ctx.idClinica, rol: ctx.rol as Rol };
   } catch {
     return { error: "No se encontró la clínica asociada al usuario." };
   }
+}
+
+/**
+ * Contexto para escrituras: admin/director/superadmin son solo lectura
+ * (decisión 2026-09-29) — espeja es_profesional_clinico() en RLS.
+ */
+async function requireContextoEscritura(): Promise<ContextoBasico | { error: string }> {
+  const base = await requireContextoBasico();
+  if ("error" in base) return base;
+  const guard = assertPuedeEscribir(base.rol);
+  if (!guard.success) return { error: guard.error };
+  return base;
 }
 
 /**
@@ -230,7 +244,7 @@ export async function crearPresupuesto(
   data: PresupuestoFormData,
   idEncuentro?: string
 ): Promise<ActionResult<Presupuesto>> {
-  const base = await requireContextoBasico();
+  const base = await requireContextoEscritura();
   if ("error" in base) return { success: false, error: base.error };
   const { supabase, user, idClinica } = base;
 
@@ -320,7 +334,7 @@ export async function actualizarPresupuesto(
   id: string,
   data: PresupuestoFormData
 ): Promise<ActionResult<Presupuesto>> {
-  const base = await requireContextoBasico();
+  const base = await requireContextoEscritura();
   if ("error" in base) return { success: false, error: base.error };
   const { supabase, user, idClinica } = base;
 
@@ -421,8 +435,10 @@ export async function actualizarPresupuesto(
 export async function firmarPresupuesto(
   id: string
 ): Promise<ActionResult<Presupuesto>> {
-  const base = await requireContextoBasico();
+  const base = await requireContextoEscritura();
   if ("error" in base) return { success: false, error: base.error };
+  const firmaGuard = assertPuedeFirmar(base.rol);
+  if (!firmaGuard.success) return firmaGuard;
   const { supabase, user, idClinica } = base;
 
   const config = await getClinicaConfig(idClinica, supabase);
@@ -563,7 +579,7 @@ export async function cambiarEstadoPresupuesto(
   id: string,
   nuevoEstado: Extract<PresupuestoEstado, "aceptado" | "rechazado" | "anulado">
 ): Promise<ActionResult<Presupuesto>> {
-  const base = await requireContextoBasico();
+  const base = await requireContextoEscritura();
   if ("error" in base) return { success: false, error: base.error };
   const { supabase, user, idClinica } = base;
 
@@ -669,7 +685,7 @@ export async function getSaldoPresupuesto(
 export async function eliminarPresupuesto(
   id: string
 ): Promise<ActionResult> {
-  const base = await requireContextoBasico();
+  const base = await requireContextoEscritura();
   if ("error" in base) return { success: false, error: base.error };
   const { supabase, user, idClinica } = base;
 

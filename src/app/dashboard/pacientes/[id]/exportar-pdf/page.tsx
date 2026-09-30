@@ -39,7 +39,7 @@ export default async function ExportarPdfPage({
   const supabase = await createClient();
 
   // Nombre del paciente (con guard de tenant) + último egreso firmado para tab Epicrisis
-  const [pacienteRes, egresoRes] = await Promise.all([
+  const [pacienteRes, egresoRes, adminRes] = await Promise.all([
     supabase
       .from("pacientes")
       .select("nombre, apellido_paterno, apellido_materno, rut, fecha_nacimiento")
@@ -55,9 +55,20 @@ export default async function ExportarPdfPage({
       .order("firmado_at", { ascending: false })
       .limit(1)
       .maybeSingle(),
+    supabase
+      .from("admin_users")
+      .select("rol")
+      .eq("auth_id", userId)
+      .eq("id_clinica", idClinica)
+      .eq("activo", true)
+      .maybeSingle(),
   ]);
 
   if (!pacienteRes.data) notFound();
+
+  // La ficha completa incluye contenido clínico: solo el profesional (decisión 2026-09-29).
+  // admin/director/superadmin ven únicamente documentos de salida.
+  const esProfesional = adminRes.data?.rol === "profesional";
 
   const fullName =
     [
@@ -72,7 +83,7 @@ export default async function ExportarPdfPage({
 
   // Tabs visibles según módulos activos de la clínica
   const tabs: TabDef[] = [
-    { id: "ficha", label: "Ficha Clínica" },
+    ...(esProfesional ? [{ id: "ficha" as const, label: "Ficha Clínica" }] : []),
     ...(requirePresupuestos(config).success
       ? [{ id: "presupuestos" as const, label: "Presupuestos" }]
       : []),
@@ -82,7 +93,9 @@ export default async function ExportarPdfPage({
     ...(egresoFirmadoId ? [{ id: "epicrisis" as const, label: "Epicrisis" }] : []),
   ];
 
-  const activeTab: TabId = tabs.some((t) => t.id === tab) ? (tab as TabId) : "ficha";
+  const activeTab: TabId | null = tabs.some((t) => t.id === tab)
+    ? (tab as TabId)
+    : (tabs[0]?.id ?? null);
 
   return (
     <div>
@@ -95,6 +108,11 @@ export default async function ExportarPdfPage({
       <TabBar id={id} tabs={tabs} activeTab={activeTab} />
 
       <div className="max-w-[860px] mx-auto">
+        {activeTab === null && (
+          <p className="text-sm" style={{ color: "var(--color-ink-3)" }}>
+            No hay documentos disponibles para este paciente.
+          </p>
+        )}
         {activeTab === "ficha" && <FichaCompletaExport patientId={id} />}
         {activeTab === "presupuestos" && <PresupuestoList idPaciente={id} />}
         {activeTab === "informes" && (
@@ -124,7 +142,7 @@ function TabBar({
 }: {
   id: string;
   tabs: TabDef[];
-  activeTab: TabId;
+  activeTab: TabId | null;
 }) {
   return (
     <div

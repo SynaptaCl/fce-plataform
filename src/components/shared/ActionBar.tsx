@@ -90,7 +90,7 @@ export function ActionBar({ patientId, paciente, primaryAction }: ActionBarProps
   const showCondicionales = (hasM7 && puedePrescribir) || (hasM8 && puedeExamenes);
   const canSeeAudit = ["admin", "director", "superadmin"].includes(rol);
   const hasM9 = modulosActivos.includes("M9_egresos");
-  const rolPuedeEgresar = ["profesional", "admin", "director", "superadmin"].includes(rol);
+  const rolPuedeEgresar = rol === "profesional";
   const estadoClinico = paciente.estado_clinico ?? "activo";
   const puedeEgresar = hasM9 && rolPuedeEgresar && estadoClinico === "activo";
 

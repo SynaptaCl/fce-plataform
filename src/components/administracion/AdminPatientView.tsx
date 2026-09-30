@@ -6,24 +6,22 @@ import {
   getPlanIntervencionDetalle,
 } from "@/app/actions/clinico/plan-intervencion";
 import { getPlanActivo } from "@/app/actions/dental/plan-tratamiento";
-import { getNotasAdministrativas } from "@/app/actions/coordinacion/notas";
-import { NotasAdministrativasPanel } from "./NotasAdministrativasPanel";
+import Link from "next/link";
 import { PlanIntervencionResumenCard } from "./PlanIntervencionResumenCard";
 import { PlanTratamientoResumenCard } from "./PlanTratamientoResumenCard";
 
-interface CoordinadorPatientViewProps {
+interface AdminPatientViewProps {
   patientId: string;
 }
 
-export async function CoordinadorPatientView({ patientId }: CoordinadorPatientViewProps) {
+export async function AdminPatientView({ patientId }: AdminPatientViewProps) {
   const patientResult = await getPatientById(patientId);
   if (!patientResult.success) notFound();
   const paciente = patientResult.data;
 
-  const [planesResult, planTratamientoResult, notasResult] = await Promise.all([
+  const [planesResult, planTratamientoResult] = await Promise.all([
     getPlanesIntervencion(patientId),
     getPlanActivo(patientId),
-    getNotasAdministrativas(patientId),
   ]);
 
   const planes = planesResult.success ? planesResult.data : [];
@@ -74,8 +72,26 @@ export async function CoordinadorPatientView({ patientId }: CoordinadorPatientVi
         className="rounded-lg px-3 py-2 text-xs"
         style={{ color: "var(--color-ink-3)", background: "var(--color-surface-0)" }}
       >
-        Vista de acceso administrativo — sin historial clínico. Consulta con el profesional
-        tratante para información clínica detallada.
+        Vista administrativa de solo lectura — sin historial clínico. Los documentos firmados
+        (epicrisis, informes, presupuestos) están en Documentos. Consulta con el profesional
+        tratante para información clínica.
+      </div>
+
+      <div className="flex flex-wrap gap-2">
+        <Link
+          href={`/dashboard/pacientes/${patientId}/exportar-pdf`}
+          className="rounded-lg border px-3 py-1.5 text-xs font-medium"
+          style={{ borderColor: "var(--color-kp-border)", color: "var(--color-ink-2)" }}
+        >
+          Documentos
+        </Link>
+        <Link
+          href={`/dashboard/pacientes/${patientId}/auditoria`}
+          className="rounded-lg border px-3 py-1.5 text-xs font-medium"
+          style={{ borderColor: "var(--color-kp-border)", color: "var(--color-ink-2)" }}
+        >
+          Auditoría
+        </Link>
       </div>
 
       <div className="flex flex-col gap-3">
@@ -107,11 +123,6 @@ export async function CoordinadorPatientView({ patientId }: CoordinadorPatientVi
           </p>
         )}
       </div>
-
-      <NotasAdministrativasPanel
-        patientId={patientId}
-        notasIniciales={notasResult.success ? notasResult.data : []}
-      />
     </div>
   );
 }

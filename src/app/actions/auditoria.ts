@@ -2,27 +2,18 @@
 
 import { dbError } from "@/lib/modules/guards";
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { requireContext } from "@/lib/auth";
+import { ROLES_QUE_CONFIGURAN } from "@/lib/modules/registry";
 import type { ActionResult } from "./patients";
 import type { AuditEntry, AuditAction } from "@/types";
 
-// ── Helper: requiere rol admin ─────────────────────────────────────────────
+// ── Helper: requiere rol con acceso a auditoría ───────────────────────────
+// admin / director / superadmin (ROLES_QUE_CONFIGURAN). Antes exigía rol === "admin"
+// exacto y dejaba fuera a director y superadmin (fix 2026-09-29).
 
 async function requireAdmin() {
-  const supabase = await createClient();
-  const { data: { user }, error } = await supabase.auth.getUser();
-  if (error || !user) redirect("/login");
-
-  // admin_users tiene el rol, NO profesionales
-  const { data: adminUser } = await supabase
-    .from("admin_users")
-    .select("rol, id_clinica")
-    .eq("auth_id", user.id)
-    .maybeSingle();
-
-  if (adminUser?.rol !== "admin") redirect("/dashboard");
-
-  const idClinica: string | null = adminUser?.id_clinica ?? null;
+  const { supabase, user, idClinica, rol } = await requireContext();
+  if (!(ROLES_QUE_CONFIGURAN as string[]).includes(rol)) redirect("/dashboard");
   return { supabase, user, idClinica };
 }
 
@@ -47,9 +38,7 @@ export async function getAuditLogs(
     .limit(200);
 
   // Filtrar siempre por la clínica del admin — impide ver logs de otras clínicas
-  if (idClinica) {
-    query = query.eq("id_clinica", idClinica);
-  }
+  query = query.eq("id_clinica", idClinica);
 
   if (filter.patientId) {
     query = query.eq("id_paciente", filter.patientId);
