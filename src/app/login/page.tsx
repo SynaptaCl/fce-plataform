@@ -13,6 +13,7 @@ import {
   ShieldCheck,
   AlertCircle,
   CheckCircle2,
+  Timer,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
@@ -30,6 +31,7 @@ function LoginForm() {
 
   const resetOk = searchParams.get("reset") === "ok";
   const recoveryError = searchParams.get("error") === "recovery_link_invalido";
+  const sesionExpirada = searchParams.get("motivo") === "expirada";
 
   const {
     register,
@@ -108,6 +110,17 @@ function LoginForm() {
             <div className="flex items-start gap-2.5 bg-kp-success-lt border border-kp-success/20 text-kp-success rounded-lg px-4 py-3 text-sm">
               <CheckCircle2 className="w-4 h-4 mt-0.5 shrink-0" />
               <span>Contraseña actualizada. Ya puedes iniciar sesión.</span>
+            </div>
+          )}
+
+          {/* Aviso: sesión cerrada por inactividad */}
+          {sesionExpirada && (
+            <div className="flex items-start gap-2.5 bg-kp-warning-lt border border-kp-warning/20 text-kp-warning rounded-lg px-4 py-3 text-sm">
+              <Timer className="w-4 h-4 mt-0.5 shrink-0" />
+              <span>
+                La sesión se cerró automáticamente por inactividad. Inicia
+                sesión nuevamente.
+              </span>
             </div>
           )}
 

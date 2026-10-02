@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 import { Sidebar } from "./Sidebar";
 import { TopBar } from "./TopBar";
 import { ProfesionalSelector } from "./ProfesionalSelector";
+import { SessionIdleTimeout } from "./SessionIdleTimeout";
 import type { BrandingConfig } from "@/lib/modules/registry";
 import type { ProfesionalPerfil } from "@/lib/fce/profesional";
 
@@ -71,6 +72,7 @@ export function DashboardShell({
         background: "var(--color-surface-0, #F1F5F9)",
       }}
     >
+      <SessionIdleTimeout />
       <Sidebar
         practitionerName={practitionerName}
         practitionerInitials={practitionerInitials}
