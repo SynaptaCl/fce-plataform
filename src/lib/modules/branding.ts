@@ -22,6 +22,11 @@ export interface ClinicaBrandingRow {
   clinic_short_name: string | null;
   clinic_initials: string | null;
   logo_url: string | null;
+  /** Overrides propios de la FCE (synapta migración 20261002_02). NULL = hereda el color general. */
+  fce_primary_color?: string | null;
+  fce_accent_color?: string | null;
+  fce_light_bg_color?: string | null;
+  fce_sidebar_color?: string | null;
 }
 
 /** Oscurece un hex #rrggbb por un factor 0..1. Devuelve undefined si no es válido. */
@@ -47,13 +52,16 @@ export function clinicasBrandingToConfig(
   row: ClinicaBrandingRow | null | undefined,
 ): BrandingConfig | null {
   if (!row) return null;
+  // Override FCE (fce_*) o, si es NULL, el color general compartido con el chat.
+  const primary = row.fce_primary_color ?? row.primary_color;
+  const navy = row.fce_sidebar_color ?? row.navy_color;
   return {
-    navy: row.navy_color,
-    navy_deep: darkenHex(row.navy_color, 0.5) ?? row.navy_deep_color,
-    primary: row.primary_color,
-    accent: row.accent_color,
-    light_bg: row.light_bg_color,
-    primary_hover: darkenHex(row.primary_color, 0.88),
+    navy,
+    navy_deep: darkenHex(navy, 0.5) ?? row.navy_deep_color,
+    primary,
+    accent: row.fce_accent_color ?? row.accent_color,
+    light_bg: row.fce_light_bg_color ?? row.light_bg_color,
+    primary_hover: darkenHex(primary, 0.88),
     clinic_initials: row.clinic_initials ?? undefined,
     clinic_short_name: row.clinic_short_name ?? undefined,
     logo_url: row.logo_url ?? undefined,
@@ -68,7 +76,7 @@ export async function getClinicaBranding(
   const { data } = await supabase
     .from("clinicas_branding")
     .select(
-      "primary_color, navy_color, navy_deep_color, accent_color, light_bg_color, clinic_short_name, clinic_initials, logo_url",
+      "primary_color, navy_color, navy_deep_color, accent_color, light_bg_color, clinic_short_name, clinic_initials, logo_url, fce_primary_color, fce_accent_color, fce_light_bg_color, fce_sidebar_color",
     )
     .eq("id_clinica", idClinica)
     .maybeSingle();
