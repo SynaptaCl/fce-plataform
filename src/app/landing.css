@@ -48,71 +48,20 @@ html:has(.kl-landing) {
   mask-image: radial-gradient(72% 68% at 50% 18%, black 28%, transparent 100%);
 }
 
-/* ── Banda de seguridad ── */
-.kl-secure-band {
-  background: linear-gradient(
-    160deg,
-    color-mix(in oklab, var(--color-kp-primary-deep) 82%, #010c0b) 0%,
-    var(--color-kp-primary-deep) 100%
-  );
-}
-
 /* ── Footer ── */
 .kl-footer {
   background: color-mix(in oklab, var(--color-kp-primary-deep) 55%, #01100f);
 }
 
-/* ── Tiles de módulos ── */
-.kl-tile {
-  transition:
-    border-color 0.2s ease,
-    transform 0.2s ease,
-    background-color 0.2s ease;
-}
-
-.kl-tile:hover {
-  border-color: color-mix(
-    in oklab,
-    var(--color-kp-accent) 45%,
-    var(--color-kp-border)
-  );
-  background-color: #ffffff;
-  transform: translateY(-2px);
-}
-
 /* ── Mock de producto ── */
 .kl-mock {
-  box-shadow: 0 22px 44px -22px rgba(1, 45, 45, 0.45);
+  box-shadow: 0 22px 44px -18px rgba(1, 45, 45, 0.5);
 }
 
-.kl-chip-float {
-  box-shadow: 0 4px 10px -4px rgba(1, 45, 45, 0.28);
-}
-
-/* ── Línea ECG (divisor hero → módulos) ── */
-.kl-ecg path {
-  stroke-dasharray: 1900;
-  stroke-dashoffset: 1900;
-}
-
-/* ── Nav links ── */
-.kl-navlink {
-  position: relative;
-}
-
-.kl-navlink::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 100%;
-  bottom: -4px;
-  height: 2px;
-  background: var(--color-kp-accent);
-  transition: right 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.kl-navlink:hover::after {
-  right: 0;
+.kl-photo {
+  box-shadow: 0 30px 60px -28px rgba(1, 45, 45, 0.55);
+  outline: 1px solid color-mix(in oklab, var(--color-kp-primary) 14%, transparent);
+  outline-offset: -1px;
 }
 
 /* ── Botón flecha ── */
@@ -136,8 +85,6 @@ button:hover .kl-arrow {
   .kl-rise-2 { animation-delay: 0.15s; }
   .kl-rise-3 { animation-delay: 0.25s; }
   .kl-rise-4 { animation-delay: 0.35s; }
-  .kl-rise-5 { animation-delay: 0.45s; }
-  .kl-rise-6 { animation-delay: 0.55s; }
 
   @keyframes kl-rise {
     from {
@@ -147,34 +94,6 @@ button:hover .kl-arrow {
     to {
       opacity: 1;
       transform: translateY(0);
-    }
-  }
-
-  .kl-float {
-    animation: kl-float 7s ease-in-out infinite;
-  }
-
-  .kl-float-slow {
-    animation: kl-float 9s ease-in-out 1.2s infinite;
-  }
-
-  @keyframes kl-float {
-    0%,
-    100% {
-      transform: translateY(0);
-    }
-    50% {
-      transform: translateY(-8px);
-    }
-  }
-
-  .kl-ecg path {
-    animation: kl-draw 3s 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-  }
-
-  @keyframes kl-draw {
-    to {
-      stroke-dashoffset: 0;
     }
   }
 
@@ -199,4 +118,10 @@ button:hover .kl-arrow {
   html:has(.kl-landing) {
     scroll-behavior: auto;
   }
+}
+
+/* Títulos sobre fondo oscuro: globals.css fija color en h1–h6 fuera de @layer,
+   así que text-white no alcanza. */
+.kl-landing .kl-on-dark {
+  color: #fff;
 }
