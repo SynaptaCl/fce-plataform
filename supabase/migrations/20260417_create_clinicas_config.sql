@@ -118,6 +118,8 @@ create policy "no delete" on clinicas_config
 comment on table clinicas_config is 'Configuración multi-tenant por clínica: módulos activos, especialidades, branding y overrides.';
 comment on column clinicas_config.modulos_activos is 'Array de ModuleId (ver src/lib/modules/registry.ts). Ej: {M1_identificacion, M2_anamnesis, ...}';
 comment on column clinicas_config.especialidades_activas is 'Array de EspecialidadId. Solo relevante si M3_evaluacion está activo.';
+-- ⚠️ HISTÓRICO (2026-10-02): `tokens_color` y `clinicas_config` ya NO son la fuente de branding.
+-- La fuente es la tabla `clinicas_branding`, leída por src/lib/modules/branding.ts.
 comment on column clinicas_config.tokens_color is 'Paleta de marca inyectada como CSS vars. Claves esperadas: primary, primary-deep, accent, accent-md, accent-lt, secondary.';
 comment on column clinicas_config.config_modulos is 'Overrides granulares por módulo. Ej: {"M2_anamnesis": {"red_flags_obligatorio": true}}';
 

@@ -37,17 +37,24 @@
 ### Especialidades activas (0)
 Actualmente ninguna especialidad FCE activa. Cuando se active M3, la especialidad a configurar es `Odontología`.
 
-## Branding (de `clinicas.config.branding`)
+## Branding (de `clinicas_branding` — la escribe `synapta`)
+
+> ⚠️ 2026-10-02: `clinicas.config.branding` (jsonb) quedó **sin escritor** y NO es la fuente. El branding
+> se lee de la tabla `clinicas_branding` vía `src/lib/modules/branding.ts` (`getClinicaBranding` +
+> `clinicasBrandingToConfig`). Mapeo vigente en `mapBrandingToTokens` (`src/lib/modules/registry.ts`):
 
 ```
-navy           #1B3A5C  → maps to kp-primary
-navy_deep      #0F2440  → maps to kp-primary-deep
-primary        #2563EB  → maps to kp-accent
-primary_hover  #1D4ED8  → maps to kp-primary-hover
-light_bg       #EFF6FF  → maps to kp-accent-lt
-accent         #0891B2  → maps to kp-secondary
-clinic_initials  NV
+primary_color   → kp-primary        (marca principal; antes iba a kp-accent)
+navy_color      → kp-primary-deep   (superficie oscura; antes era kp-primary)
+accent_color    → kp-accent
+light_bg_color  → kp-accent-lt
+navy_deep       → derivado de navy_color (darken 0.5)
+primary_hover   → derivado de primary_color (darken 0.88)
+kp-secondary    → color semántico "cálido" del FCE, no la marca de la clínica
 ```
+
+Valores legacy del jsonb (histórico, ya no se leen): navy `#1B3A5C`, navy_deep `#0F2440`,
+primary `#2563EB`, light_bg `#EFF6FF`, accent `#0891B2`.
 
 ## Equipo actual
 

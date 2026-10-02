@@ -1,16 +1,17 @@
 @import "tailwindcss";
 
 @theme inline {
-  /* ── Brand Colors — FALLBACK (BrandingInjector los overridea con valores de DB) ── */
-  --color-kp-primary: #006B6B;
-  --color-kp-primary-deep: #004545;
-  --color-kp-accent: #00B0A8;
+  /* ── Brand Colors — FALLBACK (BrandingInjector los overridea con valores de DB) ──
+     Paleta canónica Synapta = synapta/lib/branding.ts (BRANDING_COLOR_DEFAULTS). */
+  --color-kp-primary: #0D9488;
+  --color-kp-primary-deep: #060D1A;
+  --color-kp-accent: #14B8A6;
   --color-kp-accent-md: #33C4BE;
-  --color-kp-accent-lt: #D5F5F4;
+  --color-kp-accent-lt: #F0FDFA;
   --color-kp-accent-xs: #E6FAF9;
   --color-kp-secondary: #F5A623;
   --color-kp-secondary-lt: #FEF3E2;
-  --color-kp-primary-hover: #009990;
+  --color-kp-primary-hover: #0B8278;
 
   /* ── Surfaces ── */
   --color-surface-0: #F1F5F9;

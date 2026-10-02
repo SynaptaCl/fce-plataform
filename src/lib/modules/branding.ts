@@ -37,7 +37,11 @@ export function darkenHex(hex: string, factor: number): string | undefined {
 
 /**
  * Traduce una fila de `clinicas_branding` a `BrandingConfig`.
- * `primary_hover` se deriva del `navy_color` (el color "primary" del FCE).
+ *
+ * Semántica alineada con `synapta/lib/branding.ts` (2026-10-02): `primary_color` es la marca
+ * principal, `navy_color` la superficie oscura. `navy_deep` y `primary_hover` se DERIVAN acá
+ * (mismas reglas que el módulo canónico de synapta): navy_deep = darken(navy, 0.5);
+ * primary_hover = darken(primary, 0.88). La columna `navy_deep_color` es vestigial.
  */
 export function clinicasBrandingToConfig(
   row: ClinicaBrandingRow | null | undefined,
@@ -45,11 +49,11 @@ export function clinicasBrandingToConfig(
   if (!row) return null;
   return {
     navy: row.navy_color,
-    navy_deep: row.navy_deep_color,
+    navy_deep: darkenHex(row.navy_color, 0.5) ?? row.navy_deep_color,
     primary: row.primary_color,
     accent: row.accent_color,
     light_bg: row.light_bg_color,
-    primary_hover: darkenHex(row.navy_color, 0.88),
+    primary_hover: darkenHex(row.primary_color, 0.88),
     clinic_initials: row.clinic_initials ?? undefined,
     clinic_short_name: row.clinic_short_name ?? undefined,
     logo_url: row.logo_url ?? undefined,

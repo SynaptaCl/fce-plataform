@@ -469,26 +469,31 @@ export interface FceTokens {
   "primary-hover": string;
 }
 
-/** Fallback: paleta por defecto (teal) si branding está vacío. */
+/** Fallback si branding está vacío. Alineado con la paleta canónica de synapta (lib/branding.ts). */
 export const DEFAULT_FCE_TOKENS: FceTokens = {
-  "primary": "#006B6B",
-  "primary-deep": "#004545",
-  "accent": "#00B0A8",
-  "accent-lt": "#D5F5F4",
+  "primary": "#0D9488",
+  "primary-deep": "#060D1A",
+  "accent": "#14B8A6",
+  "accent-lt": "#F0FDFA",
   "secondary": "#F5A623",
-  "primary-hover": "#009990",
+  "primary-hover": "#0B8278",
 };
 
 /**
  * Convierte el branding (BrandingConfig, alimentado desde clinicas_branding) a tokens FCE.
  * Si alguna clave falta, usa el fallback default.
+ *
+ * Semántica alineada con `synapta/lib/branding.ts` (2026-10-02): `primary` ← primary_color
+ * (la marca de la clínica); `primary-deep` ← la superficie oscura derivada de navy_color.
+ * `secondary` es un color semántico "cálido" del FCE, NO la marca de la clínica
+ * (se mantiene el mapeo histórico desde accent_color).
  */
 export function mapBrandingToTokens(branding: BrandingConfig | null | undefined): FceTokens {
   if (!branding) return DEFAULT_FCE_TOKENS;
   return {
-    "primary": branding.navy ?? DEFAULT_FCE_TOKENS.primary,
+    "primary": branding.primary ?? DEFAULT_FCE_TOKENS.primary,
     "primary-deep": branding.navy_deep ?? DEFAULT_FCE_TOKENS["primary-deep"],
-    "accent": branding.primary ?? DEFAULT_FCE_TOKENS.accent,
+    "accent": branding.accent ?? DEFAULT_FCE_TOKENS.accent,
     "accent-lt": branding.light_bg ?? DEFAULT_FCE_TOKENS["accent-lt"],
     "secondary": branding.accent ?? DEFAULT_FCE_TOKENS.secondary,
     "primary-hover": branding.primary_hover ?? DEFAULT_FCE_TOKENS["primary-hover"],
