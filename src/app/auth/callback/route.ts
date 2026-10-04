@@ -3,15 +3,17 @@ import { createClient } from "@/lib/supabase/server";
 import { log } from "@/lib/logger";
 
 /**
- * Intercambia el `code` (PKCE) enviado por Supabase en el link de recuperación
- * de contraseña por una sesión activa, y redirige a `next` (default /reset-password).
+ * Intercambia el `code` (PKCE) enviado por Supabase (ej: link de verificación de email)
+ * por una sesión activa, y redirige a `next` (default /dashboard).
  * Sin esto, el link del email deja al usuario en una URL con `?code=...` que
- * nadie consume y el flujo de reset nunca se completa.
+ * nadie consume.
+ *
+ * Nota: recuperación de contraseña se maneja en Synapta (https://synapta.cl/admin/olvide-contrasena)
  */
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
-  const next = searchParams.get("next") ?? "/reset-password";
+  const next = searchParams.get("next") ?? "/dashboard";
 
   if (code) {
     const supabase = await createClient();

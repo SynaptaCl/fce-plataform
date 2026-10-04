@@ -31,7 +31,9 @@ export default async function AnamnesisPage({
 }) {
   const { id } = await params;
 
-  const { config } = await getClinicaConfigFromSession();
+  const { config, rol } = await getClinicaConfigFromSession();
+  // admin/director/superadmin: lectura sin edición (decisión 2026-10-02)
+  const soloLectura = rol !== "profesional";
   requireModule(config, "M2_anamnesis");
 
   const [patientResult, anamnesisResult, vitalSignsResult] = await Promise.all([
@@ -76,8 +78,19 @@ export default async function AnamnesisPage({
       </div>
 
       {/* Signos vitales */}
+      {soloLectura && (
+        <div
+          className="rounded-lg px-3 py-2 text-xs"
+          style={{ color: "var(--color-ink-3)", background: "var(--color-surface-0)" }}
+        >
+          Vista de solo lectura — la anamnesis y los signos vitales los registra el profesional tratante.
+        </div>
+      )}
+
       <Card title="Signos Vitales" icon={<Activity className="w-4 h-4" />}>
-        <VitalSignsPanel patientId={id} latestVitalSigns={latestVitalSigns} />
+        <fieldset disabled={soloLectura} className="min-w-0 border-0 p-0 m-0">
+          <VitalSignsPanel patientId={id} latestVitalSigns={latestVitalSigns} />
+        </fieldset>
       </Card>
 
       {/* Anamnesis */}
@@ -85,7 +98,9 @@ export default async function AnamnesisPage({
         title="M2 · Anamnesis"
         icon={<ClipboardList className="w-4 h-4" />}
       >
-        <AnamnesisForm patientId={id} initialData={anamnesis} />
+        <fieldset disabled={soloLectura} className="min-w-0 border-0 p-0 m-0">
+          <AnamnesisForm patientId={id} initialData={anamnesis} />
+        </fieldset>
       </Card>
     </div>
   );

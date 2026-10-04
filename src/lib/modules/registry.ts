@@ -77,6 +77,8 @@ export const ROLES_CON_ACCESO_FCE: Rol[] = ["superadmin", "director", "admin", "
 /** Único rol clínico: escribe contenido de ficha. Espeja es_profesional_clinico() en RLS (20260929_01). */
 export const ROLES_QUE_PUEDEN_ESCRIBIR: Rol[] = ["profesional"];
 export const ROLES_QUE_PUEDEN_FIRMAR: Rol[] = ["profesional"];
+/** Alta/edición de datos demográficos del paciente (M1, tabla `pacientes`). No es contenido clínico: director/admin lo hacen en la práctica. */
+export const ROLES_QUE_GESTIONAN_PACIENTES: Rol[] = ["superadmin", "director", "admin", "profesional"];
 export const ROLES_QUE_CONFIGURAN: Rol[] = ["superadmin", "director", "admin"];
 /** Roles con acceso de solo lectura a plan de intervención (M10) y plan de tratamiento dental. */
 export const ROLES_QUE_VEN_PLANES: Rol[] = ["superadmin", "director", "admin", "profesional"];

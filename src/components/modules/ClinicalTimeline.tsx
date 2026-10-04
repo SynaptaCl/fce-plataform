@@ -59,6 +59,8 @@ interface ClinicalTimelineProps {
   especialidadesActivas: string[];
   paciente?: Patient;
   clinica?: ClinicaConfig;
+  /** Rol no clínico (admin/director): lee todo, no agrega adendas. */
+  soloLectura?: boolean;
 }
 
 type ViewMode = "todos" | "solo_notas";
@@ -584,6 +586,7 @@ export function ClinicalTimeline({
   especialidadesActivas,
   paciente,
   clinica,
+  soloLectura = false,
 }: ClinicalTimelineProps) {
   const router = useRouter();
   const profesionalActivo = useProfesionalActivo();
@@ -796,7 +799,7 @@ export function ClinicalTimeline({
               patientId={patientId}
               onVerReceta={paciente && clinica ? setModalPrescripcionId : undefined}
               onVerOrden={paciente && clinica ? setModalOrdenId : undefined}
-              onAgregarAdenda={setAdendaTarget}
+              onAgregarAdenda={soloLectura ? undefined : setAdendaTarget}
             />
           ))
         )}

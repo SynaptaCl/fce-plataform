@@ -1,7 +1,6 @@
 "use client";
 
 import { Suspense, useState } from "react";
-import Link from "next/link";
 import Image from "next/image";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
@@ -45,7 +44,7 @@ function LoginForm() {
     setServerError(null);
     const supabase = createClient();
 
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data: session, error } = await supabase.auth.signInWithPassword({
       email: data.email,
       password: data.password,
     });
@@ -58,6 +57,7 @@ function LoginForm() {
       );
       return;
     }
+
 
     router.push("/dashboard");
     router.refresh();
@@ -176,12 +176,14 @@ function LoginForm() {
               >
                 Contraseña
               </label>
-              <Link
-                href="/forgot-password"
+              <a
+                href="https://synapta.cl/admin/olvide-contrasena"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="text-xs text-kp-accent hover:underline"
               >
                 ¿Olvidaste tu contraseña?
-              </Link>
+              </a>
             </div>
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-4 pointer-events-none" />

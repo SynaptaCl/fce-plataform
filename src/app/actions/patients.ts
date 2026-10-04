@@ -1,6 +1,7 @@
 "use server";
 
-import { dbError } from "@/lib/modules/guards";
+import { dbError, assertPuedeGestionarPacientes } from "@/lib/modules/guards";
+import type { Rol } from "@/lib/modules/registry";
 import { revalidatePath } from "next/cache";
 import { patientSchema, type PatientSchemaType } from "@/lib/validations";
 import { formatRut, cleanRut } from "@/lib/run-validator";
@@ -174,7 +175,9 @@ export async function createPatient(
     return { success: false, error: parsed.error.issues[0].message };
   }
 
-  const { supabase, user, idClinica } = await requireContext();
+  const { supabase, user, idClinica, rol } = await requireContext();
+  const permiso = assertPuedeGestionarPacientes(rol as Rol);
+  if (!permiso.success) return permiso;
   if (!idClinica) return { success: false, error: "No se encontró la clínica asociada al usuario." };
 
   // Pre-check: buscar RUT en cualquier formato dentro de la clínica antes del INSERT.
@@ -233,7 +236,9 @@ export async function updatePatient(
     return { success: false, error: parsed.error.issues[0].message };
   }
 
-  const { supabase, user, idClinica } = await requireContext();
+  const { supabase, user, idClinica, rol } = await requireContext();
+  const permiso = assertPuedeGestionarPacientes(rol as Rol);
+  if (!permiso.success) return permiso;
   if (!idClinica) return { success: false, error: "No se encontró la clínica asociada al usuario." };
 
   const payload = {

@@ -1,6 +1,7 @@
 "use server";
 
-import { dbError } from "@/lib/modules/guards";
+import { dbError, assertPuedeEscribir } from "@/lib/modules/guards";
+import type { Rol } from "@/lib/modules/registry";
 import { revalidatePath } from "next/cache";
 import { requireAuth, requireContext } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
@@ -41,7 +42,9 @@ export async function upsertAnamnesis(
     return { success: false, error: parsed.error.issues[0].message };
   }
 
-  const { supabase, user, idClinica, profesionalId } = await requireContext();
+  const { supabase, user, idClinica, profesionalId, rol } = await requireContext();
+  const permiso = assertPuedeEscribir(rol as Rol);
+  if (!permiso.success) return permiso;
   if (!idClinica) return { success: false, error: "No se encontró la clínica asociada al usuario." };
 
   // ¿Ya existe una anamnesis para este paciente?
@@ -143,7 +146,9 @@ export async function saveVitalSigns(
     return { success: false, error: parsed.error.issues[0].message };
   }
 
-  const { supabase, user, idClinica, profesionalId } = await requireContext();
+  const { supabase, user, idClinica, profesionalId, rol } = await requireContext();
+  const permiso = assertPuedeEscribir(rol as Rol);
+  if (!permiso.success) return permiso;
   if (!profesionalId) return { success: false, error: "No se encontró el profesional asociado al usuario." };
   if (!idClinica) return { success: false, error: "No se encontró la clínica asociada al usuario." };
 

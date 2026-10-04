@@ -5,7 +5,7 @@
 
 import { notFound, redirect } from "next/navigation";
 import type { ModuleId, EspecialidadCodigo, Rol } from "./registry";
-import { ROLES_CON_ACCESO_FCE, ROLES_QUE_PUEDEN_ESCRIBIR, ROLES_QUE_PUEDEN_FIRMAR, ROLES_QUE_CONFIGURAN } from "./registry";
+import { ROLES_CON_ACCESO_FCE, ROLES_QUE_PUEDEN_ESCRIBIR, ROLES_QUE_PUEDEN_FIRMAR, ROLES_QUE_CONFIGURAN, ROLES_QUE_GESTIONAN_PACIENTES } from "./registry";
 import type { ClinicaConfig } from "./config";
 import { isModuleEnabled, isEspecialidadEnabled } from "./config";
 import { log } from "@/lib/logger";
@@ -107,6 +107,13 @@ export function assertEspecialidadEnabled(
 export function assertPuedeEscribir(rol: Rol | null): ActionResult<true> {
   if (!rol || !ROLES_QUE_PUEDEN_ESCRIBIR.includes(rol)) {
     return { success: false, error: "Tu rol no permite escribir en el FCE." };
+  }
+  return { success: true, data: true };
+}
+
+export function assertPuedeGestionarPacientes(rol: Rol | null): ActionResult<true> {
+  if (!rol || !ROLES_QUE_GESTIONAN_PACIENTES.includes(rol)) {
+    return { success: false, error: "Tu rol no permite crear ni editar pacientes." };
   }
   return { success: true, data: true };
 }

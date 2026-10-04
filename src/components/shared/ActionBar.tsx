@@ -88,6 +88,7 @@ export function ActionBar({ patientId, paciente, primaryAction }: ActionBarProps
   const puedePrescribir = profesionalActivo?.puede_prescribir ?? false;
   const puedeExamenes = profesionalActivo?.puede_indicar_examenes ?? false;
   const showCondicionales = (hasM7 && puedePrescribir) || (hasM8 && puedeExamenes);
+  const soloLectura = rol !== "profesional";
   const canSeeAudit = ["admin", "director", "superadmin"].includes(rol);
   const hasM9 = modulosActivos.includes("M9_egresos");
   const rolPuedeEgresar = rol === "profesional";
@@ -126,6 +127,7 @@ export function ActionBar({ patientId, paciente, primaryAction }: ActionBarProps
         )}
 
         {/* Nivel 2 — Acciones clínicas frecuentes */}
+        {!soloLectura && (
         <button
           type="button"
           onClick={() => setQuickNoteOpen(true)}
@@ -135,6 +137,7 @@ export function ActionBar({ patientId, paciente, primaryAction }: ActionBarProps
           <IconBox><FileEdit style={{ width: 12, height: 12 }} /></IconBox>
           Nota rápida
         </button>
+        )}
 
         {hasM2 && (
           <Link
@@ -147,7 +150,7 @@ export function ActionBar({ patientId, paciente, primaryAction }: ActionBarProps
           </Link>
         )}
 
-        {hasM5 && (
+        {hasM5 && !soloLectura && (
           <Link
             href={`${base}/consentimiento`}
             style={chipBase}

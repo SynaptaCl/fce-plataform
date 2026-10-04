@@ -79,6 +79,13 @@ export async function AdminPatientView({ patientId }: AdminPatientViewProps) {
 
       <div className="flex flex-wrap gap-2">
         <Link
+          href={`/dashboard/pacientes/${patientId}/editar`}
+          className="rounded-lg border px-3 py-1.5 text-xs font-medium"
+          style={{ borderColor: "var(--color-kp-border)", color: "var(--color-ink-2)" }}
+        >
+          Editar datos del paciente
+        </Link>
+        <Link
           href={`/dashboard/pacientes/${patientId}/exportar-pdf`}
           className="rounded-lg border px-3 py-1.5 text-xs font-medium"
           style={{ borderColor: "var(--color-kp-border)", color: "var(--color-ink-2)" }}

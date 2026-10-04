@@ -26,6 +26,11 @@ export default async function DashboardLayout({
     redirect("/login");
   }
 
+  // Contraseña temporal (recuperación self-service): cambio obligatorio en Synapta.
+  if (user.user_metadata?.must_change_password === true) {
+    redirect("https://synapta.cl/admin/olvide-contrasena");
+  }
+
   // admin_users = fuente autoritativa de rol e id_clinica
   const adminRes = await supabase
     .from("admin_users")
@@ -55,7 +60,7 @@ export default async function DashboardLayout({
     const headersList = await headers();
     const pathname = headersList.get("x-pathname") ?? "";
     const m = pathname.match(
-      /^\/dashboard\/pacientes\/([^/]+)\/(anamnesis|consentimiento|encuentro|egreso|fhir)(\/|$)/
+      /^\/dashboard\/pacientes\/([^/]+)\/(consentimiento|encuentro|egreso)(\/|$)/
     );
     if (m) {
       redirect(`/dashboard/pacientes/${m[1]}`);

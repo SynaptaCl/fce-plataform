@@ -17,7 +17,6 @@ import { logAudit } from "@/lib/audit";
 import { getEspecialidadConfig } from "@/lib/modules/especialidad-config";
 import { getUltimaVersionGrabacion } from "@/lib/ambient/consentimiento";
 import { AmbientConsentPanel } from "@/components/shared/AmbientConsentPanel";
-import { AdminPatientView } from "@/components/administracion/AdminPatientView";
 import type { PatientSummary } from "@/app/actions/timeline";
 
 export async function generateMetadata({
@@ -78,12 +77,10 @@ async function _patientDetailPage(
   const idClinica = adminRes.data?.id_clinica ?? null;
   const rol = adminRes.data?.rol ?? "";
 
-  // admin / director / superadmin: vista administrativa de solo lectura — sin timeline
-  // clínico. Evita disparar getPatientTimeline/getEgresosByPaciente/getUltimaVersionGrabacion,
-  // que estos roles ya no pueden leer (RLS: es_profesional_clinico).
-  if (rol !== "profesional") {
-    return <AdminPatientView patientId={id} />;
-  }
+  // admin / director / superadmin leen la ficha completa (timeline) pero NO realizan
+  // atención clínica: sin lanzador de encuentro, adendas ni reingreso. La escritura la
+  // bloquean RLS (es_profesional_clinico) y assertPuedeEscribir.
+  const soloLectura = rol !== "profesional";
 
   // ── Fetch paralelo ─────────────────────────────────────────────────────
   const [patientResult, timelineResult, consentResult, ultimaVersionGrabacion, fceConfigRes, profesional, egresosResult] =
@@ -212,7 +209,7 @@ async function _patientDetailPage(
         )}
 
         {/* Banner de egreso — si el paciente está egresado */}
-        {p.estado_clinico === "egresado" && (
+        {p.estado_clinico === "egresado" && !soloLectura && (
           <ReingresoBanner
             patientId={id}
             egresoFirmadoAt={egresosFirmados[0]?.firmado_at ?? null}
@@ -234,6 +231,7 @@ async function _patientDetailPage(
               currentUserId={profesional?.id ?? ""}
               patientId={id}
               especialidadesActivas={especialidadesActivas}
+              soloLectura={soloLectura}
             />
           </div>
 
