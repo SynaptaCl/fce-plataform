@@ -52,6 +52,13 @@ export function InstrumentoResultadoCard({
                 {instrumento.interpretacion}
               </span>
             )}
+            {!instrumento.interpretacion &&
+              (typeof instrumento.respuestas?.clasificacion === "string" ||
+                typeof instrumento.respuestas?.clasificacion_label === "string") && (
+                <span className="text-xs px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-700 font-medium">
+                  {instrumento.respuestas.clasificacion ?? instrumento.respuestas.clasificacion_label}
+                </span>
+              )}
             <span className="text-xs" style={{ color: "var(--color-ink-3)" }}>
               {new Date(instrumento.aplicado_at).toLocaleDateString("es-CL")}
             </span>

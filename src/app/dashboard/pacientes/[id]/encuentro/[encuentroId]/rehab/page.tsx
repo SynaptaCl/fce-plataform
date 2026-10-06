@@ -19,6 +19,9 @@ import { getClinicaConfig } from "@/lib/modules/config";
 import { getPlanesIntervencion } from "@/app/actions/clinico/plan-intervencion";
 import { PlanIntervencionLauncher } from "@/components/shared/PlanIntervencionLauncher";
 import { getEspecialidadConfig } from "@/lib/modules/especialidad-config";
+import { getServicioContexto } from "@/lib/modules/servicio-config";
+import { getEncuentroContext } from "@/app/actions/encuentros";
+import { InstrumentosPanel } from "@/components/clinico/InstrumentosPanel";
 import { getContraindicacionesActivas } from "@/lib/anamnesis/red-flags";
 import type { RedFlags } from "@/types/anamnesis";
 import type { SoapNote } from "@/types";
@@ -51,7 +54,7 @@ export default async function RehabPage({
   const config = idClinica ? await getClinicaConfig(idClinica, supabase) : null;
   const m10Activo = config?.modulosActivos.includes("M10_plan_intervencion") ?? false;
 
-  const [patientResult, encuentroRes, soapRes, evaluacionesRes, profesional] =
+  const [patientResult, encuentroRes, soapRes, evaluacionesRes, profesional, ctxResult] =
     await Promise.all([
       getPatientById(id),
       supabase
@@ -74,6 +77,7 @@ export default async function RehabPage({
         .eq("id_paciente", id)
         .order("created_at", { ascending: false }),
       getProfesionalActivo(supabase, user.id, idClinica ?? undefined),
+      getEncuentroContext(encuentroId),
     ]);
 
   if (!patientResult.success || encuentroRes.error || !encuentroRes.data)
@@ -147,6 +151,11 @@ export default async function RehabPage({
 
   // Eval component por especialidad
   const especialidad = encuentro.especialidad as string;
+
+  // Config servicio → instrumentos sugeridos (fallback a los de la especialidad)
+  const nombreServicio = ctxResult.success ? ctxResult.data.nombreServicio : null;
+  const servicioCtx = getServicioContexto(nombreServicio);
+  const instrumentosSugeridos = servicioCtx?.instrumentosSugeridos ?? espConfigRehab.instrumentosSugeridos;
 
   function renderEval() {
     if (especialidad === "Kinesiología") {
@@ -258,9 +267,18 @@ export default async function RehabPage({
             />
           </div>
 
-          {/* Right: Eval component based on speciality */}
-          <div className="w-full lg:w-96 p-6 bg-surface-0">
+          {/* Right: Eval component based on speciality + Instrumentos */}
+          <div className="w-full lg:w-96 p-6 bg-surface-0 space-y-6">
             {renderEval()}
+            <div className="border-t border-kp-border pt-6">
+              <InstrumentosPanel
+                encuentroId={encuentroId}
+                patientId={id}
+                especialidad={especialidad}
+                encuentroFinalizado={encuentroFinalizado}
+                instrumentosSugeridos={instrumentosSugeridos}
+              />
+            </div>
           </div>
         </div>
       </div>
