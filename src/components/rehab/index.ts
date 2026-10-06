@@ -5,3 +5,4 @@ export { FonoaudiologiaEval } from "./FonoaudiologiaEval";
 export { MasoterapiaEval } from "./MasoterapiaEval";
 export { TerapiaOcupacionalEval } from "./TerapiaOcupacionalEval";
 export { GenericEval } from "./GenericEval";
+export { FormatoNotaToggle } from "./FormatoNotaToggle";

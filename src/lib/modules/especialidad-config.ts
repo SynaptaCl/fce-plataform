@@ -57,6 +57,7 @@ export interface EspecialidadConfig {
   tieneAntropometria?: boolean;    // Si true, AntropometriaPanel embebido en workspace (N1: solo Nutrición)
   tienePresupuesto?: boolean;      // Si true, tab Presupuestos visible en hub docs
   tieneInformes?: boolean;         // Si true, tab Informes visible en hub docs
+  permiteNotaSimple?: boolean;     // Modelo rehab: el profesional puede elegir nota clínica simple (fce_notas_clinicas) en vez de SOAP, por encuentro
   tieneAmbientScribe?: boolean;    // AMB-1: grabación de consulta → borrador de nota. Off por defecto — nunca activar en salud mental/neurodesarrollo (riesgo clínico, ver AMB-1 §2)
   diagnostico?: DiagnosticoConfig;
   secciones: SeccionNota[];
@@ -66,6 +67,7 @@ export interface EspecialidadConfig {
 export const ESPECIALIDAD_CONFIG: Record<string, EspecialidadConfig> = {
   "Kinesiología": {
     modelo: "rehabilitacion",
+    permiteNotaSimple: true,
     instrumentosSugeridos: ["eva", "barthel"],
     modulosHabilitados: ["M10"],
     tieneContraindicaciones: false,
@@ -81,6 +83,7 @@ export const ESPECIALIDAD_CONFIG: Record<string, EspecialidadConfig> = {
   },
   "Fonoaudiología": {
     modelo: "rehabilitacion",
+    permiteNotaSimple: true,
     instrumentosSugeridos: ["eva", "ados2"],
     modulosHabilitados: ["M10"],
     tieneContraindicaciones: false,
@@ -96,6 +99,7 @@ export const ESPECIALIDAD_CONFIG: Record<string, EspecialidadConfig> = {
   },
   "Masoterapia": {
     modelo: "rehabilitacion",
+    permiteNotaSimple: true,
     instrumentosSugeridos: ["eva"],
     modulosHabilitados: [],
     tieneContraindicaciones: true,
@@ -109,6 +113,7 @@ export const ESPECIALIDAD_CONFIG: Record<string, EspecialidadConfig> = {
   },
   "Terapia Ocupacional": {
     modelo: "rehabilitacion",
+    permiteNotaSimple: true,
     instrumentosSugeridos: ["eva", "brief2", "vineland3", "sensory_profile"],
     modulosHabilitados: ["M10"],
     tieneContraindicaciones: false,
@@ -124,6 +129,7 @@ export const ESPECIALIDAD_CONFIG: Record<string, EspecialidadConfig> = {
   },
   "Podología": {
     modelo: "rehabilitacion",
+    permiteNotaSimple: true,
     instrumentosSugeridos: ["eva"],
     modulosHabilitados: [],
     tieneContraindicaciones: true,

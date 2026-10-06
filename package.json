@@ -9,6 +9,7 @@
     "lint": "eslint",
     "test:sprint-n1": "tsx scripts/test-sprint-n1.ts",
     "test:sprint-p2-f1": "tsx scripts/test-sprint-p2-f1.ts",
+    "test:rehab-nota-simple": "tsx scripts/test-rehab-nota-simple.ts",
     "test:sprint-p2-f2": "tsx scripts/test-sprint-p2-f2.ts",
     "test:sprint-p2-f3": "tsx scripts/test-sprint-p2-f3.ts",
     "test:sprint-p2-f4": "tsx scripts/test-sprint-p2-f4.ts",

@@ -133,6 +133,17 @@ export async function upsertNotaClinica(
       return { success: false, error: "No se encontró el perfil profesional del usuario." };
     }
 
+    // Un encuentro = un solo formato de nota (rehab puede elegir SOAP o nota clínica)
+    const { data: soapExistente } = await supabase
+      .from("fce_notas_soap")
+      .select("id")
+      .eq("id_encuentro", encuentroId)
+      .eq("id_clinica", idClinica)
+      .maybeSingle();
+    if (soapExistente) {
+      return { success: false, error: "Este encuentro ya tiene una nota SOAP. No se puede registrar también una nota clínica." };
+    }
+
     const { data: created, error } = await supabase
       .from("fce_notas_clinicas")
       .insert({

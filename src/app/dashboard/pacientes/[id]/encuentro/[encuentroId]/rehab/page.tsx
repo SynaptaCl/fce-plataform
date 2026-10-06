@@ -9,7 +9,12 @@ import {
   MasoterapiaEval,
   TerapiaOcupacionalEval,
   GenericEval,
+  FormatoNotaToggle,
 } from "@/components/rehab";
+import { NotaClinicaForm } from "@/components/clinico/NotaClinicaForm";
+import { getNotaClinica } from "@/app/actions/clinico/nota-clinica";
+import { cookies } from "next/headers";
+import { COOKIE_FORMATO_NOTA, resolverFormatoNota } from "@/lib/modules/formato-nota";
 import { getPatientById } from "@/app/actions/patients";
 import { getProfesionalActivo } from "@/lib/fce/profesional";
 import { PrescripcionLauncher } from "@/components/shared/PrescripcionLauncher";
@@ -29,10 +34,14 @@ import type { Evaluation } from "@/types";
 
 export default async function RehabPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string; encuentroId: string }>;
+  searchParams: Promise<{ formato?: string }>;
 }) {
   const { id, encuentroId } = await params;
+  const { formato: formatoUrl } = await searchParams;
+  const preferencia = (await cookies()).get(COOKIE_FORMATO_NOTA)?.value ?? null;
 
   const supabase = await createClient();
   const {
@@ -54,7 +63,7 @@ export default async function RehabPage({
   const config = idClinica ? await getClinicaConfig(idClinica, supabase) : null;
   const m10Activo = config?.modulosActivos.includes("M10_plan_intervencion") ?? false;
 
-  const [patientResult, encuentroRes, soapRes, evaluacionesRes, profesional, ctxResult] =
+  const [patientResult, encuentroRes, soapRes, evaluacionesRes, profesional, ctxResult, notaClinicaRes] =
     await Promise.all([
       getPatientById(id),
       supabase
@@ -78,6 +87,7 @@ export default async function RehabPage({
         .order("created_at", { ascending: false }),
       getProfesionalActivo(supabase, user.id, idClinica ?? undefined),
       getEncuentroContext(encuentroId),
+      getNotaClinica(encuentroId),
     ]);
 
   if (!patientResult.success || encuentroRes.error || !encuentroRes.data)
@@ -117,8 +127,20 @@ export default async function RehabPage({
     ).map((f) => f.label);
   }
 
+  const notaClinica = notaClinicaRes.success ? notaClinicaRes.data : null;
+  const { formato, bloqueado: formatoBloqueado } = resolverFormatoNota({
+    permiteNotaSimple: espConfigRehab.permiteNotaSimple ?? false,
+    tieneSoap: soapNote !== null,
+    tieneNotaClinica: notaClinica !== null,
+    formatoUrl,
+    preferencia,
+  });
+  const esNotaClinica = formato === "nota_clinica";
+
   const encuentroFinalizado = encuentro.status === "finalizado";
-  const readOnly = encuentroFinalizado || (soapNote?.firmado ?? false);
+  const readOnly =
+    encuentroFinalizado ||
+    (esNotaClinica ? (notaClinica?.firmado ?? false) : (soapNote?.firmado ?? false));
 
   const fullName =
     [patient.nombre, patient.apellido_paterno, patient.apellido_materno]
@@ -232,7 +254,7 @@ export default async function RehabPage({
               Modelo Rehabilitación
             </p>
             <h1 className="text-base font-semibold text-ink-1 mt-0.5">
-              Nota clínica — {encuentro.especialidad}
+              {esNotaClinica ? "Nota clínica" : "Nota SOAP"} — {encuentro.especialidad}
             </h1>
           </div>
           <div className="flex items-center gap-3">
@@ -255,16 +277,32 @@ export default async function RehabPage({
         {/* Two-column workspace: 2/3 SOAP + 1/3 Evaluación */}
         <div className="flex flex-col lg:flex-row">
           {/* Left: SoapForm (includes CIF internally in the A quadrant) */}
-          <div className="flex-1 p-6 lg:border-r border-kp-border">
-            <SoapForm
-              patientId={id}
-              encuentroId={encuentroId}
-              idClinica={idClinica}
-              initialNote={soapNote}
-              readOnly={readOnly}
-              especialidadLabel={especialidad}
-              contraindicacionesActivas={contraindicacionesActivas}
-            />
+          <div className="flex-1 p-6 lg:border-r border-kp-border space-y-4">
+            {espConfigRehab.permiteNotaSimple && (
+              <FormatoNotaToggle formato={formato} bloqueado={formatoBloqueado || readOnly} />
+            )}
+            {esNotaClinica ? (
+              <NotaClinicaForm
+                encuentroId={encuentroId}
+                patientId={id}
+                notaExistente={notaClinica}
+                readOnly={readOnly}
+                idClinica={idClinica}
+                tieneCopilotoIA={espConfigRehab.tieneCopilotoIA}
+                tieneAmbientScribe={espConfigRehab.tieneAmbientScribe}
+                contraindicacionesActivas={contraindicacionesActivas}
+              />
+            ) : (
+              <SoapForm
+                patientId={id}
+                encuentroId={encuentroId}
+                idClinica={idClinica}
+                initialNote={soapNote}
+                readOnly={readOnly}
+                especialidadLabel={especialidad}
+                contraindicacionesActivas={contraindicacionesActivas}
+              />
+            )}
           </div>
 
           {/* Right: Eval component based on speciality + Instrumentos */}

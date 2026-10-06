@@ -187,6 +187,17 @@ export async function upsertSoapNote(
       return dbError("soap", (e as Error));
     }
 
+    // Un encuentro = un solo formato de nota (rehab puede elegir SOAP o nota clínica)
+    const { data: notaClinicaExistente } = await supabase
+      .from("fce_notas_clinicas")
+      .select("id")
+      .eq("id_encuentro", encounterId)
+      .eq("id_clinica", idClinica)
+      .maybeSingle();
+    if (notaClinicaExistente) {
+      return { success: false, error: "Este encuentro ya tiene una nota clínica. No se puede registrar también una nota SOAP." };
+    }
+
     const cleanSoapData = stripForbidden(soapData as Record<string, unknown>);
     const insertPayload = {
       ...cleanSoapData,
