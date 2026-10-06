@@ -9,9 +9,34 @@ interface Props {
   patientId: string;
 }
 
-interface SchemaItem {
-  id: string;
+interface SchemaItemLabel {
+  codigo: string;
   label: string;
+}
+
+/**
+ * Normalizes the JSONB `instrumentos_valoracion.schema_items` column
+ * (shape: `{ items: SchemaItem[], calculo }`) into a validated item list.
+ * Accepts a bare array or a JSON string defensively, since the column is Json.
+ */
+function toSchemaItems(raw: unknown): SchemaItemLabel[] {
+  let value: unknown = raw;
+  if (typeof value === "string") {
+    try {
+      value = JSON.parse(value);
+    } catch {
+      return [];
+    }
+  }
+  if (value !== null && typeof value === "object" && !Array.isArray(value)) {
+    const items = (value as { items?: unknown }).items;
+    value = Array.isArray(items) ? items : null;
+  }
+  if (!Array.isArray(value)) return [];
+  return value.filter(
+    (s): s is SchemaItemLabel =>
+      typeof s === "object" && s !== null && typeof (s as SchemaItemLabel).codigo === "string" && typeof (s as SchemaItemLabel).label === "string"
+  );
 }
 
 /**
@@ -53,12 +78,8 @@ function getInterpretacionStyle(
 export function InstrumentoExpandedCard({ entry, patientId }: Props) {
   const d = entry.data;
   const respuestas = (d.respuestas ?? {}) as Record<string, unknown>;
-  const rawSchema = (d.schema_items ?? []) as unknown[];
-  const schemaItems = rawSchema.filter(
-    (s): s is SchemaItem =>
-      typeof s === "object" && s !== null && "id" in s && "label" in s
-  );
-  const schemaMap = new Map(schemaItems.map((s) => [s.id, s.label]));
+  const schemaItems = toSchemaItems(d.schema_items);
+  const schemaMap = new Map(schemaItems.map((s) => [s.codigo, s.label]));
 
   const url = entry.encuentroId
     ? `/dashboard/pacientes/${patientId}/encuentro/${entry.encuentroId}/clinico`
