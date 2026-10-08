@@ -57,27 +57,28 @@ export async function getPlanIntervencionDetalle(
   const idClinica = await getIdClinica(supabase, user.id);
   if (!idClinica) return { success: false, error: "No se pudo determinar la clínica." };
 
-  // 1. Fetch plan con guard RLS por id_clinica
-  const { data: plan, error: planError } = await supabase
-    .from("fce_planes_intervencion")
-    .select("*")
-    .eq("id", planId)
-    .eq("id_clinica", idClinica)
-    .single();
+  // 1+2. Plan y objetivos son independientes (ambos filtrados por id_clinica): en paralelo.
+  const [planRes, objRes] = await Promise.all([
+    supabase
+      .from("fce_planes_intervencion")
+      .select("*")
+      .eq("id", planId)
+      .eq("id_clinica", idClinica)
+      .single(),
+    supabase
+      .from("fce_plan_objetivos")
+      .select("*")
+      .eq("id_plan", planId)
+      .eq("id_clinica", idClinica)
+      .order("orden", { ascending: true }),
+  ]);
 
-  if (planError || !plan) {
+  const plan = planRes.data;
+  if (planRes.error || !plan) {
     return { success: false, error: "Plan de intervención no encontrado." };
   }
-
-  // 2. Fetch objetivos del plan
-  const { data: objetivos, error: objError } = await supabase
-    .from("fce_plan_objetivos")
-    .select("*")
-    .eq("id_plan", planId)
-    .eq("id_clinica", idClinica)
-    .order("orden", { ascending: true });
-
-  if (objError) return dbError("plan-intervencion", objError);
+  if (objRes.error) return dbError("plan-intervencion", objRes.error);
+  const objetivos = objRes.data;
 
   const objetivosList = (objetivos ?? []) as PlanObjetivo[];
 

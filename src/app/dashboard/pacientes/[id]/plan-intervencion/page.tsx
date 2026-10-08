@@ -1,3 +1,4 @@
+import { cache } from "react";
 import { notFound } from "next/navigation";
 import { ClipboardList } from "lucide-react";
 import { BackLink } from "@/components/ui/BackLink";
@@ -8,13 +9,17 @@ import { Card } from "@/components/ui/Card";
 import { PlanesIntervencionList } from "@/components/shared/PlanesIntervencionList";
 import { calculateAge, formatRut } from "@/lib/utils";
 
+// generateMetadata y la página piden el mismo paciente: cache() por request evita
+// duplicar las queries y el registro de auditoría "ver_paciente".
+const getPatient = cache(getPatientById);
+
 export async function generateMetadata({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const result = await getPatientById(id);
+  const result = await getPatient(id);
   if (!result.success) return { title: "Plan de Intervención" };
   const p = result.data;
   return {
@@ -29,10 +34,13 @@ export default async function PlanIntervencionPage({
 }) {
   const { id } = await params;
 
-  const { config } = await getClinicaConfigFromSession();
+  // Config de clínica y paciente son independientes: en paralelo.
+  const [{ config }, patientResult] = await Promise.all([
+    getClinicaConfigFromSession(),
+    getPatient(id),
+  ]);
   requireModule(config, "M10_plan_intervencion");
 
-  const patientResult = await getPatientById(id);
   if (!patientResult.success) notFound();
 
   const p = patientResult.data;
