@@ -14,6 +14,8 @@ import {
 } from "lucide-react";
 import { getModeloDeEspecialidad } from "@/lib/modules/modelos";
 import type { PatientSummary } from "@/app/actions/timeline";
+import type { EncuentroEnProgreso } from "@/app/actions/encuentros";
+import { AgregarEnAtencionLink } from "@/components/shared/AgregarEnAtencionLink";
 
 interface SummaryPanelProps {
   summary: PatientSummary;
@@ -21,6 +23,9 @@ interface SummaryPanelProps {
   especialidadesActivas: string[];
   resumenIASlot?: React.ReactNode;
   hasEntries?: boolean;
+  /** Especialidad del profesional activo (null = solo lectura). */
+  especialidadProfesional?: string | null;
+  encuentroEnProgreso?: EncuentroEnProgreso | null;
 }
 
 function SectionTitle({
@@ -116,6 +121,8 @@ export function SummaryPanel({
   especialidadesActivas,
   resumenIASlot,
   hasEntries = false,
+  especialidadProfesional = null,
+  encuentroEnProgreso = null,
 }: SummaryPanelProps) {
   const base = `/dashboard/pacientes/${patientId}`;
 
@@ -213,10 +220,7 @@ export function SummaryPanel({
                       activo{summary.cif_activos !== 1 ? "s" : ""}
                     </p>
                   ) : (
-                    <EmptyState
-                      href={`${base}/encuentro`}
-                      label="Agregar diagnóstico CIF"
-                    />
+                    <AgregarEnAtencionLink patientId={patientId} label="Agregar diagnóstico CIF" especialidad={especialidadProfesional} enProgreso={encuentroEnProgreso} />
                   )}
                 </div>
               </>
@@ -257,10 +261,7 @@ export function SummaryPanel({
                       ))}
                     </div>
                   ) : (
-                    <EmptyState
-                      href={`${base}/encuentro`}
-                      label="Agregar diagnóstico"
-                    />
+                    <AgregarEnAtencionLink patientId={patientId} label="Agregar diagnóstico" especialidad={especialidadProfesional} enProgreso={encuentroEnProgreso} />
                   )}
                 </div>
               </>
@@ -405,10 +406,7 @@ export function SummaryPanel({
                 )}
               </div>
             ) : (
-              <EmptyState
-                href={`${base}/encuentro`}
-                label="Agregar indicación"
-              />
+              <AgregarEnAtencionLink patientId={patientId} label="Agregar indicación" especialidad={especialidadProfesional} enProgreso={encuentroEnProgreso} />
             )}
           </div>
         </>

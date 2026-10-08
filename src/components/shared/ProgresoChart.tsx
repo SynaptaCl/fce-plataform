@@ -224,7 +224,7 @@ export function ProgresoChart({ objetivos, progresoPorObjetivo }: ProgresoChartP
             {objetivosConDatos.map((obj, idx) => (
               <Line
                 key={obj.id}
-                type="monotone"
+                type="linear"
                 dataKey={obj.id}
                 name={disciplinaDe(obj)}
                 stroke={LINE_COLORS[idx % LINE_COLORS.length]}

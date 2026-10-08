@@ -60,6 +60,8 @@ export interface EspecialidadConfig {
   permiteNotaSimple?: boolean;     // Modelo rehab: el profesional puede elegir nota clínica simple (fce_notas_clinicas) en vez de SOAP, por encuentro
   tieneAmbientScribe?: boolean;    // AMB-1: grabación de consulta → borrador de nota. Off por defecto — nunca activar en salud mental/neurodesarrollo (riesgo clínico, ver AMB-1 §2)
   diagnostico?: DiagnosticoConfig;
+  /** Placeholders S/O/P del SOAP (modelo rehab). Solo las especialidades que usan EVA lo sugieren. */
+  placeholdersSoap?: { subjetivo: string; objetivo: string; plan: string };
   secciones: SeccionNota[];
   accionesRapidas: AccionRapida[];
 }
@@ -68,6 +70,7 @@ export const ESPECIALIDAD_CONFIG: Record<string, EspecialidadConfig> = {
   "Kinesiología": {
     modelo: "rehabilitacion",
     permiteNotaSimple: true,
+    placeholdersSoap: { subjetivo: "Paciente refiere… EVA X/10… desde hace…", objetivo: "Signos vitales… ROM… fuerza Daniels… pruebas especiales…", plan: "Objetivos a corto/mediano plazo, técnicas a utilizar…" },
     instrumentosSugeridos: ["eva", "barthel"],
     modulosHabilitados: ["M10"],
     tieneContraindicaciones: false,
@@ -84,6 +87,7 @@ export const ESPECIALIDAD_CONFIG: Record<string, EspecialidadConfig> = {
   "Fonoaudiología": {
     modelo: "rehabilitacion",
     permiteNotaSimple: true,
+    placeholdersSoap: { subjetivo: "Motivo de consulta… relato del paciente o cuidador… evolución desde la última sesión…", objetivo: "Observación clínica… desempeño en tareas (voz, habla, lenguaje, deglución)…", plan: "Objetivos terapéuticos, actividades, indicaciones al paciente/cuidador…" },
     instrumentosSugeridos: ["eva", "ados2"],
     modulosHabilitados: ["M10"],
     tieneContraindicaciones: false,
@@ -100,6 +104,7 @@ export const ESPECIALIDAD_CONFIG: Record<string, EspecialidadConfig> = {
   "Masoterapia": {
     modelo: "rehabilitacion",
     permiteNotaSimple: true,
+    placeholdersSoap: { subjetivo: "Paciente refiere… EVA X/10… zonas de tensión…", objetivo: "Palpación… tono muscular… puntos gatillo… ROM…", plan: "Técnicas a utilizar, zonas a trabajar, frecuencia…" },
     instrumentosSugeridos: ["eva"],
     modulosHabilitados: [],
     tieneContraindicaciones: true,
@@ -114,6 +119,7 @@ export const ESPECIALIDAD_CONFIG: Record<string, EspecialidadConfig> = {
   "Terapia Ocupacional": {
     modelo: "rehabilitacion",
     permiteNotaSimple: true,
+    placeholdersSoap: { subjetivo: "Relato del paciente o cuidador… desempeño en actividades cotidianas…", objetivo: "Observación del desempeño… participación… respuesta sensorial…", plan: "Objetivos, actividades terapéuticas, estrategias para el hogar…" },
     instrumentosSugeridos: ["eva", "brief2", "vineland3", "sensory_profile"],
     modulosHabilitados: ["M10"],
     tieneContraindicaciones: false,
@@ -130,6 +136,7 @@ export const ESPECIALIDAD_CONFIG: Record<string, EspecialidadConfig> = {
   "Podología": {
     modelo: "rehabilitacion",
     permiteNotaSimple: true,
+    placeholdersSoap: { subjetivo: "Paciente refiere… molestias, dolor, antecedentes del pie…", objetivo: "Inspección… estado de piel y uñas… hallazgos…", plan: "Procedimientos realizados, indicaciones de cuidado…" },
     instrumentosSugeridos: ["eva"],
     modulosHabilitados: [],
     tieneContraindicaciones: true,

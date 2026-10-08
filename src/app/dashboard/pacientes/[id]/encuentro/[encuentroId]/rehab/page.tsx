@@ -16,6 +16,7 @@ import { getNotaClinica } from "@/app/actions/clinico/nota-clinica";
 import { cookies } from "next/headers";
 import { COOKIE_FORMATO_NOTA, resolverFormatoNota } from "@/lib/modules/formato-nota";
 import { getPatientById } from "@/app/actions/patients";
+import { calculateAge } from "@/lib/utils";
 import { getProfesionalActivo } from "@/lib/fce/profesional";
 import { PrescripcionLauncher } from "@/components/shared/PrescripcionLauncher";
 import { EsteticaLauncher } from "@/components/estetica";
@@ -195,6 +196,8 @@ export default async function RehabPage({
           patientId={id}
           evaluaciones={evaluaciones}
           readOnly={readOnly}
+          edad={calculateAge(patient.fecha_nacimiento)}
+          condicionCodigo={planActivo?.condicion_codigo ?? null}
         />
       );
     }

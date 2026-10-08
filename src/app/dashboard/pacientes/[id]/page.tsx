@@ -11,6 +11,7 @@ import { EncuentroLauncher } from "@/components/shared/EncuentroLauncher";
 import { ReingresoBanner } from "@/components/shared/ReingresoBanner";
 import { getProfesionalActivo } from "@/lib/fce/profesional";
 import { getEgresosByPaciente } from "@/app/actions/egresos";
+import { getEncuentroEnProgreso } from "@/app/actions/encuentros";
 import { ResumenIAButton } from "@/components/modules/ResumenIA";
 import { AlertBanner } from "@/components/ui/AlertBanner";
 import { logAudit } from "@/lib/audit";
@@ -83,7 +84,7 @@ async function _patientDetailPage(
   const soloLectura = rol !== "profesional";
 
   // ── Fetch paralelo ─────────────────────────────────────────────────────
-  const [patientResult, timelineResult, consentResult, ultimaVersionGrabacion, fceConfigRes, profesional, egresosResult] =
+  const [patientResult, timelineResult, consentResult, ultimaVersionGrabacion, fceConfigRes, profesional, egresosResult, encuentroEnProgreso] =
     await Promise.all([
       getPatientById(id),
       getPatientTimeline(id),
@@ -105,6 +106,7 @@ async function _patientDetailPage(
         : Promise.resolve({ data: null }),
       getProfesionalActivo(supabase, user.id, idClinica ?? undefined),
       getEgresosByPaciente(id),
+      getEncuentroEnProgreso(id),
     ]);
 
   if (!patientResult.success) notFound();
@@ -188,7 +190,7 @@ async function _patientDetailPage(
         paciente={p}
         primaryAction={
           especialidadProfesional && p.estado_clinico !== "egresado" ? (
-            <EncuentroLauncher patientId={id} especialidad={especialidadProfesional} />
+            <EncuentroLauncher patientId={id} especialidad={especialidadProfesional} enProgreso={encuentroEnProgreso} />
           ) : undefined
         }
       />
@@ -242,6 +244,8 @@ async function _patientDetailPage(
               patientId={id}
               especialidadesActivas={especialidadesActivas}
               hasEntries={entries.length > 0}
+              especialidadProfesional={especialidadProfesional}
+              encuentroEnProgreso={encuentroEnProgreso}
               resumenIASlot={
                 idClinica && !["recepcionista", "recepcion"].includes(rol)
                   ? <ResumenIAButton idPaciente={id} idClinica={idClinica} />

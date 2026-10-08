@@ -25,14 +25,25 @@ interface FonoaudiologiaEvalProps {
   patientId: string;
   evaluaciones: Evaluation[];
   readOnly?: boolean;
+  /** Edad en años del paciente (null = desconocida) */
+  edad?: number | null;
+  /** condicion_codigo del plan de intervención activo */
+  condicionCodigo?: string | null;
+}
+
+/** Pestaña inicial según contexto: <18 años o condición del neurodesarrollo/lenguaje → desarrollo fonológico. */
+function pestanaInicial(edad: number | null | undefined, condicion: string | null | undefined): FonoSubAreaKey {
+  if (condicion && /tea|autis|tdl|tel|lenguaje|fonolog|neurodesarrollo|retraso/i.test(condicion)) return "desarrollo_fonologico";
+  if (edad != null && edad < 18) return "desarrollo_fonologico";
+  return "vocal";
 }
 
 function getSubAreaData(evals: Evaluation[], subArea: string): Record<string, unknown> {
   return (evals.find((e) => e.sub_area === subArea)?.data ?? {}) as Record<string, unknown>;
 }
 
-export function FonoaudiologiaEval({ patientId, evaluaciones, readOnly = false }: FonoaudiologiaEvalProps) {
-  const [activeTab, setActiveTab] = useState<FonoSubAreaKey>("vocal");
+export function FonoaudiologiaEval({ patientId, evaluaciones, readOnly = false, edad, condicionCodigo }: FonoaudiologiaEvalProps) {
+  const [activeTab, setActiveTab] = useState<FonoSubAreaKey>(() => pestanaInicial(edad, condicionCodigo));
 
   return (
     <div className="space-y-4">

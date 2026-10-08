@@ -15,6 +15,7 @@ import { RichTextEditor } from "@/components/shared/RichTextEditor";
 import { CifMapper } from "./CifMapper";
 import { upsertSoapNote, signSoapNote } from "@/app/actions/rehab/soap";
 import type { SoapNote, CifAssessment } from "@/types";
+import { getEspecialidadConfig } from "@/lib/modules/especialidad-config";
 import { AiExpandButton } from "@/components/modules/CopilotoNota";
 
 // ── Types ──────────────────────────────────────────────────────────────────
@@ -121,6 +122,12 @@ export function SoapForm({
   contraindicacionesActivas = [],
 }: SoapFormProps) {
   const router = useRouter();
+  // Placeholders por especialidad (config): EVA solo donde corresponde.
+  const ph = (especialidadLabel ? getEspecialidadConfig(especialidadLabel).placeholdersSoap : undefined) ?? {
+    subjetivo: "Paciente refiere… motivo de consulta… evolución…",
+    objetivo: "Hallazgos de la evaluación…",
+    plan: "Objetivos y plan de tratamiento…",
+  };
   const [noteId, setNoteId] = useState<string | undefined>(
     initialNote?.id
   );
@@ -259,7 +266,7 @@ export function SoapForm({
               <RichTextEditor
                 value={field.value ?? ""}
                 onChange={field.onChange}
-                placeholder="Paciente refiere… EVA X/10… desde hace…"
+                placeholder={ph.subjetivo}
                 readOnly={readOnly || expandingSection === 'S'}
                 ariaLabel="Subjetivo"
                 minHeight={120}
@@ -300,7 +307,7 @@ export function SoapForm({
               <RichTextEditor
                 value={field.value ?? ""}
                 onChange={field.onChange}
-                placeholder="Signos vitales… ROM… fuerza Daniels… pruebas especiales…"
+                placeholder={ph.objetivo}
                 readOnly={readOnly || expandingSection === 'O'}
                 ariaLabel="Objetivo"
                 minHeight={120}
@@ -355,7 +362,7 @@ export function SoapForm({
                   <RichTextEditor
                     value={field.value ?? ""}
                     onChange={field.onChange}
-                    placeholder="Objetivos a corto/mediano plazo, técnicas a utilizar…"
+                    placeholder={ph.plan}
                     readOnly={readOnly || expandingSection === 'P'}
                     ariaLabel="Plan terapéutico"
                     minHeight={120}
