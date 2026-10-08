@@ -18,6 +18,8 @@ const ESTADO_CODIGO: Record<string, { codigo: number; label: string; color: "yel
   obesa:     { codigo: 3, label: "Obesidad", color: "red" },
 };
 
+type CampoNumerico = "peso_pregestacional" | "peso_actual" | "talla" | "semana";
+
 export default function AtalahChart({ valor, onChange, readOnly }: InstrumentoCustomProps) {
   const pesoPregestacional = typeof valor["peso_pregestacional"] === "number" ? valor["peso_pregestacional"] as number : undefined;
   const pesoActual = typeof valor["peso_actual"] === "number" ? valor["peso_actual"] as number : undefined;
@@ -44,15 +46,24 @@ export default function AtalahChart({ valor, onChange, readOnly }: InstrumentoCu
     return getBandaLimites(imcPregestacional, semana);
   }, [imcPregestacional, semana]);
 
-  function actualizar(estado?: string) {
+  function actualizar(estado?: string, patch: Partial<Record<CampoNumerico, number>> = {}) {
     if (readOnly) return;
+    const pick = (k: CampoNumerico, actual: number | undefined) => (k in patch ? patch[k] : actual);
+    const pp = pick("peso_pregestacional", pesoPregestacional);
+    const pa = pick("peso_actual", pesoActual);
+    const t = pick("talla", talla);
+    const s = pick("semana", semana);
+    const imc = (peso: number | undefined) =>
+      peso && t ? Number((peso / Math.pow(t / 100, 2)).toFixed(1)) : null;
+    const imcPre = imc(pp);
+    const imcAct = imc(pa);
     const next: Record<string, number | string> = {};
-    if (pesoPregestacional !== undefined) next["peso_pregestacional"] = pesoPregestacional;
-    if (pesoActual !== undefined) next["peso_actual"] = pesoActual;
-    if (talla !== undefined) next["talla"] = talla;
-    if (semana !== undefined) next["semana"] = semana;
-    if (imcPregestacional !== null) next["imc_pregestacional"] = imcPregestacional;
-    if (imcActual !== null) next["imc_actual"] = imcActual;
+    if (pp !== undefined) next["peso_pregestacional"] = pp;
+    if (pa !== undefined) next["peso_actual"] = pa;
+    if (t !== undefined) next["talla"] = t;
+    if (s !== undefined) next["semana"] = s;
+    if (imcPre !== null) next["imc_pregestacional"] = imcPre;
+    if (imcAct !== null) next["imc_actual"] = imcAct;
     if (estado) {
       const cfg = ESTADO_CODIGO[estado];
       next["estado"] = estado;
@@ -69,13 +80,13 @@ export default function AtalahChart({ valor, onChange, readOnly }: InstrumentoCu
       )}
 
       <NumberField label="Peso pregestacional (kg)" value={pesoPregestacional} min={30} max={250} step={0.1}
-        onChange={(v) => { if (!readOnly) { valor["peso_pregestacional"] = v ?? ""; actualizar(valor["estado"] as string | undefined); } }} readOnly={readOnly} />
+        onChange={(v) => actualizar(valor["estado"] as string | undefined, { peso_pregestacional: v })} readOnly={readOnly} />
       <NumberField label="Peso actual (kg)" value={pesoActual} min={30} max={250} step={0.1}
-        onChange={(v) => { if (!readOnly) { valor["peso_actual"] = v ?? ""; actualizar(valor["estado"] as string | undefined); } }} readOnly={readOnly} />
+        onChange={(v) => actualizar(valor["estado"] as string | undefined, { peso_actual: v })} readOnly={readOnly} />
       <NumberField label="Talla (cm)" value={talla} min={120} max={220} step={0.1}
-        onChange={(v) => { if (!readOnly) { valor["talla"] = v ?? ""; actualizar(valor["estado"] as string | undefined); } }} readOnly={readOnly} />
+        onChange={(v) => actualizar(valor["estado"] as string | undefined, { talla: v })} readOnly={readOnly} />
       <NumberField label="Semana gestacional (10–41)" value={semana} min={10} max={41}
-        onChange={(v) => { if (!readOnly) { valor["semana"] = v ?? ""; actualizar(valor["estado"] as string | undefined); } }} readOnly={readOnly} />
+        onChange={(v) => actualizar(valor["estado"] as string | undefined, { semana: v })} readOnly={readOnly} />
 
       {(imcPregestacional !== null || imcActual !== null) && (
         <p className="text-xs" style={{ color: "var(--color-ink-3)" }}>

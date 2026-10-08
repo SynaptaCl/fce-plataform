@@ -76,8 +76,6 @@ function claseDeSuma(suma: number): { clase: string; riesgo: number; label: stri
 const CHIP_COLOR: Record<number, "green" | "yellow" | "red"> = { 0: "green", 1: "yellow", 2: "red" };
 
 export default function GraffarScore({ valor, onChange, readOnly }: InstrumentoCustomProps) {
-  const clasificacion = typeof valor["clasificacion"] === "number" ? valor["clasificacion"] as number : undefined;
-
   const valores = useMemo(() => {
     const out: Record<string, number | undefined> = {};
     for (const factor of FACTORES) {
