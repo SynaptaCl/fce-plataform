@@ -27,6 +27,7 @@ export function CifSearch({
   const [results, setResults] = useState<ICDSearchResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -61,8 +62,13 @@ export function CifSearch({
         try {
           const res = await searchCIF(query, dominioPrefix);
           if (res.success) {
+            setError(null);
             setResults(res.data);
-            setOpen(res.data.length > 0 || query.trim().length >= 2);
+            setOpen(true);
+          } else {
+            setError(res.error);
+            setResults([]);
+            setOpen(true);
           }
         } finally {
           setLoading(false);
@@ -85,6 +91,15 @@ export function CifSearch({
         setOpen(true);
       }
     }
+  }
+
+  // Entrada manual: si el usuario escribe código/descripción sin elegir del
+  // dropdown, igual se persiste en el ítem (antes se perdía al salir del campo).
+  function commitManual() {
+    const code = codeInput.trim();
+    const desc = descInput.trim();
+    if (code === value && desc === description) return;
+    onSelect({ code, description: desc });
   }
 
   function handleSelect(result: ICDSearchResult) {
@@ -152,7 +167,10 @@ export function CifSearch({
             (e.currentTarget.style.boxShadow =
               '0 0 0 2px color-mix(in srgb, var(--color-kp-accent) 40%, transparent)')
           }
-          onBlur={(e) => (e.currentTarget.style.boxShadow = '')}
+          onBlur={(e) => {
+            e.currentTarget.style.boxShadow = '';
+            commitManual();
+          }}
         />
         {loading && (
           <Loader2
@@ -181,7 +199,10 @@ export function CifSearch({
           (e.currentTarget.style.boxShadow =
             '0 0 0 2px color-mix(in srgb, var(--color-kp-accent) 40%, transparent)')
         }
-        onBlur={(e) => (e.currentTarget.style.boxShadow = '')}
+        onBlur={(e) => {
+          e.currentTarget.style.boxShadow = '';
+          commitManual();
+        }}
       />
 
       {/* Dropdown */}
@@ -198,12 +219,12 @@ export function CifSearch({
               className="px-3 py-2 text-xs italic"
               style={{ color: 'var(--color-ink-3)' }}
             >
-              Sin resultados. Ingresa el código manualmente.
+              {error ?? 'Sin resultados. Ingresa el código manualmente.'}
             </div>
           ) : (
             <ul>
               {results.map((r) => (
-                <li key={r.id}>
+                <li key={`${r.code ?? ''}-${r.id}`}>
                   <button
                     type="button"
                     onMouseDown={(e) => {

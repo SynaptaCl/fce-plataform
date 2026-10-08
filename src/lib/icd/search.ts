@@ -202,9 +202,19 @@ export async function buscarDiagnostico(
 export async function buscarCIF(
   query: string,
   lang = 'es',
+  dominioPrefix?: string,
 ): Promise<ICDSearchResult[]> {
   if (query.trim() === '' || query.length < 2) {
     return [];
+  }
+
+  // La búsqueda de la API es solo por texto: un código ("b280") devuelve 0 resultados.
+  const codigo = query.trim().toLowerCase();
+  if (/^[bsde]\d{1,5}$/.test(codigo)) {
+    const porCodigo = await buscarCIFPorCodigo(codigo);
+    return porCodigo && (!dominioPrefix || porCodigo.code?.startsWith(dominioPrefix))
+      ? [porCodigo]
+      : [];
   }
 
   const data = await icdFetch('/icd/release/11/2025-01/icf/search', {
@@ -251,5 +261,38 @@ export async function buscarCIF(
     entities = values.length > 0 ? values : [];
   }
 
-  return entities.slice(0, MAX_RESULTS).map(mapDestinationEntity);
+  // El filtro por dominio (b/s/d/e) se aplica ANTES de recortar a MAX_RESULTS;
+  // anteponer el prefijo al texto de búsqueda hace que la API devuelva 0 resultados.
+  const mapped = entities.map(mapDestinationEntity).filter((r) => r.code);
+  const filtered = dominioPrefix
+    ? mapped.filter((r) => r.code!.startsWith(dominioPrefix))
+    : mapped;
+  return filtered.slice(0, MAX_RESULTS);
+}
+
+/**
+ * Resuelve un código CIF exacto ("b280") → entidad con título en español.
+ * Endpoint: GET /icd/release/11/2025-01/icf/codeinfo/{code} → stemId → GET entidad.
+ */
+async function buscarCIFPorCodigo(code: string): Promise<ICDSearchResult | null> {
+  try {
+    const info = (await icdFetch(`/icd/release/11/2025-01/icf/codeinfo/${code}`, {
+      flexiblemode: 'false',
+    })) as { code?: string; stemId?: string };
+    if (!info?.stemId) return null;
+    const stemPath = new URL(info.stemId).pathname;
+    const entity = (await icdFetch(stemPath)) as {
+      title?: { '@value'?: string } | string;
+      code?: string;
+    };
+    const rawTitle = typeof entity.title === 'string' ? entity.title : entity.title?.['@value'];
+    if (!rawTitle) return null;
+    return {
+      id: extractEntityId(info.stemId),
+      title: stripHtml(rawTitle),
+      code: info.code ?? entity.code ?? code,
+    };
+  } catch {
+    return null;
+  }
 }

@@ -200,7 +200,7 @@ export function DiagnosticoSearch({
                   const isDuplicate = value.some((v) => v.uri === uri);
                   return (
                     <button
-                      key={result.id}
+                      key={`${result.code ?? ''}-${result.id}`}
                       type="button"
                       role="option"
                       aria-selected={isDuplicate}

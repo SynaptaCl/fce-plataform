@@ -5,6 +5,7 @@ import { buscarCIF } from '@/lib/icd/search';
 import type { ICDSearchResult } from '@/lib/icd/types';
 import type { ActionResult } from '@/app/actions/patients';
 import { checkRateLimit } from '@/lib/rate-limit';
+import { log } from '@/lib/logger';
 
 /**
  * Verifica sesión + pertenencia a clínica activa antes de consumir las
@@ -47,10 +48,10 @@ export async function searchCIF(
   }
 
   try {
-    const q = dominioPrefix ? `${dominioPrefix} ${query}` : query;
-    const results = await buscarCIF(q);
+    const results = await buscarCIF(query.trim(), 'es', dominioPrefix);
     return { success: true, data: results };
-  } catch {
-    return { success: true, data: [] };
+  } catch (err) {
+    log('error', { action: 'buscar_cif', error: err });
+    return { success: false, error: 'Servicio CIF no disponible. Ingresa el código manualmente.' };
   }
 }

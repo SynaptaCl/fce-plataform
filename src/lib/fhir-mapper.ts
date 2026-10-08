@@ -378,23 +378,23 @@ export interface DbSoapNote {
   analisis_cif?: {
     funciones?: Array<{
       code?: string;
-      descripcion?: string;
-      cuantificador?: number;
+      description?: string;
+      quantifier?: number;
     }>;
     actividades?: Array<{
       code?: string;
-      descripcion?: string;
-      cuantificador?: number;
+      description?: string;
+      quantifier?: number;
     }>;
     participacion?: Array<{
       code?: string;
-      descripcion?: string;
-      cuantificador?: number;
+      description?: string;
+      quantifier?: number;
     }>;
     contexto?: Array<{
       code?: string;
-      descripcion?: string;
-      cuantificador?: number;
+      description?: string;
+      quantifier?: number;
     }>;
   } | null;
   plan?: string | null;
@@ -446,20 +446,20 @@ export function mapSoapToConditions(soap: DbSoapNote): FhirCondition[] {
     ],
     code: item.code
       ? {
-          text: item.descripcion ?? item.code,
+          text: item.description || item.code,
           coding: [
             {
               system: CIF_SYSTEM,
               code: item.code,
-              display: item.descripcion ?? item.code,
+              display: item.description || item.code,
             },
           ],
         }
-      : { text: item.descripcion ?? "Sin descripción" },
+      : { text: item.description || "Sin descripción" },
     subject: { reference: `Patient/${soap.id_paciente}` },
     note:
-      item.cuantificador != null
-        ? [{ text: `Cuantificador CIF: ${item.cuantificador}/4` }]
+      item.quantifier != null
+        ? [{ text: `Cuantificador CIF: ${item.quantifier}/4` }]
         : undefined,
   }));
 }
