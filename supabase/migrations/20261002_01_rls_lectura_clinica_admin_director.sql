@@ -10,7 +10,8 @@
 --   SELECT  → tiene_acceso_clinico(id_clinica)   (admin/director/superadmin O profesional)
 --   INSERT/UPDATE/DELETE → es_profesional_clinico(id_clinica)   (solo rol 'profesional')
 --
--- PENDIENTE APLICAR — requiere aprobación humana (regla 15 CLAUDE.md).
+-- APLICADA en prod (verificado vía MCP 2026-10-08: 8 policies clinico_select, 0 acceso_clinico_all).
+-- Aplicada fuera de apply_migration, por eso no figura en el historial de migrations de Supabase.
 -- Ya no se limita a documentos firmados: el director ve también borradores.
 -- ROLLBACK: reemplazar tiene_acceso_clinico( por es_profesional_clinico( en los
 -- SELECT de este archivo (y restaurar `firmado = true AND` en documentos del Grupo D).
