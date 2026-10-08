@@ -70,7 +70,7 @@ export default async function AuditoriaPage({
       <BackLink
         href={`/dashboard/pacientes/${id}`}
         label={fullName}
-        current="M6 · Auditoría"
+        current="Auditoría"
       />
 
       {/* Patient summary */}

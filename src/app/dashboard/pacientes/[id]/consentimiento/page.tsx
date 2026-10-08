@@ -60,7 +60,7 @@ export default async function ConsentimientoPage({
       <BackLink
         href={`/dashboard/pacientes/${id}`}
         label={fullName}
-        current="M5 · Consentimiento"
+        current="Consentimiento"
       />
 
       {/* Patient summary */}

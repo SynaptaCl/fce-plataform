@@ -401,7 +401,7 @@ function buildIdentificacion(p: Patient): string {
   const half = Math.ceil(rows.length / 2);
   const col = (items: Array<[string, string]>) => items.map(([l, v]) => field(l, v)).join("");
   return (
-    sectionTitle("1. Identificación del Paciente (M1)") +
+    sectionTitle("1. Identificación del Paciente") +
     `<table style="width:100%; border-collapse:collapse;">
       <tr>
         <td style="width:50%; vertical-align:top; padding-right:12px;">${col(rows.slice(0, half))}</td>
@@ -483,7 +483,7 @@ function buildAnamnesis(a: FichaClinicaData["anamnesis"]): string {
   }
 
   if (!body.trim()) return "";
-  return sectionTitle("2. Anamnesis (M2)") + body;
+  return sectionTitle("2. Anamnesis") + body;
 }
 
 function buildEncuentros(encuentros: FichaClinicaData["encuentros"]): string {
@@ -798,7 +798,7 @@ function buildPlanesIntervencion(planes: FichaClinicaData["planesIntervencion"])
       return entryCard(`Plan de intervención — ${esc(plan.titulo)}`, "", body);
     })
     .join("");
-  return sectionTitle("12. Plan de Intervención (M10)") + cards;
+  return sectionTitle("12. Plan de Intervención") + cards;
 }
 
 function buildEgreso(egreso: FichaClinicaData["egreso"]): string {

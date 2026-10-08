@@ -75,6 +75,23 @@ export function requireAccesoFCE(rol: Rol | null): void {
 // GUARDS PARA SERVER ACTIONS (retornan ActionResult)
 // ============================================================================
 
+/** Nombres visibles de módulo — los IDs (M1_…, M10_…) son internos y no se muestran al usuario. */
+const MODULE_LABELS: Record<ModuleId, string> = {
+  M1_identificacion: "Identificación del paciente",
+  M2_anamnesis: "Anamnesis",
+  M3_evaluacion: "Evaluación",
+  M4_soap: "Nota SOAP",
+  M5_consentimiento: "Consentimiento",
+  M6_auditoria: "Auditoría",
+  M7_prescripciones: "Prescripciones",
+  M8_examenes: "Exámenes",
+  M9_egresos: "Egresos",
+  M10_plan_intervencion: "Plan de intervención",
+  M11_presupuestos: "Presupuestos",
+  M12_informes: "Informes",
+  M13_estetica: "Ficha estética",
+};
+
 export function assertModuleEnabled(
   config: ClinicaConfig | null,
   moduleId: ModuleId
@@ -83,7 +100,7 @@ export function assertModuleEnabled(
     return { success: false, error: "No se encontró configuración FCE de la clínica." };
   }
   if (!isModuleEnabled(config, moduleId)) {
-    return { success: false, error: `El módulo ${moduleId} no está habilitado para esta clínica.` };
+    return { success: false, error: `El módulo "${MODULE_LABELS[moduleId]}" no está habilitado para esta clínica.` };
   }
   return { success: true, data: true };
 }

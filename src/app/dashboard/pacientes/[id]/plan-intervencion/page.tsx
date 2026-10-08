@@ -44,7 +44,7 @@ export default async function PlanIntervencionPage({
       <BackLink
         href={`/dashboard/pacientes/${id}`}
         label={fullName}
-        current="M10 · Plan de Intervención"
+        current="Plan de Intervención"
       />
 
       {/* Patient summary */}
@@ -62,7 +62,7 @@ export default async function PlanIntervencionPage({
 
       {/* Planes de intervención */}
       <Card
-        title="M10 · Plan de Intervención"
+        title="Plan de Intervención"
         icon={<ClipboardList className="w-4 h-4" />}
       >
         <PlanesIntervencionList idPaciente={id} />
