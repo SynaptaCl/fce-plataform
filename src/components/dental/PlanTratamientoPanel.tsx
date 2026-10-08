@@ -178,7 +178,7 @@ function ItemRow({
               <span
                 className="text-xs px-1.5 py-0.5 rounded"
                 style={{ color: "#92400E", background: "#FEF9C3" }}
-                title="Sin prestación del catálogo asociada: no entra al presupuesto M11"
+                title="Sin prestación del catálogo asociada: no entra al presupuesto"
               >
                 sin tarificar
               </span>
@@ -645,7 +645,7 @@ export function PlanTratamientoPanel({
         >
           <div className="space-y-0.5">
             <p className="text-xs" style={{ color: "var(--color-ink-3)" }}>
-              {presupuesto ? "Presupuesto M11" : "Presupuesto"}
+              {presupuesto ? "Presupuesto" : "Presupuesto"}
             </p>
             <p className="text-base font-semibold" style={{ color: "var(--color-ink-1)" }}>
               {presupuesto ? formatCLP(totalPlan) : "—"}
@@ -689,7 +689,7 @@ export function PlanTratamientoPanel({
               title={
                 seleccion.size === 0
                   ? "Selecciona procedimientos pendientes con prestación asociada"
-                  : "Generar presupuesto M11 con los ítems seleccionados"
+                  : "Generar presupuesto con los ítems seleccionados"
               }
             >
               <FileText className="w-4 h-4" />

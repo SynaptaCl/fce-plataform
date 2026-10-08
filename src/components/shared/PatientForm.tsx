@@ -10,6 +10,7 @@ import type { z } from "zod";
 import { cleanRut, formatRut, validateRut } from "@/lib/run-validator";
 import { calculateAge, cn } from "@/lib/utils";
 import { REGIONES_CHILE } from "@/lib/constants";
+import { hoyISO } from "@/lib/dates";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Button } from "@/components/ui/Button";
@@ -221,7 +222,7 @@ export function PatientForm({ mode, patientId, initialData }: PatientFormProps) 
           <div className="flex gap-2 items-center">
             <input
               type="date"
-              max={new Date().toISOString().split("T")[0]}
+              max={hoyISO()}
               className={cn(
                 "flex-1 px-3 py-2 text-sm text-ink-1 bg-surface-1 border rounded-lg",
                 "outline-none transition-colors",

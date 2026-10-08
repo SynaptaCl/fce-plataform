@@ -1,5 +1,6 @@
 import type { Egreso } from "@/types/egreso";
 import { TIPOS_EGRESO } from "@/types/egreso";
+import { formatFechaAuto } from "@/lib/dates";
 
 export interface EpicrisisRenderData {
   egreso: Egreso;
@@ -37,18 +38,8 @@ function esc(s: string | null): string {
 }
 
 function formatDate(iso: string | null): string {
-  if (!iso) return "—";
-  try {
-    const d = new Date(iso);
-    if (isNaN(d.getTime())) return "—";
-    return d.toLocaleDateString("es-CL", {
-      day: "numeric",
-      month: "long",
-      year: "numeric",
-    });
-  } catch {
-    return "—";
-  }
+  // fecha_nacimiento es `date`; firmado_at/ingreso son timestamptz.
+  return formatFechaAuto(iso, "larga");
 }
 
 function section(title: string, content: string): string {

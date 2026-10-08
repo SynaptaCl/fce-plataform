@@ -1,5 +1,6 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
+import { edadEnAnios, esFechaSinHora, parseDateOnly } from "@/lib/dates";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -20,7 +21,13 @@ export function formatCLP(amount: number): string {
 }
 
 export function formatDate(date: Date | string): string {
-  const d = typeof date === "string" ? new Date(date) : date;
+  // "YYYY-MM-DD" se trata como fecha de calendario (sin conversión de zona).
+  const d =
+    typeof date === "string"
+      ? esFechaSinHora(date)
+        ? (parseDateOnly(date) as Date)
+        : new Date(date)
+      : date;
   return d.toLocaleDateString("es-CL", {
     weekday: "long",
     year: "numeric",
@@ -31,14 +38,9 @@ export function formatDate(date: Date | string): string {
 
 export function calculateAge(birthDate: Date | string | null | undefined): number | null {
   if (!birthDate) return null;
-  const birth = typeof birthDate === "string" ? new Date(birthDate) : birthDate;
-  const today = new Date();
-  let age = today.getFullYear() - birth.getFullYear();
-  const m = today.getMonth() - birth.getMonth();
-  if (m < 0 || (m === 0 && today.getDate() < birth.getDate())) {
-    age--;
-  }
-  return age;
+  if (typeof birthDate === "string") return edadEnAnios(birthDate);
+  const iso = `${birthDate.getFullYear()}-${String(birthDate.getMonth() + 1).padStart(2, "0")}-${String(birthDate.getDate()).padStart(2, "0")}`;
+  return edadEnAnios(iso);
 }
 
 /**

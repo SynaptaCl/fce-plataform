@@ -1,4 +1,4 @@
-import { differenceInYears } from 'date-fns'
+import { edadEnAnios } from '@/lib/dates'
 import { SupabaseClient } from '@supabase/supabase-js'
 import { isRealDbError } from './db-error'
 
@@ -38,7 +38,7 @@ export async function extraerDemografico(
   const p = pacienteRes.data
   if (!p) return { edad: null, sexo: null, prevision: null, fecha_primera_atencion: null }
 
-  const edad = p.fecha_nacimiento ? differenceInYears(new Date(), new Date(p.fecha_nacimiento)) : null
+  const edad = edadEnAnios(p.fecha_nacimiento)
   const prevision = (p.prevision as { tipo?: string } | null)?.tipo ?? null
 
   const fecha_primera_atencion = primeraAtencionRes.data?.started_at

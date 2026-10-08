@@ -15,8 +15,8 @@ interface FichaCompletaExportProps {
 
 // Secciones incluidas en la ficha completa — preview informativa para el usuario
 const SECCIONES_INCLUIDAS = [
-  "Identificación del paciente (M1)",
-  "Anamnesis y red flags (M2)",
+  "Identificación del paciente",
+  "Anamnesis y red flags",
   "Registro de encuentros",
   "Signos vitales (historial completo)",
   "Evoluciones SOAP firmadas",
@@ -26,7 +26,7 @@ const SECCIONES_INCLUIDAS = [
   "Consentimientos firmados",
   "Prescripciones firmadas",
   "Órdenes de examen firmadas",
-  "Plan de intervención (M10)",
+  "Plan de intervención",
   "Egreso / Epicrisis",
 ];
 

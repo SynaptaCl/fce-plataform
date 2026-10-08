@@ -16,7 +16,7 @@ export default function NuevoPacientePage() {
           Nueva Ficha de Paciente
         </h2>
         <p className="text-sm text-ink-3 mt-0.5">
-          Módulo M1 · Identificación y Perfil Sociodemográfico (Decreto 41 MINSAL)
+          Identificación y Perfil Sociodemográfico (Decreto 41 MINSAL)
         </p>
       </div>
 

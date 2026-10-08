@@ -56,7 +56,7 @@ export default async function AnamnesisPage({
       <BackLink
         href={`/dashboard/pacientes/${id}`}
         label={fullName}
-        current="M2 · Anamnesis"
+        current="Anamnesis"
       />
 
       {/* Patient summary */}
@@ -95,7 +95,7 @@ export default async function AnamnesisPage({
 
       {/* Anamnesis */}
       <Card
-        title="M2 · Anamnesis"
+        title="Anamnesis"
         icon={<ClipboardList className="w-4 h-4" />}
       >
         <fieldset disabled={soloLectura} className="min-w-0 border-0 p-0 m-0">

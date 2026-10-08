@@ -21,6 +21,7 @@ import type { OdontogramaEntry, EstadoPieza } from "@/types/odontograma";
 import type { Periograma } from "@/types/periograma";
 import type { PlanTratamiento, PlanTratamientoItem } from "@/types/plan-tratamiento";
 import { getLabelPieza } from "@/lib/dental/fdi";
+import { formatFechaAuto } from "@/lib/dates";
 
 // ── Tipos de data compilada ───────────────────────────────────────────────────
 
@@ -239,10 +240,7 @@ export function escapeHtml(s: unknown): string {
 const esc = escapeHtml;
 
 function fmtDate(iso: string | null | undefined): string {
-  if (!iso) return "—";
-  const d = new Date(iso);
-  if (isNaN(d.getTime())) return "—";
-  return d.toLocaleDateString("es-CL", { day: "2-digit", month: "short", year: "numeric" });
+  return formatFechaAuto(iso, "corta");
 }
 
 function humanize(s: string | null | undefined): string {
@@ -403,7 +401,7 @@ function buildIdentificacion(p: Patient): string {
   const half = Math.ceil(rows.length / 2);
   const col = (items: Array<[string, string]>) => items.map(([l, v]) => field(l, v)).join("");
   return (
-    sectionTitle("1. Identificación del Paciente (M1)") +
+    sectionTitle("1. Identificación del Paciente") +
     `<table style="width:100%; border-collapse:collapse;">
       <tr>
         <td style="width:50%; vertical-align:top; padding-right:12px;">${col(rows.slice(0, half))}</td>
@@ -485,7 +483,7 @@ function buildAnamnesis(a: FichaClinicaData["anamnesis"]): string {
   }
 
   if (!body.trim()) return "";
-  return sectionTitle("2. Anamnesis (M2)") + body;
+  return sectionTitle("2. Anamnesis") + body;
 }
 
 function buildEncuentros(encuentros: FichaClinicaData["encuentros"]): string {
@@ -800,7 +798,7 @@ function buildPlanesIntervencion(planes: FichaClinicaData["planesIntervencion"])
       return entryCard(`Plan de intervención — ${esc(plan.titulo)}`, "", body);
     })
     .join("");
-  return sectionTitle("12. Plan de Intervención (M10)") + cards;
+  return sectionTitle("12. Plan de Intervención") + cards;
 }
 
 function buildEgreso(egreso: FichaClinicaData["egreso"]): string {

@@ -9,6 +9,7 @@ import {
 } from "@/app/actions/clinico/plan-intervencion";
 import { PlanIntervencionPanel } from "./PlanIntervencionPanel";
 import type { EstadoPlanIntervencion, PlanIntervencion } from "@/types/plan-intervencion";
+import { formatFechaAuto } from "@/lib/dates";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -28,12 +29,7 @@ interface Props {
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function formatFecha(iso: string): string {
-  return new Date(iso).toLocaleDateString("es-CL", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-    timeZone: "America/Santiago",
-  });
+  return formatFechaAuto(iso, "corta");
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────

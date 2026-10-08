@@ -37,13 +37,13 @@ export default async function EditarPacientePage({
         href="/dashboard/pacientes"
         label="Pacientes"
         intermediate={{ href: `/dashboard/pacientes/${id}`, label: fullName }}
-        current="Editar M1"
+        current="Editar paciente"
       />
 
       <div>
         <h2 className="text-2xl font-bold text-ink-1 flex items-center gap-2">
           <Pencil className="w-5 h-5 text-kp-accent" />
-          Editar Ficha — M1
+          Editar ficha del paciente
         </h2>
         <p className="text-sm text-ink-3 mt-0.5">
           RUT:{" "}

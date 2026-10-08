@@ -8,15 +8,18 @@ import { es } from "date-fns/locale";
 import type { CifAssessment, CifItem } from "@/types/cif";
 import { CIF_QUANTIFIER_LABELS } from "@/types/cif";
 import { isRichTextHtml } from "@/lib/utils";
+import { esFechaSinHora, parseDateOnly } from "@/lib/dates";
 
 // ── Text helpers ──────────────────────────────────────────────────────────────
 
 export function formatDate(iso: string): string {
   if (!iso) return "—";
   try {
+    // "YYYY-MM-DD" (columna `date`) → medianoche local; evita el desfase de un día de new Date().
+    const dateOnly = parseDateOnly(iso);
+    if (esFechaSinHora(iso) && dateOnly) return format(dateOnly, "dd MMM yyyy", { locale: es });
     const d = new Date(iso);
-    const fmt = iso.includes("T") ? "dd MMM yyyy, HH:mm" : "dd MMM yyyy";
-    return format(d, fmt, { locale: es });
+    return format(d, "dd MMM yyyy, HH:mm", { locale: es });
   } catch {
     return iso;
   }

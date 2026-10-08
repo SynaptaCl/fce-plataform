@@ -8,6 +8,7 @@ import { getPlanIntervencionDetalle } from "@/app/actions/clinico/plan-intervenc
 import { getPatientById } from "@/app/actions/patients";
 import type { PlanIntervencionDetalle } from "@/types/plan-intervencion";
 import type { Patient } from "@/types/patient";
+import { formatFechaAuto } from "@/lib/dates";
 
 // ── Props ──────────────────────────────────────────────────────────────────
 
@@ -34,18 +35,12 @@ function nombreCompleto(paciente: Patient): string {
 }
 
 function formatFechaLarga(iso: string | null): string {
-  if (!iso) return "—";
-  return new Date(iso).toLocaleDateString("es-CL", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  });
+  return formatFechaAuto(iso, "larga");
 }
 
 function formatFechaCorta(iso: string): string {
-  // "YYYY-MM-DD" o ISO datetime → DD/MM/YYYY
-  const d = new Date(iso);
-  return d.toLocaleDateString("es-CL");
+  // "YYYY-MM-DD" (date) o ISO datetime (timestamptz) → DD-MM-YYYY
+  return formatFechaAuto(iso, "numerica");
 }
 
 function estadoLabel(estado: string): string {
