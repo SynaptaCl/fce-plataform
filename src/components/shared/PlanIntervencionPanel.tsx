@@ -21,6 +21,7 @@ import type {
   NivelGAS,
 } from "@/types/plan-intervencion";
 import type { PlantillaDominio } from "@/types/plantilla-dominio";
+import { formatFechaAuto } from "@/lib/dates";
 
 // ── Props ─────────────────────────────────────────────────────────────────────
 
@@ -79,12 +80,8 @@ function prioridadColor(p: string): string {
 }
 
 function formatFecha(iso: string): string {
-  return new Date(iso).toLocaleDateString("es-CL", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    timeZone: "America/Santiago",
-  });
+  // fecha_inicio/fecha_revision son `date`; firmado_at/registrado_at son timestamptz.
+  return formatFechaAuto(iso, "numerica");
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────

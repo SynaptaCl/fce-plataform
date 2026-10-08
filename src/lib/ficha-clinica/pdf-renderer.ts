@@ -21,6 +21,7 @@ import type { OdontogramaEntry, EstadoPieza } from "@/types/odontograma";
 import type { Periograma } from "@/types/periograma";
 import type { PlanTratamiento, PlanTratamientoItem } from "@/types/plan-tratamiento";
 import { getLabelPieza } from "@/lib/dental/fdi";
+import { formatFechaAuto } from "@/lib/dates";
 
 // ── Tipos de data compilada ───────────────────────────────────────────────────
 
@@ -239,10 +240,7 @@ export function escapeHtml(s: unknown): string {
 const esc = escapeHtml;
 
 function fmtDate(iso: string | null | undefined): string {
-  if (!iso) return "—";
-  const d = new Date(iso);
-  if (isNaN(d.getTime())) return "—";
-  return d.toLocaleDateString("es-CL", { day: "2-digit", month: "short", year: "numeric" });
+  return formatFechaAuto(iso, "corta");
 }
 
 function humanize(s: string | null | undefined): string {

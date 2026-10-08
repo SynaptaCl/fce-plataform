@@ -1,6 +1,7 @@
 import { CheckCircle2 } from "lucide-react";
 import { PlanIntervencionPdfView } from "@/components/shared/PlanIntervencionPdfView";
 import type { PlanIntervencionDetalle, NivelGAS } from "@/types/plan-intervencion";
+import { formatFechaAuto } from "@/lib/dates";
 
 interface PlanIntervencionResumenCardProps {
   detalle: PlanIntervencionDetalle;
@@ -22,12 +23,7 @@ function gasColor(nivel: NivelGAS): string {
 }
 
 function formatFecha(iso: string): string {
-  return new Date(iso).toLocaleDateString("es-CL", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-    timeZone: "America/Santiago",
-  });
+  return formatFechaAuto(iso, "numerica");
 }
 
 export function PlanIntervencionResumenCard({

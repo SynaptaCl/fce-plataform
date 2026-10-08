@@ -20,6 +20,9 @@
  * Módulo server-safe: sin imports React/Next.js.
  */
 
+import { differenceInCalendarDays } from "date-fns";
+import { hoyISO, parseDateOnly } from "@/lib/dates";
+
 // ─── Tipos ────────────────────────────────────────────────────────────────────
 
 export type CategoriaPregestacional =
@@ -211,9 +214,9 @@ export function clasificarGestacional(
  * @param hoy Fecha de evaluación, ISO string "YYYY-MM-DD" (default: hoy en Santiago)
  */
 export function calcularSemanaGestacional(fur: string, hoy?: string): number {
-  const furDate = new Date(fur);
-  const hoyDate = hoy ? new Date(hoy) : new Date();
-  const diffMs = hoyDate.getTime() - furDate.getTime();
-  const diffDias = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  const furDate = parseDateOnly(fur);
+  const hoyDate = parseDateOnly(hoy ?? hoyISO());
+  if (!furDate || !hoyDate) return 0;
+  const diffDias = differenceInCalendarDays(hoyDate, furDate);
   return Math.floor(diffDias / 7);
 }

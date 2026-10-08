@@ -20,6 +20,7 @@
     "test:sprint-n1-nutricion": "tsx scripts/test-sprint-n1-nutricion.ts",
     "test:sprint-n2-nutricion": "tsx scripts/test-sprint-n2-nutricion.ts",
     "test:sprint-rte": "tsx scripts/test-sprint-rte.ts",
+    "test:dates": "tsx scripts/test-dates.ts",
     "test:sprint-sec1": "tsx scripts/test-sprint-sec1.ts",
     "test:sprint-amb1": "tsx scripts/test-sprint-amb1.ts",
     "test:sprint-d7": "tsx scripts/test-sprint-d7.ts",

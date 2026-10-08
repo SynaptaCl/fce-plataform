@@ -11,6 +11,7 @@ import {
 import { estructurarInforme } from "@/app/actions/informes-ia";
 import { formatRut, calculateAge } from "@/lib/utils";
 import type { InformeClinico, InformeFormData, TipoInforme } from "@/types/informe";
+import { formatDateOnly } from "@/lib/dates";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -49,12 +50,7 @@ interface Props {
 function buildEncabezadoPaciente(p: PacienteInfo): string {
   const lineas = [`Paciente: ${p.nombreCompleto}`, `RUT: ${formatRut(p.rut)}`];
   if (p.fechaNacimiento) {
-    const fecha = new Date(p.fechaNacimiento).toLocaleDateString("es-CL", {
-      day: "numeric",
-      month: "long",
-      year: "numeric",
-      timeZone: "America/Santiago",
-    });
+    const fecha = formatDateOnly(p.fechaNacimiento, "larga");
     const edad = calculateAge(p.fechaNacimiento);
     lineas.push(`Fecha de nacimiento: ${fecha}${edad !== null ? ` (${edad} años)` : ""}`);
   }

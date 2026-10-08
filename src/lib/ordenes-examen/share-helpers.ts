@@ -1,12 +1,13 @@
 import type { OrdenExamen } from "@/types/orden-examen";
 import type { Patient } from "@/types/patient";
+import { formatTimestamp } from "@/lib/dates";
 
 export function buildShareMessage(
   orden: OrdenExamen,
   clinicaNombre: string
 ): string {
   const fecha = orden.firmado_at
-    ? new Date(orden.firmado_at).toLocaleDateString("es-CL")
+    ? formatTimestamp(orden.firmado_at)
     : "";
   const n = orden.examenes.length;
   return `Orden de exámenes ${orden.folio_display}.\n${n} examen${n !== 1 ? "es" : ""} solicitado${n !== 1 ? "s" : ""}.\nEmitida el ${fecha} en ${clinicaNombre}.`;
