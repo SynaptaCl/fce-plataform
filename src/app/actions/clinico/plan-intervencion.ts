@@ -81,27 +81,50 @@ export async function getPlanIntervencionDetalle(
 
   const objetivosList = (objetivos ?? []) as PlanObjetivo[];
 
-  // 3. Historial completo de progreso de todos los objetivos en una sola query
+  // 3. Historial de progreso + disciplina de los responsables, en paralelo (ambos solo dependen de objetivos)
   const progresoPorObjetivo: Record<string, PlanProgreso[]> = {};
+  const especialidadPorProfesional: Record<string, string | null> = {};
   if (objetivosList.length > 0) {
-    const { data: progresos, error: progError } = await supabase
-      .from("fce_plan_progreso")
-      .select("*")
-      .in("id_objetivo", objetivosList.map((o) => o.id))
-      .eq("id_clinica", idClinica)
-      .order("registrado_at", { ascending: true });
+    const idsResponsables = Array.from(
+      new Set(objetivosList.map((o) => o.responsable_principal).filter((v): v is string => !!v))
+    );
+    const [progRes, profRes] = await Promise.all([
+      supabase
+        .from("fce_plan_progreso")
+        .select("*")
+        .in("id_objetivo", objetivosList.map((o) => o.id))
+        .eq("id_clinica", idClinica)
+        .order("registrado_at", { ascending: true }),
+      idsResponsables.length > 0
+        ? supabase
+            .from("profesionales")
+            .select("id, especialidad")
+            .in("id", idsResponsables)
+            .eq("id_clinica", idClinica)
+        : Promise.resolve({ data: [], error: null }),
+    ]);
 
-    if (progError) return dbError("plan-intervencion", progError);
+    if (progRes.error) return dbError("plan-intervencion", progRes.error);
 
-    for (const p of (progresos ?? []) as PlanProgreso[]) {
+    for (const p of (progRes.data ?? []) as PlanProgreso[]) {
       (progresoPorObjetivo[p.id_objetivo] ??= []).push(p);
+    }
+    // Un fallo aquí no es crítico: el gráfico cae al dominio como etiqueta.
+    for (const pr of (profRes.data ?? []) as { id: string; especialidad: string | null }[]) {
+      especialidadPorProfesional[pr.id] = pr.especialidad;
     }
   }
 
   const objetivosConProgreso = objetivosList.map((obj) => {
     const historial = progresoPorObjetivo[obj.id];
     const ultimo = historial?.[historial.length - 1];
-    return { ...obj, ...(ultimo ? { ultimo_progreso: ultimo } : {}) };
+    return {
+      ...obj,
+      responsable_especialidad: obj.responsable_principal
+        ? (especialidadPorProfesional[obj.responsable_principal] ?? null)
+        : null,
+      ...(ultimo ? { ultimo_progreso: ultimo } : {}),
+    };
   });
 
   const detalle: PlanIntervencionDetalle = {

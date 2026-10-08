@@ -67,7 +67,11 @@ export interface PlanProgreso {
 
 /** Plan con objetivos enriquecidos (para vista detalle) */
 export interface PlanIntervencionDetalle extends PlanIntervencion {
-  objetivos: (PlanObjetivo & { ultimo_progreso?: PlanProgreso })[];
+  objetivos: (PlanObjetivo & {
+    ultimo_progreso?: PlanProgreso;
+    /** Disciplina (especialidad) del profesional responsable; null si no hay responsable. */
+    responsable_especialidad?: string | null;
+  })[];
   /** Historial completo de progreso por objetivo, ordenado ascendente por registrado_at */
   progresoPorObjetivo: Record<string, PlanProgreso[]>;
 }
