@@ -512,8 +512,8 @@ export function AntropometriaPanel({
                   <span
                     className="text-xs font-medium px-2 py-0.5 rounded-full"
                     style={{
-                      background: `${IMC_CLASIFICACION_COLOR[previewIMC.clasificacion] ?? "#94A3B8"}22`,
-                      color: IMC_CLASIFICACION_COLOR[previewIMC.clasificacion] ?? "#94A3B8",
+                      background: `${IMC_CLASIFICACION_COLOR[previewIMC.clasificacion] ?? "#64748B"}22`,
+                      color: IMC_CLASIFICACION_COLOR[previewIMC.clasificacion] ?? "#64748B",
                     }}
                   >
                     {previewIMC.clasificacion}
@@ -545,8 +545,8 @@ export function AntropometriaPanel({
               <span
                 className="text-xs font-medium px-2 py-0.5 rounded-full"
                 style={{
-                  background: `${ZSCORE_COLORS[previewZScore.clasificacion] ?? "#94A3B8"}22`,
-                  color: ZSCORE_COLORS[previewZScore.clasificacion] ?? "#94A3B8",
+                  background: `${ZSCORE_COLORS[previewZScore.clasificacion] ?? "#64748B"}22`,
+                  color: ZSCORE_COLORS[previewZScore.clasificacion] ?? "#64748B",
                 }}
               >
                 {previewZScore.clasificacion}
@@ -826,8 +826,8 @@ export function AntropometriaPanel({
                       <span
                         className="text-xs font-medium px-2 py-0.5 rounded-full"
                         style={{
-                          background: `${IMC_CLASIFICACION_COLOR[r.clasificacion ?? ""] ?? "#94A3B8"}22`,
-                          color: IMC_CLASIFICACION_COLOR[r.clasificacion ?? ""] ?? "#94A3B8",
+                          background: `${IMC_CLASIFICACION_COLOR[r.clasificacion ?? ""] ?? "#64748B"}22`,
+                          color: IMC_CLASIFICACION_COLOR[r.clasificacion ?? ""] ?? "#64748B",
                         }}
                       >
                         IMC {r.imc.toFixed(1)} · {r.clasificacion}
@@ -842,8 +842,8 @@ export function AntropometriaPanel({
                           <span
                             className="text-xs font-medium px-2 py-0.5 rounded-full"
                             style={{
-                              background: `${ZSCORE_COLORS[r.clasificacion ?? ""] ?? "#94A3B8"}22`,
-                              color: ZSCORE_COLORS[r.clasificacion ?? ""] ?? "#94A3B8",
+                              background: `${ZSCORE_COLORS[r.clasificacion ?? ""] ?? "#64748B"}22`,
+                              color: ZSCORE_COLORS[r.clasificacion ?? ""] ?? "#64748B",
                             }}
                           >
                             Z {r.zscore_imc > 0 ? "+" : ""}{r.zscore_imc.toFixed(2)} · {r.clasificacion}

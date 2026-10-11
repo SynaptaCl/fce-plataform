@@ -42,7 +42,7 @@ export function CambiarClaveForm() {
     padding: "8px 12px",
     borderRadius: 8,
     border: "1px solid var(--color-kp-border, #E2E8F0)",
-    fontSize: 13,
+    fontSize: 14,
     outline: "none",
     background: "var(--color-surface-0, #F1F5F9)",
     color: "var(--color-ink-1, #1E293B)",
@@ -50,8 +50,8 @@ export function CambiarClaveForm() {
   };
 
   const labelStyle: React.CSSProperties = {
-    fontSize: 12,
-    color: "var(--color-ink-3, #94A3B8)",
+    fontSize: 13,
+    color: "var(--color-ink-3, #64748B)",
     display: "block",
     marginBottom: 4,
   };
@@ -82,12 +82,12 @@ export function CambiarClaveForm() {
       </div>
 
       {errorMsg && (
-        <p style={{ fontSize: 12, color: "var(--color-kp-danger, #E53935)", margin: 0 }}>
+        <p style={{ fontSize: 13, color: "var(--color-kp-danger, #E53935)", margin: 0 }}>
           {errorMsg}
         </p>
       )}
       {status === "success" && (
-        <p style={{ fontSize: 12, color: "var(--color-kp-success, #43A047)", margin: 0 }}>
+        <p style={{ fontSize: 13, color: "var(--color-kp-success, #43A047)", margin: 0 }}>
           Contraseña actualizada correctamente.
         </p>
       )}
@@ -101,11 +101,11 @@ export function CambiarClaveForm() {
             borderRadius: 8,
             background:
               status === "loading"
-                ? "var(--color-ink-3, #94A3B8)"
+                ? "var(--color-ink-3, #64748B)"
                 : "var(--color-kp-primary, #00B0A8)",
             color: "#fff",
             border: "none",
-            fontSize: 13,
+            fontSize: 14,
             fontWeight: 600,
             cursor: status === "loading" ? "not-allowed" : "pointer",
           }}

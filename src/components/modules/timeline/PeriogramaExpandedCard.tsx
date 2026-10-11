@@ -49,7 +49,7 @@ export function PeriogramaExpandedCard({ entry, patientId, onAgregarAdenda }: Pr
       {/* Adenda badge — mismo patrón que SOAP/nota clínica */}
       {entry.data.adendas && (entry.data.adendas as { count: number; tieneErrata: boolean; anulada: boolean }).count > 0 && (
         <div
-          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[0.6rem] font-semibold"
+          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold"
           style={{
             background: (entry.data.adendas as { anulada: boolean }).anulada
               ? "var(--color-kp-danger-lt)"

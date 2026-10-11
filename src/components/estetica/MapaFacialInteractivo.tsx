@@ -38,11 +38,11 @@ export function MapaFacialInteractivo({ zonasTratadas, onZonaClick, readOnly }: 
         className="flex items-center justify-between px-4 py-2.5 border-b"
         style={{ borderColor: "var(--color-kp-border)" }}
       >
-        <span className="text-[0.6rem] font-bold uppercase tracking-widest" style={{ color: "var(--color-ink-3)" }}>
+        <span className="text-xs font-bold uppercase tracking-widest" style={{ color: "var(--color-ink-3)" }}>
           Mapa facial
         </span>
         <span
-          className="rounded-full px-2 py-0.5 text-[10px] font-semibold"
+          className="rounded-full px-2 py-0.5 text-xs font-semibold"
           style={{
             background: tratadas > 0 ? "var(--color-kp-accent-lt)" : "var(--color-surface-0)",
             color: "var(--color-kp-primary)",
@@ -204,7 +204,7 @@ export function MapaFacialInteractivo({ zonasTratadas, onZonaClick, readOnly }: 
                 aria-pressed={tratada}
                 onClick={() => onZonaClick(zona.codigo)}
                 className={cn(
-                  "flex items-center gap-1.5 rounded-full border pl-2 pr-2.5 py-1 text-[11px] font-medium transition-all duration-200",
+                  "flex items-center gap-1.5 rounded-full border pl-2 pr-2.5 py-1 text-xs font-medium transition-all duration-200",
                   readOnly ? "cursor-default" : "hover:-translate-y-px hover:shadow-sm",
                   !tratada && !readOnly && "hover:border-[var(--color-kp-accent-md)] hover:bg-[var(--color-kp-accent-xs)]"
                 )}
@@ -225,7 +225,7 @@ export function MapaFacialInteractivo({ zonasTratadas, onZonaClick, readOnly }: 
         </div>
 
         {!readOnly && (
-          <p className="text-[10px] text-center" style={{ color: "var(--color-ink-4)" }}>
+          <p className="text-xs text-center" style={{ color: "var(--color-ink-4)" }}>
             Toca un punto del mapa o una etiqueta para registrar la zona tratada
           </p>
         )}

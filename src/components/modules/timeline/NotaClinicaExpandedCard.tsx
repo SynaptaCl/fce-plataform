@@ -36,7 +36,7 @@ export function NotaClinicaExpandedCard({ entry, patientId, onAgregarAdenda }: P
       {/* ICD-11 códigos estructurados — mostrar chips si existen */}
       {Array.isArray(d.icd_codigos) && (d.icd_codigos as ICDCodeSnap[]).length > 0 && (
         <div>
-          <p className="font-bold text-ink-3 uppercase tracking-wide text-[0.6rem] mb-1.5">
+          <p className="font-bold text-ink-3 uppercase tracking-wide text-xs mb-1.5">
             Diagnóstico ICD-11
           </p>
           <div className="flex flex-wrap gap-1.5">
@@ -49,7 +49,7 @@ export function NotaClinicaExpandedCard({ entry, patientId, onAgregarAdenda }: P
       )}
       {cie10.length > 0 && (
         <div>
-          <p className="font-bold text-ink-3 uppercase tracking-wide text-[0.6rem] mb-1">
+          <p className="font-bold text-ink-3 uppercase tracking-wide text-xs mb-1">
             CIE-10
           </p>
           <div className="flex flex-wrap gap-1">
@@ -74,7 +74,7 @@ export function NotaClinicaExpandedCard({ entry, patientId, onAgregarAdenda }: P
           if (campos && typeof campos === "object" && !Array.isArray(campos)) {
             return (
               <div key={seccion}>
-                <p className="font-bold text-ink-3 uppercase tracking-wide text-[0.6rem] mb-1.5">
+                <p className="font-bold text-ink-3 uppercase tracking-wide text-xs mb-1.5">
                   {label}
                 </p>
                 <KeyValueList data={campos as Record<string, unknown>} />
@@ -85,7 +85,7 @@ export function NotaClinicaExpandedCard({ entry, patientId, onAgregarAdenda }: P
         })}
       {d.proxima_sesion && (
         <div className="flex items-center gap-1.5 text-xs text-ink-2">
-          <span className="font-bold text-ink-3 uppercase tracking-wide text-[0.6rem]">
+          <span className="font-bold text-ink-3 uppercase tracking-wide text-xs">
             Próxima sesión:
           </span>
           <span>{formatDate(String(d.proxima_sesion))}</span>
@@ -94,7 +94,7 @@ export function NotaClinicaExpandedCard({ entry, patientId, onAgregarAdenda }: P
       {/* Adenda badge — shown if the note has adendas */}
       {entry.data.adendas && (entry.data.adendas as { count: number; tieneErrata: boolean; anulada: boolean }).count > 0 && (
         <div
-          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[0.6rem] font-semibold"
+          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold"
           style={{
             background: (entry.data.adendas as { anulada: boolean }).anulada
               ? "var(--color-kp-danger-lt)"

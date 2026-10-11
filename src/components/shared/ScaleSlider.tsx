@@ -60,7 +60,7 @@ export function ScaleSlider({
       />
 
       {labels && (
-        <div className="flex justify-between text-[0.6rem] text-ink-3">
+        <div className="flex justify-between text-xs text-ink-3">
           {Object.entries(labels).map(([val, text]) => (
             <span key={val} className={cn(Number(val) === value && "font-bold text-ink-2")}>
               {text}

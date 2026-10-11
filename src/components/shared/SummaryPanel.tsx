@@ -37,14 +37,14 @@ function SectionTitle({
 }) {
   return (
     <div className="flex items-center gap-1.5 mb-2">
-      <span style={{ color: "var(--color-ink-3, #94A3B8)" }}>{icon}</span>
+      <span style={{ color: "var(--color-ink-3, #64748B)" }}>{icon}</span>
       <span
         style={{
-          fontSize: 10,
+          fontSize: 12,
           fontWeight: 500,
           textTransform: "uppercase",
           letterSpacing: "0.8px",
-          color: "var(--color-ink-3, #94A3B8)",
+          color: "var(--color-ink-3, #64748B)",
         }}
       >
         {label}
@@ -61,8 +61,8 @@ function EmptyState({ href, label }: { href: string; label: string }) {
         display: "inline-flex",
         alignItems: "center",
         gap: 4,
-        fontSize: 11,
-        color: "var(--color-ink-3, #94A3B8)",
+        fontSize: 12,
+        color: "var(--color-ink-3, #64748B)",
         textDecoration: "none",
         cursor: "pointer",
       }}
@@ -102,11 +102,11 @@ function SubLabel({ label }: { label: string }) {
   return (
     <p
       style={{
-        fontSize: 9,
+        fontSize: 12,
         fontWeight: 600,
         textTransform: "uppercase",
         letterSpacing: "0.7px",
-        color: "var(--color-ink-3, #94A3B8)",
+        color: "var(--color-ink-3, #64748B)",
         marginBottom: 4,
       }}
     >
@@ -172,7 +172,7 @@ export function SummaryPanel({
                   display: "flex",
                   alignItems: "center",
                   gap: 6,
-                  fontSize: 12,
+                  fontSize: 13,
                   fontWeight: 500,
                   color: "var(--color-kp-danger, #DC2626)",
                   marginBottom: 2,
@@ -215,7 +215,7 @@ export function SummaryPanel({
                 <SubLabel label="CIF" />
                 <div style={{ marginBottom: showDiagnosticos ? 0 : 4 }}>
                   {summary.cif_activos > 0 ? (
-                    <p style={{ fontSize: 13, color: "var(--color-ink-2, #475569)" }}>
+                    <p style={{ fontSize: 14, color: "var(--color-ink-2, #475569)" }}>
                       {summary.cif_activos} ítem{summary.cif_activos !== 1 ? "s" : ""}{" "}
                       activo{summary.cif_activos !== 1 ? "s" : ""}
                     </p>
@@ -251,7 +251,7 @@ export function SummaryPanel({
                           />
                           <span
                             style={{
-                              fontSize: 13,
+                              fontSize: 14,
                               color: "var(--color-ink-2, #475569)",
                             }}
                           >
@@ -279,16 +279,16 @@ export function SummaryPanel({
       <div style={{ marginBottom: 4 }}>
         {summary.antecedentes ? (
           <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-            <div style={{ fontSize: 12, color: "var(--color-ink-2, #475569)" }}>
-              <span style={{ color: "var(--color-ink-3, #94A3B8)" }}>Mórbidos: </span>
+            <div style={{ fontSize: 13, color: "var(--color-ink-2, #475569)" }}>
+              <span style={{ color: "var(--color-ink-3, #64748B)" }}>Mórbidos: </span>
               {summary.antecedentes.morbidos ?? "—"}
             </div>
-            <div style={{ fontSize: 12, color: "var(--color-ink-2, #475569)" }}>
-              <span style={{ color: "var(--color-ink-3, #94A3B8)" }}>Alergias: </span>
+            <div style={{ fontSize: 13, color: "var(--color-ink-2, #475569)" }}>
+              <span style={{ color: "var(--color-ink-3, #64748B)" }}>Alergias: </span>
               {summary.antecedentes.alergias ?? "—"}
             </div>
-            <div style={{ fontSize: 12, color: "var(--color-ink-2, #475569)" }}>
-              <span style={{ color: "var(--color-ink-3, #94A3B8)" }}>Medicamentos: </span>
+            <div style={{ fontSize: 13, color: "var(--color-ink-2, #475569)" }}>
+              <span style={{ color: "var(--color-ink-3, #64748B)" }}>Medicamentos: </span>
               {summary.antecedentes.medicamentos_habituales ?? "—"}
             </div>
           </div>
@@ -315,7 +315,7 @@ export function SummaryPanel({
         {summary.motivo_consulta ? (
           <p
             style={{
-              fontSize: 12,
+              fontSize: 13,
               color: "var(--color-ink-2, #475569)",
               lineHeight: 1.5,
               display: "-webkit-box",
@@ -352,7 +352,7 @@ export function SummaryPanel({
         {summary.plan_actual ? (
           <p
             style={{
-              fontSize: 12,
+              fontSize: 13,
               color: "var(--color-ink-2, #475569)",
               lineHeight: 1.5,
               display: "-webkit-box",
@@ -380,12 +380,12 @@ export function SummaryPanel({
             {summary.indicaciones_farmacologicas.length > 0 ? (
               <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
                 {summary.indicaciones_farmacologicas.slice(0, 5).map((ind, i) => (
-                  <div key={`${ind.nombre}-${i}`} style={{ fontSize: 12 }}>
+                  <div key={`${ind.nombre}-${i}`} style={{ fontSize: 13 }}>
                     <span style={{ fontWeight: 500, color: "var(--color-ink-2, #475569)" }}>
                       {ind.nombre}
                     </span>
                     {ind.presentacion && (
-                      <span style={{ color: "var(--color-ink-3, #94A3B8)" }}>
+                      <span style={{ color: "var(--color-ink-3, #64748B)" }}>
                         {" "}· {ind.presentacion}
                       </span>
                     )}
@@ -395,7 +395,7 @@ export function SummaryPanel({
                   <Link
                     href="#clinical-timeline"
                     style={{
-                      fontSize: 11,
+                      fontSize: 12,
                       color: "var(--color-kp-accent, #00B0A8)",
                       textDecoration: "none",
                     }}
@@ -425,7 +425,7 @@ export function SummaryPanel({
               display: "flex",
               alignItems: "center",
               gap: 6,
-              fontSize: 12,
+              fontSize: 13,
               fontWeight: 600,
               color: "var(--color-kp-primary, #006B6B)",
               background: "var(--color-kp-accent-xs, #E6FAF9)",
@@ -504,7 +504,7 @@ export function SummaryPanel({
                 >
                   {cell.value ?? "—"}
                 </p>
-                <p style={{ fontSize: 10, color: "var(--color-ink-3, #94A3B8)" }}>
+                <p style={{ fontSize: 12, color: "var(--color-ink-3, #64748B)" }}>
                   {cell.label} {cell.unit}
                 </p>
               </div>
@@ -535,8 +535,8 @@ export function SummaryPanel({
                 borderRadius: 6,
                 opacity: 0.6,
                 cursor: "default",
-                fontSize: 12,
-                color: "var(--color-ink-3, #94A3B8)",
+                fontSize: 13,
+                color: "var(--color-ink-3, #64748B)",
               }}
             >
               <Sparkles style={{ width: 13, height: 13 }} />

@@ -54,8 +54,8 @@ export default async function ConfiguracionPage() {
         </h2>
         <p
           style={{
-            fontSize: 13,
-            color: "var(--color-ink-3, #94A3B8)",
+            fontSize: 14,
+            color: "var(--color-ink-3, #64748B)",
             marginTop: 4,
             marginBottom: 0,
           }}
@@ -131,7 +131,7 @@ function Section({
         }}
       >
         <span style={{ color: "var(--color-kp-accent, #00B0A8)" }}>{icon}</span>
-        <span style={{ fontSize: 13, fontWeight: 600, color: "var(--color-ink-1, #1E293B)" }}>
+        <span style={{ fontSize: 14, fontWeight: 600, color: "var(--color-ink-1, #1E293B)" }}>
           {title}
         </span>
       </div>
@@ -144,9 +144,9 @@ function Section({
 
 function InfoRow({ label, value }: { label: string; value: string }) {
   return (
-    <div style={{ display: "flex", gap: 12, fontSize: 13 }}>
+    <div style={{ display: "flex", gap: 12, fontSize: 14 }}>
       <span
-        style={{ color: "var(--color-ink-3, #94A3B8)", width: 150, flexShrink: 0 }}
+        style={{ color: "var(--color-ink-3, #64748B)", width: 150, flexShrink: 0 }}
       >
         {label}
       </span>

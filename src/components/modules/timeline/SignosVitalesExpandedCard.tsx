@@ -30,12 +30,12 @@ export function SignosVitalesExpandedCard({ entry }: Props) {
               key={c.key}
               className="bg-surface-0 rounded-lg px-2 py-1.5 text-center"
             >
-              <p className="text-[0.55rem] font-bold text-ink-3 uppercase tracking-wide">
+              <p className="text-xs font-bold text-ink-3 uppercase tracking-wide">
                 {c.label}
               </p>
               <p className="text-sm font-bold text-ink-1">
                 {String(d[c.key])}{" "}
-                <span className="text-[0.6rem] font-normal text-ink-3">{c.unit}</span>
+                <span className="text-xs font-normal text-ink-3">{c.unit}</span>
               </p>
             </div>
           ))}

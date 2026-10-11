@@ -41,7 +41,7 @@ export function SoapExpandedCard({ entry, patientId, onAgregarAdenda }: Props) {
       )}
       {intervenciones.length > 0 && (
         <div>
-          <p className="font-bold text-ink-3 uppercase tracking-wide text-[0.6rem] mb-1">
+          <p className="font-bold text-ink-3 uppercase tracking-wide text-xs mb-1">
             Intervenciones
           </p>
           <ul className="space-y-0.5">
@@ -61,7 +61,7 @@ export function SoapExpandedCard({ entry, patientId, onAgregarAdenda }: Props) {
         <RichTextSection label="Tareas domiciliarias" value={String(d.tareas_domiciliarias)} />
       )}
       <div className="flex items-center gap-1.5 text-xs text-ink-2">
-        <span className="font-bold text-ink-3 uppercase tracking-wide text-[0.6rem]">
+        <span className="font-bold text-ink-3 uppercase tracking-wide text-xs">
           Próxima sesión:
         </span>
         <span>
@@ -71,7 +71,7 @@ export function SoapExpandedCard({ entry, patientId, onAgregarAdenda }: Props) {
       {/* Adenda badge — shown if the note has adendas */}
       {entry.data.adendas && (entry.data.adendas as { count: number; tieneErrata: boolean; anulada: boolean }).count > 0 && (
         <div
-          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[0.6rem] font-semibold"
+          className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold"
           style={{
             background: (entry.data.adendas as { anulada: boolean }).anulada
               ? "var(--color-kp-danger-lt)"

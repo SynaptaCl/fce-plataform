@@ -118,17 +118,17 @@ const TYPE_CONFIG: Record<
     label: "Signos Vitales",
     icon: Activity,
     badgeVariant: "warning",
-    borderColor: "var(--color-ink-3, #94A3B8)",
+    borderColor: "var(--color-ink-3, #64748B)",
     iconBg: "var(--color-surface-0, #F1F5F9)",
-    iconColor: "var(--color-ink-3, #94A3B8)",
+    iconColor: "var(--color-ink-3, #64748B)",
   },
   consentimiento: {
     label: "Consentimiento",
     icon: FileSignature,
     badgeVariant: "success",
-    borderColor: "var(--color-ink-3, #94A3B8)",
+    borderColor: "var(--color-ink-3, #64748B)",
     iconBg: "var(--color-surface-0, #F1F5F9)",
-    iconColor: "var(--color-ink-3, #94A3B8)",
+    iconColor: "var(--color-ink-3, #64748B)",
   },
   nota_clinica: {
     label: "Nota Clínica",
@@ -355,7 +355,7 @@ function SignedFooterBar({
       style={{
         borderTop: "0.5px solid var(--color-kp-border, #E2E8F0)",
         padding: "8px 16px",
-        fontSize: "11px",
+        fontSize: "12px",
         color: "var(--color-kp-success, #16A34A)",
         background: "var(--color-kp-success-lt, #DCFCE7)",
         display: "flex",
@@ -421,7 +421,7 @@ function TimelineCard({
         {isDraft && (
           <span
             style={{
-              fontSize: "10px",
+              fontSize: "12px",
               background: "var(--color-kp-secondary-lt, #FEF3E2)",
               color: "var(--color-kp-secondary, #F5A623)",
               padding: "1px 5px",
@@ -434,7 +434,7 @@ function TimelineCard({
           </span>
         )}
         {espLabel && <Badge variant={cfg.badgeVariant}>{espLabel}</Badge>}
-        <span className="text-[0.65rem] text-ink-3 whitespace-nowrap shrink-0">
+        <span className="text-xs text-ink-3 whitespace-nowrap shrink-0">
           {formatRelativeDate(entry.date)}
         </span>
         <ChevronDown className="w-3.5 h-3.5 text-ink-3 shrink-0 group-hover:text-kp-accent transition-colors" />
@@ -488,14 +488,14 @@ function TimelineCard({
         {/* Header content */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <span style={{ fontSize: "13px", fontWeight: 500 }} className="text-ink-1">
+            <span style={{ fontSize: "14px", fontWeight: 500 }} className="text-ink-1">
               {entry.titulo}
             </span>
             {/* Draft badge */}
             {isDraft && (
               <span
                 style={{
-                  fontSize: "10px",
+                  fontSize: "12px",
                   background: "var(--color-kp-secondary-lt, #FEF3E2)",
                   color: "var(--color-kp-secondary, #F5A623)",
                   padding: "1px 5px",
@@ -519,7 +519,7 @@ function TimelineCard({
           </div>
           {/* Meta row */}
           <div
-            style={{ fontSize: "11px" }}
+            style={{ fontSize: "12px" }}
             className="flex flex-wrap items-center gap-3 mt-0.5 text-ink-3"
           >
             {entry.profesional_nombre && (
@@ -677,12 +677,12 @@ export function ClinicalTimeline({
     <div className="bg-surface-1 rounded-xl border border-kp-border overflow-hidden">
       {/* Header */}
       <div className="px-4 py-3 border-b border-kp-border flex items-center justify-between gap-2 flex-wrap">
-        <p className="text-[0.6rem] font-bold text-ink-3 uppercase tracking-widest shrink-0">
+        <p className="text-xs font-bold text-ink-3 uppercase tracking-widest shrink-0">
           Timeline Clínico
         </p>
         <div className="flex items-center gap-2">
           {/* Segmented control: Todos / Solo notas */}
-          <div className="flex items-center rounded-md border border-kp-border overflow-hidden text-[0.65rem]">
+          <div className="flex items-center rounded-md border border-kp-border overflow-hidden text-xs">
             {(["todos", "solo_notas"] as const).map((mode) => (
               <button
                 key={mode}
@@ -701,7 +701,7 @@ export function ClinicalTimeline({
           {/* Expandir / Colapsar todo */}
           <button
             onClick={allExpanded ? collapseAll : expandAll}
-            className="flex items-center gap-1 text-[0.65rem] font-medium text-ink-3 hover:text-kp-accent transition-colors px-2 py-1 rounded-md hover:bg-surface-0"
+            className="flex items-center gap-1 text-xs font-medium text-ink-3 hover:text-kp-accent transition-colors px-2 py-1 rounded-md hover:bg-surface-0"
           >
             {allExpanded ? (
               <>
@@ -738,7 +738,7 @@ export function ClinicalTimeline({
               {count > 0 && (
                 <span
                   className={cn(
-                    "text-[0.55rem] font-bold px-1 py-0.5 rounded-full min-w-[1.1rem] text-center leading-tight",
+                    "text-xs font-bold px-1 py-0.5 rounded-full min-w-[1.1rem] text-center leading-tight",
                     activeTab === tab.key
                       ? "bg-kp-accent text-white"
                       : "bg-surface-0 text-ink-3"

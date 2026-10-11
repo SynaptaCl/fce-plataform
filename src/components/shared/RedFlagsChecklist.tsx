@@ -161,7 +161,7 @@ export function RedFlagsChecklist({
                   </span>
                   <span className="text-sm font-semibold">{flag.label}</span>
                   {flag.critical && (
-                    <span className="text-[0.6rem] font-bold uppercase tracking-wide text-ink-3">
+                    <span className="text-xs font-bold uppercase tracking-wide text-ink-3">
                       CRÍTICO
                     </span>
                   )}

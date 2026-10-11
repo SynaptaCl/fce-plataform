@@ -79,8 +79,8 @@ export function TopBar({ breadcrumb, children }: TopBarProps) {
         {children}
         <span
           style={{
-            fontSize: 13,
-            color: "var(--color-ink-3, #94A3B8)",
+            fontSize: 14,
+            color: "var(--color-ink-3, #64748B)",
             whiteSpace: "nowrap",
           }}
         >

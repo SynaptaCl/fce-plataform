@@ -105,7 +105,7 @@ export function CifMapper({ value, onChange, readOnly = false }: CifMapperProps)
               {tab.label}
               {count > 0 && (
                 <span className={cn(
-                  "ml-1.5 text-[0.65rem] font-bold rounded-full px-1",
+                  "ml-1.5 text-xs font-bold rounded-full px-1",
                   activeTab === tab.key ? "text-violet-600" : "text-kp-accent"
                 )}>
                   {count}
@@ -215,7 +215,7 @@ function CifItemRow({ item, showFacilitator, readOnly, onUpdate, onRemove, codeH
 
         {/* Is facilitator (only for contexto) */}
         {showFacilitator && (
-          <label className="flex items-center gap-1 text-[0.6rem] text-ink-3 cursor-pointer whitespace-nowrap shrink-0">
+          <label className="flex items-center gap-1 text-xs text-ink-3 cursor-pointer whitespace-nowrap shrink-0">
             <input
               type="checkbox"
               disabled={readOnly}

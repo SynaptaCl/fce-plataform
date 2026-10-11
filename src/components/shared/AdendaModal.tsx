@@ -183,7 +183,7 @@ function AdendaModalInner({
             {/* Tipo selector */}
             <div>
               <p
-                className="text-[0.65rem] font-semibold uppercase tracking-wide mb-2"
+                className="text-xs font-semibold uppercase tracking-wide mb-2"
                 style={{ color: "var(--color-ink-3)" }}
               >
                 Tipo de anotación
@@ -231,7 +231,7 @@ function AdendaModalInner({
                     >
                       <span className="font-semibold">{TIPO_LABEL[tipo]}</span>
                       <span
-                        className="text-[0.6rem] font-normal"
+                        className="text-xs font-normal"
                         style={{
                           color: isSelected
                             ? "var(--color-kp-accent)"
@@ -268,7 +268,7 @@ function AdendaModalInner({
             <div className="space-y-1">
               <label
                 htmlFor="adenda-motivo"
-                className="text-[0.65rem] font-semibold uppercase tracking-wide"
+                className="text-xs font-semibold uppercase tracking-wide"
                 style={{ color: "var(--color-ink-3)" }}
               >
                 Motivo{" "}
@@ -298,7 +298,7 @@ function AdendaModalInner({
                 }}
               />
               <p
-                className="text-[0.6rem] text-right"
+                className="text-xs text-right"
                 style={{ color: "var(--color-ink-3)" }}
               >
                 {motivo.length}/200
@@ -309,7 +309,7 @@ function AdendaModalInner({
             <div className="space-y-1">
               <label
                 htmlFor="adenda-contenido"
-                className="text-[0.65rem] font-semibold uppercase tracking-wide"
+                className="text-xs font-semibold uppercase tracking-wide"
                 style={{ color: "var(--color-ink-3)" }}
               >
                 Contenido / corrección{" "}

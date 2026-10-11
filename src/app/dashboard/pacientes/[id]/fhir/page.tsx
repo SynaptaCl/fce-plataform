@@ -123,7 +123,7 @@ export default async function FhirPage({
         {/* Badge */}
         <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-kp-accent-xs border border-kp-accent/30 shrink-0">
           <Share2 className="w-3 h-3 text-kp-accent" />
-          <span className="text-[0.65rem] font-bold text-kp-primary tracking-wide">
+          <span className="text-xs font-bold text-kp-primary tracking-wide">
             FHIR R4 · CL Core
           </span>
         </div>
@@ -155,10 +155,10 @@ export default async function FhirPage({
             key={label}
             className="p-2.5 rounded-lg bg-surface-0 border border-kp-border"
           >
-            <div className="text-[0.65rem] font-bold font-mono text-kp-accent">
+            <div className="text-xs font-bold font-mono text-kp-accent">
               {label}
             </div>
-            <div className="text-[0.6rem] text-ink-3 mt-0.5 leading-tight">{desc}</div>
+            <div className="text-xs text-ink-3 mt-0.5 leading-tight">{desc}</div>
           </div>
         ))}
       </div>

@@ -232,7 +232,7 @@ export function EsteticaWorkspace({ patientId, encuentroId, paciente, onClose }:
                   Ficha estética
                 </h2>
                 <span
-                  className="rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide"
+                  className="rounded-full px-2 py-0.5 text-xs font-semibold uppercase tracking-wide"
                   style={{
                     background: readOnly ? "var(--color-kp-success-lt)" : "var(--color-kp-warning-lt)",
                     color: readOnly ? "var(--color-kp-success)" : "var(--color-kp-warning)",

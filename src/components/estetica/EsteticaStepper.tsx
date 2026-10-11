@@ -41,7 +41,7 @@ export function EsteticaStepper({ current, onChange, completed, disabled }: Prop
               }}
             >
               <span
-                className="flex items-center justify-center w-4 h-4 rounded-full text-[10px] font-bold shrink-0"
+                className="flex items-center justify-center w-4 h-4 rounded-full text-xs font-bold shrink-0"
                 style={{
                   background: isActive
                     ? "var(--color-kp-accent)"

@@ -170,7 +170,7 @@ export function FichaCompletaExport({ patientId }: FichaCompletaExportProps) {
               </li>
             ))}
           </ul>
-          <p className="text-[11px] text-ink-3 mt-3">
+          <p className="text-xs text-ink-3 mt-3">
             Solo se incluyen las secciones que tienen registros. Los documentos firmados se
             exportan en orden cronológico.
           </p>

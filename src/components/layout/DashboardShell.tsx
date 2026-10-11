@@ -37,8 +37,8 @@ function getBreadcrumb(pathname: string, patientName?: string): React.ReactNode 
     if (afterPacientes.length > 1) {
       return (
         <>
-          <span style={{ color: "var(--color-ink-3, #94A3B8)", fontWeight: 400 }}>Pacientes</span>
-          <span style={{ color: "var(--color-ink-3, #94A3B8)" }}>›</span>
+          <span style={{ color: "var(--color-ink-3, #64748B)", fontWeight: 400 }}>Pacientes</span>
+          <span style={{ color: "var(--color-ink-3, #64748B)" }}>›</span>
           <span>{patientName ?? "Detalle"}</span>
         </>
       );

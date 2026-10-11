@@ -125,7 +125,7 @@ export function MedicamentoSelector({ onSelect }: Props) {
                   {med.principio_activo}
                   {!med.validado_clinicamente && (
                     <span
-                      className="inline-flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded"
+                      className="inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded"
                       style={{ background: "#fef3c7", color: "#92400e" }}
                       title="Contenido pendiente de validación clínica"
                     >
@@ -152,7 +152,7 @@ export function MedicamentoSelector({ onSelect }: Props) {
                   </span>
                   {pres.bioequivalente === true && (
                     <span
-                      className="inline-flex items-center gap-1 shrink-0 text-[10px] px-1.5 py-0.5 rounded"
+                      className="inline-flex items-center gap-1 shrink-0 text-xs px-1.5 py-0.5 rounded"
                       style={{ background: "#dcfce7", color: "#166534" }}
                       title="Bioequivalente certificado ISP"
                     >

@@ -144,7 +144,7 @@ export function FhirPreview({
               {count !== undefined && (
                 <span
                   className={cn(
-                    "text-[0.6rem] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center",
+                    "text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center",
                     isActive
                       ? "bg-kp-accent text-white"
                       : "bg-kp-border-md text-ink-3"

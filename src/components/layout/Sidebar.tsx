@@ -80,7 +80,7 @@ function NavItem({ href, icon, label, active, expanded, badge }: NavItemProps) {
     >
       <span style={{ flexShrink: 0, display: "flex" }}>{icon}</span>
       {expanded && (
-        <span style={{ fontSize: 13, fontWeight: 500, letterSpacing: "0.01em", flex: 1 }}>
+        <span style={{ fontSize: 14, fontWeight: 500, letterSpacing: "0.01em", flex: 1 }}>
           {label}
         </span>
       )}
@@ -90,7 +90,7 @@ function NavItem({ href, icon, label, active, expanded, badge }: NavItemProps) {
             background: "var(--color-kp-danger, #ef4444)",
             color: "#fff",
             borderRadius: 100,
-            fontSize: 10,
+            fontSize: 12,
             fontWeight: 700,
             padding: "1px 6px",
             minWidth: 18,
@@ -261,7 +261,7 @@ export function Sidebar({
               alignItems: "center",
               justifyContent: "center",
               color: "white",
-              fontSize: 12,
+              fontSize: 13,
               fontWeight: 700,
               letterSpacing: "0.05em",
               flexShrink: 0,
@@ -304,7 +304,7 @@ export function Sidebar({
                 <div
                   style={{
                     color: "rgba(255,255,255,0.38)",
-                    fontSize: 11,
+                    fontSize: 12,
                     overflow: "hidden",
                     textOverflow: "ellipsis",
                     whiteSpace: "nowrap",
@@ -463,7 +463,7 @@ export function Sidebar({
               alignItems: "center",
               justifyContent: "center",
               color: "white",
-              fontSize: 12,
+              fontSize: 13,
               fontWeight: 700,
               letterSpacing: "0.03em",
               userSelect: "none",
@@ -480,7 +480,7 @@ export function Sidebar({
               <div
                 style={{
                   color: "rgba(255,255,255,0.92)",
-                  fontSize: 13,
+                  fontSize: 14,
                   fontWeight: 500,
                   overflow: "hidden",
                   textOverflow: "ellipsis",
@@ -493,7 +493,7 @@ export function Sidebar({
               <div
                 style={{
                   color: "rgba(255,255,255,0.4)",
-                  fontSize: 11,
+                  fontSize: 12,
                   overflow: "hidden",
                   textOverflow: "ellipsis",
                   whiteSpace: "nowrap",
@@ -534,7 +534,7 @@ export function Sidebar({
         >
           <LogOut size={16} style={{ flexShrink: 0 }} />
           {expanded && (
-            <span style={{ fontSize: 13 }}>Cerrar sesión</span>
+            <span style={{ fontSize: 14 }}>Cerrar sesión</span>
           )}
         </button>
       </div>

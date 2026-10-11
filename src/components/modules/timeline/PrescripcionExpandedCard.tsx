@@ -30,7 +30,7 @@ export function PrescripcionExpandedCard({ entry, onVerReceta }: Props) {
 
       {prescripcionData.tipo === "farmacologica" && prescripcionData.medicamentosCount > 0 && (
         <div>
-          <p className="font-bold text-ink-3 uppercase tracking-wide text-[0.6rem] mb-1">
+          <p className="font-bold text-ink-3 uppercase tracking-wide text-xs mb-1">
             Medicamentos
           </p>
           <div className="space-y-1 text-xs text-ink-2">

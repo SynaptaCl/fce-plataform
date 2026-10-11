@@ -222,7 +222,7 @@ export function SessionIdleTimeout() {
             </button>
             <p
               className="text-ink-4"
-              style={{ fontSize: 12, marginTop: 12, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}
+              style={{ fontSize: 13, marginTop: 12, display: "flex", alignItems: "center", justifyContent: "center", gap: 6 }}
             >
               <AlertTriangle className="w-3.5 h-3.5" />
               Si no eres el usuario de esta sesión, no la continúes.

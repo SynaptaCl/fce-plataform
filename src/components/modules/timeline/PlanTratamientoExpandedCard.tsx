@@ -32,7 +32,7 @@ export function PlanTratamientoExpandedCard({ entry }: Props) {
         <Section label="Cerrado">{formatDate(d.cerrado_at as string)}</Section>
       )}
 
-      <p className="text-[0.65rem] text-ink-3 italic">
+      <p className="text-xs text-ink-3 italic">
         Plan de tratamiento — documento vivo, sin firma. El detalle de procedimientos vive en
         el workspace dental (tab &quot;Plan de tratamiento&quot;).
       </p>

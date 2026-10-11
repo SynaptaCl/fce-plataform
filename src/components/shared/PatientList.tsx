@@ -92,7 +92,7 @@ export function PatientList({ patients }: PatientListProps) {
               (h) => (
                 <span
                   key={h}
-                  className="text-[0.65rem] font-semibold text-ink-3 uppercase tracking-wider"
+                  className="text-xs font-semibold text-ink-3 uppercase tracking-wider"
                 >
                   {h}
                 </span>

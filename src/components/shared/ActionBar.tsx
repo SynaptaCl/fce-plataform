@@ -33,7 +33,7 @@ const chipBase: React.CSSProperties = {
   gap: 4,
   padding: "5px 10px",
   borderRadius: 6,
-  fontSize: 11,
+  fontSize: 12,
   fontWeight: 500,
   background: "var(--color-surface-0, #F1F5F9)",
   border: "0.5px solid var(--color-kp-border, #E2E8F0)",
@@ -232,7 +232,7 @@ export function ActionBar({ patientId, paciente, primaryAction }: ActionBarProps
                     gap: 8,
                     padding: "7px 10px",
                     borderRadius: 6,
-                    fontSize: 12,
+                    fontSize: 13,
                     color: danger ? "var(--color-kp-danger, #E53935)" : "var(--color-ink-2, #475569)",
                     textDecoration: "none",
                   }}

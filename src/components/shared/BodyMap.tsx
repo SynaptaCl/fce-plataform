@@ -92,7 +92,7 @@ export function BodyMap({ value, onChange, readOnly = false, label = "Zonas de d
       <div className="space-y-3">
         {BODY_ZONES.map((group) => (
           <div key={group.group}>
-            <p className="text-[0.65rem] font-semibold text-ink-3 uppercase tracking-wide mb-1.5">
+            <p className="text-xs font-semibold text-ink-3 uppercase tracking-wide mb-1.5">
               {group.group}
             </p>
             <div className="flex flex-wrap gap-1.5">

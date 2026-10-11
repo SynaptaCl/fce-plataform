@@ -85,7 +85,7 @@ export function OrdenExamenExpandedCard({ entry, onVerOrden }: Props) {
       {examenes.length > 0 && (
         <div>
           <p
-            className="font-bold uppercase tracking-wide text-[0.6rem] mb-1"
+            className="font-bold uppercase tracking-wide text-xs mb-1"
             style={{ color: "var(--color-ink-3)" }}
           >
             Exámenes

@@ -98,7 +98,7 @@ export function AmbientConsentPanel({ patientId, estado }: AmbientConsentPanelPr
         <div className="space-y-4">
           <div className="bg-surface-0 border border-kp-border rounded-xl p-4">
             <p className="text-xs text-ink-2 leading-relaxed whitespace-pre-wrap">{TEXTO_LEGAL}</p>
-            <p className="text-[11px] text-ink-3 mt-2">
+            <p className="text-xs text-ink-3 mt-2">
               Puede agendar/atenderse igualmente si no autoriza. Solicitar la firma del paciente a continuación.
             </p>
           </div>

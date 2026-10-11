@@ -114,7 +114,7 @@ export function InstrumentoExpandedCard({ entry, patientId }: Props) {
                 alignSelf: "flex-start",
                 padding: "3px 8px",
                 borderRadius: "6px",
-                fontSize: "11px",
+                fontSize: "12px",
                 fontWeight: 500,
                 ...interpStyle,
               }}

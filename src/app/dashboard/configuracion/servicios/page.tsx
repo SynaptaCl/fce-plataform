@@ -65,8 +65,8 @@ export default async function ServiciosConfigPage() {
         </h2>
         <p
           style={{
-            fontSize: 13,
-            color: "var(--color-ink-3, #94A3B8)",
+            fontSize: 14,
+            color: "var(--color-ink-3, #64748B)",
             marginTop: 4,
             marginBottom: 0,
           }}

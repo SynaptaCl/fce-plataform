@@ -104,7 +104,7 @@ export function PatientHeader({
           {isEgresado ? (
             <span
               style={{
-                fontSize: 10,
+                fontSize: 12,
                 textTransform: "uppercase",
                 letterSpacing: "0.05em",
                 fontWeight: 600,
@@ -120,7 +120,7 @@ export function PatientHeader({
           ) : (
             <span
               style={{
-                fontSize: 10,
+                fontSize: 12,
                 textTransform: "uppercase",
                 letterSpacing: "0.05em",
                 fontWeight: 600,
@@ -138,7 +138,7 @@ export function PatientHeader({
           {hasConsent && (
             <span
               style={{
-                fontSize: 10,
+                fontSize: 12,
                 textTransform: "uppercase",
                 letterSpacing: "0.05em",
                 fontWeight: 600,
@@ -164,7 +164,7 @@ export function PatientHeader({
                 display: "inline-flex",
                 alignItems: "center",
                 gap: 3,
-                fontSize: 10,
+                fontSize: 12,
                 textTransform: "uppercase",
                 letterSpacing: "0.05em",
                 fontWeight: 600,
@@ -173,7 +173,7 @@ export function PatientHeader({
                   : "var(--color-kp-border, #E2E8F0)",
                 color: hasConsentGrabacion
                   ? "var(--color-kp-success, #16A34A)"
-                  : "var(--color-ink-3, #94A3B8)",
+                  : "var(--color-ink-3, #64748B)",
                 padding: "2px 6px",
                 borderRadius: 4,
                 flexShrink: 0,
@@ -192,8 +192,8 @@ export function PatientHeader({
         {/* Line 2: RUT · age · sex · prevision · ocupacion */}
         <div
           style={{
-            fontSize: 11,
-            color: "var(--color-ink-3, #94A3B8)",
+            fontSize: 12,
+            color: "var(--color-ink-3, #64748B)",
             marginTop: 2,
             display: "flex",
             flexWrap: "wrap",
@@ -205,7 +205,7 @@ export function PatientHeader({
             <>
               <span
                 className="font-mono-clinical"
-                style={{ color: "var(--color-ink-3, #94A3B8)" }}
+                style={{ color: "var(--color-ink-3, #64748B)" }}
               >
                 {formatRut(patient.rut)}
               </span>
@@ -256,7 +256,7 @@ export function PatientHeader({
               gap: 4,
               padding: "5px 10px",
               borderRadius: 6,
-              fontSize: 12,
+              fontSize: 13,
               fontWeight: 500,
               border: "0.5px solid var(--color-kp-border, #E2E8F0)",
               color: "var(--color-ink-2, #475569)",
@@ -283,7 +283,7 @@ export function PatientHeader({
               height: 30,
               borderRadius: 6,
               border: "0.5px solid var(--color-kp-border, #E2E8F0)",
-              color: "var(--color-ink-3, #94A3B8)",
+              color: "var(--color-ink-3, #64748B)",
               background: "transparent",
               textDecoration: "none",
               transition: "border-color 0.15s, color 0.15s",

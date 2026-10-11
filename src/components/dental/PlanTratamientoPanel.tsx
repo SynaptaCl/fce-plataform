@@ -79,7 +79,7 @@ const PRIORIDAD_COLOR: Record<PrioridadItem, string> = {
   urgente: "#DC2626",
   alta: "#D97706",
   normal: "#64748B",
-  baja: "#94A3B8",
+  baja: "#64748B",
   electivo: "#CBD5E1",
 };
 

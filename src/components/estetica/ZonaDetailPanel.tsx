@@ -126,7 +126,7 @@ export function ZonaDetailPanel({
       </div>
 
       <fieldset className="space-y-2">
-        <legend className="text-[11px] font-bold uppercase tracking-wide" style={{ color: "var(--color-ink-3)" }}>
+        <legend className="text-xs font-bold uppercase tracking-wide" style={{ color: "var(--color-ink-3)" }}>
           Producto y dosis
         </legend>
         <div className="grid grid-cols-2 gap-3">
@@ -187,7 +187,7 @@ export function ZonaDetailPanel({
       </fieldset>
 
       <fieldset className="space-y-2">
-        <legend className="text-[11px] font-bold uppercase tracking-wide" style={{ color: "var(--color-ink-3)" }}>
+        <legend className="text-xs font-bold uppercase tracking-wide" style={{ color: "var(--color-ink-3)" }}>
           Técnica y notas
         </legend>
         <div>

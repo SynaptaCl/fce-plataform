@@ -99,7 +99,7 @@ export function ProcedimientoPicker({ catalogo, onSelect, onClose }: Props) {
                   </span>
                   {proc.contraindicaciones_clave.length > 0 && (
                     <span
-                      className="flex items-center gap-1 text-[11px] font-medium"
+                      className="flex items-center gap-1 text-xs font-medium"
                       style={{ color: "var(--color-kp-warning)" }}
                     >
                       <AlertTriangle className="w-3 h-3 shrink-0" />

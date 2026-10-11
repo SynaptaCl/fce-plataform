@@ -59,7 +59,7 @@ export function AdendaExpandedCard({ entry }: Props) {
       <div className="flex flex-col gap-1">
         <div className="flex items-center gap-2">
           <span
-            className="inline-flex items-center px-2 py-0.5 rounded-full text-[0.65rem] font-semibold leading-none"
+            className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold leading-none"
             style={{
               background: badgeCfg.bg,
               color: badgeCfg.color,
@@ -72,7 +72,7 @@ export function AdendaExpandedCard({ entry }: Props) {
 
         {data.titulo_documento_original && (
           <p
-            className="text-[0.65rem] leading-snug"
+            className="text-xs leading-snug"
             style={{ color: "var(--color-ink-3)" }}
           >
             Sobre:{" "}
@@ -96,7 +96,7 @@ export function AdendaExpandedCard({ entry }: Props) {
       {/* Override director */}
       {data.override_director && (
         <div
-          className="rounded-r px-3 py-2 text-[0.65rem] leading-snug space-y-0.5"
+          className="rounded-r px-3 py-2 text-xs leading-snug space-y-0.5"
           style={{
             borderLeft: "3px solid var(--color-kp-warning)",
             background: "var(--color-kp-warning-lt)",
@@ -104,7 +104,7 @@ export function AdendaExpandedCard({ entry }: Props) {
           }}
         >
           <p
-            className="font-semibold text-[0.6rem] uppercase tracking-wide"
+            className="font-semibold text-xs uppercase tracking-wide"
             style={{ color: "var(--color-kp-warning)" }}
           >
             Autorizado por dirección

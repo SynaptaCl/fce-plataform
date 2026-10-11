@@ -57,7 +57,7 @@ function IndiceCard({
     <div className="bg-surface-0 rounded-xl border border-kp-border p-4 text-center">
       <div className={cn("text-xl font-bold tabular-nums", textColor)}>{value}</div>
       <div className="text-xs font-medium text-ink-1 mt-0.5">{label}</div>
-      <div className="text-[10px] text-ink-3 mt-0.5">{sublabel}</div>
+      <div className="text-xs text-ink-3 mt-0.5">{sublabel}</div>
     </div>
   );
 }
@@ -177,7 +177,7 @@ export function PeriogramaForm({
             <tbody>
               {/* ── Vestibular bleeding ── */}
               <tr className="bg-surface-1">
-                <td className="w-24 min-w-[6rem] text-right pr-3 py-1 text-[10px] text-ink-3 border-r border-kp-border">
+                <td className="w-24 min-w-[6rem] text-right pr-3 py-1 text-xs text-ink-3 border-r border-kp-border">
                   Sang. Vest.
                 </td>
                 {piezas.flatMap(pieza =>
@@ -210,7 +210,7 @@ export function PeriogramaForm({
 
               {/* ── Vestibular sondaje ── */}
               <tr className="bg-surface-1">
-                <td className="text-right pr-3 py-0.5 text-[10px] text-ink-3 border-r border-kp-border">
+                <td className="text-right pr-3 py-0.5 text-xs text-ink-3 border-r border-kp-border">
                   Sond. Vest. (mm)
                 </td>
                 {piezas.flatMap(pieza =>
@@ -254,7 +254,7 @@ export function PeriogramaForm({
                     key={`tn-${pieza}`}
                     colSpan={3}
                     className={cn(
-                      "text-center font-bold py-1.5 text-[11px] border-x border-kp-border",
+                      "text-center font-bold py-1.5 text-xs border-x border-kp-border",
                       pieza === midlinePieza && "border-l-2 border-l-slate-500",
                       esMolar(pieza) ? "text-kp-accent" : "text-ink-1",
                     )}
@@ -266,7 +266,7 @@ export function PeriogramaForm({
 
               {/* ── Lingual/Palatine sondaje ── */}
               <tr className="bg-surface-1">
-                <td className="text-right pr-3 py-0.5 text-[10px] text-ink-3 border-r border-kp-border">
+                <td className="text-right pr-3 py-0.5 text-xs text-ink-3 border-r border-kp-border">
                   Sond. {innerFaceLabel} (mm)
                 </td>
                 {piezas.flatMap(pieza =>
@@ -304,7 +304,7 @@ export function PeriogramaForm({
 
               {/* ── Lingual/Palatine bleeding ── */}
               <tr className="bg-surface-1">
-                <td className="text-right pr-3 py-1 text-[10px] text-ink-3 border-r border-kp-border">
+                <td className="text-right pr-3 py-1 text-xs text-ink-3 border-r border-kp-border">
                   Sang. {innerFaceLabel}
                 </td>
                 {piezas.flatMap(pieza =>
@@ -337,7 +337,7 @@ export function PeriogramaForm({
 
               {/* ── Movilidad ── */}
               <tr className="bg-surface-0 border-t border-kp-border">
-                <td className="text-right pr-3 py-0.5 text-[10px] text-ink-3 border-r border-kp-border">
+                <td className="text-right pr-3 py-0.5 text-xs text-ink-3 border-r border-kp-border">
                   Movilidad
                 </td>
                 {piezas.map(pieza => (
@@ -354,7 +354,7 @@ export function PeriogramaForm({
                       onChange={e => setMovilidad(pieza, parseInt(e.target.value))}
                       disabled={readOnly || firmado}
                       className={cn(
-                        "w-full text-center text-[10px] border border-kp-border rounded bg-surface-1 h-5",
+                        "w-full text-center text-xs border border-kp-border rounded bg-surface-1 h-5",
                         "focus:outline-none focus:ring-1 focus:ring-kp-accent disabled:opacity-60 disabled:cursor-default",
                         datos[pieza].movilidad > 0 && "text-amber-700 border-amber-300 bg-amber-50",
                       )}
@@ -399,7 +399,7 @@ export function PeriogramaForm({
       </div>
 
       {/* ── Leyenda ── */}
-      <div className="flex items-center gap-4 text-[10px] text-ink-3 px-1">
+      <div className="flex items-center gap-4 text-xs text-ink-3 px-1">
         <span className="flex items-center gap-1.5">
           <span className="w-2.5 h-2.5 rounded-sm border border-green-200 bg-green-50 inline-block" />
           1-3mm normal

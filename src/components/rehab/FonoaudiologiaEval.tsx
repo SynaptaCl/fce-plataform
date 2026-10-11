@@ -67,7 +67,7 @@ export function FonoaudiologiaEval({ patientId, evaluaciones, readOnly = false, 
               }>
               {area.label}
               {hasData && activeTab !== area.key && (
-                <span className="ml-1 text-[0.55rem] font-bold text-kp-accent">●</span>
+                <span className="ml-1 text-xs font-bold text-kp-accent">●</span>
               )}
             </button>
           );
