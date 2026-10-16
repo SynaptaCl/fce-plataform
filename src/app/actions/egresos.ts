@@ -12,6 +12,7 @@ import type { ActionResult } from "@/app/actions/patients";
 import type { Egreso, SnapshotEquipoTratante } from "@/types/egreso";
 import { calcularSnapshotEquipoTratante } from "@/lib/egresos/snapshot";
 import { clinicasBrandingToConfig, type ClinicaBrandingRow } from "@/lib/modules/branding";
+import { programarResumenIA } from "@/lib/ia/resumen/disparar";
 
 // ── Shared types ──────────────────────────────────────────────────────────────
 
@@ -249,6 +250,9 @@ export async function signEgreso(
     idClinica: idClinica,
     idPaciente: patientId,
   });
+
+  // Alta: el resumen se regenera completo (cierra el episodio de atención).
+  programarResumenIA({ supabase, idPaciente: patientId, idClinica, actorId: user.id, forzarCompleta: "alta" });
   revalidatePath(`/dashboard/pacientes/${patientId}`);
   return { success: true, data: undefined };
 }

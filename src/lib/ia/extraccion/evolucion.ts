@@ -10,7 +10,10 @@ export interface EvolucionResult {
   ultima_sesion: string | null
   dias_en_tratamiento: number | null
   frecuencia_semanal_estimada: number | null
+  /** IDs de TODAS las evoluciones firmadas (soap + nota clínica) de la clínica. Base de la cobertura del resumen. */
+  ids_firmados: string[]
   ultimas_notas: Array<{
+    id: string
     fecha: string
     tipo: 'soap' | 'clinica'
     profesional: string | null
@@ -26,7 +29,7 @@ export async function extraerEvolucion(
   idPaciente: string,
   idClinica: string
 ): Promise<EvolucionResult> {
-  const [encuentrosRes, notasClinicasRes, notasSoapRes] = await Promise.all([
+  const [encuentrosRes, notasClinicasRes, notasSoapRes, idsClinicasRes, idsSoapRes] = await Promise.all([
     supabase
       .from('fce_encuentros')
       .select('id, started_at, especialidad, id_profesional')
@@ -36,20 +39,43 @@ export async function extraerEvolucion(
       .order('started_at', { ascending: false }),
     supabase
       .from('fce_notas_clinicas')
-      .select('contenido, diagnostico, plan, created_at, created_by, id_encuentro')
+      .select('id, contenido, diagnostico, plan, created_at, created_by, id_encuentro')
       .eq('id_paciente', idPaciente)
       .eq('id_clinica', idClinica)
+      .eq('firmado', true)
       .order('created_at', { ascending: false })
       .limit(10),
     supabase
       .from('fce_notas_soap')
-      .select('subjetivo, objetivo, analisis_cif, plan, created_at, firmado_por, id_encuentro')
+      .select('id, subjetivo, objetivo, analisis_cif, plan, created_at, firmado_por, id_encuentro')
       .eq('id_paciente', idPaciente)
+      .eq('id_clinica', idClinica)
+      .eq('firmado', true)
       .order('created_at', { ascending: false })
       .limit(10),
+    // Solo IDs: la cobertura del resumen se mide contra TODAS las evoluciones firmadas,
+    // no solo las 10 que entran al prompt.
+    supabase
+      .from('fce_notas_clinicas')
+      .select('id')
+      .eq('id_paciente', idPaciente)
+      .eq('id_clinica', idClinica)
+      .eq('firmado', true),
+    supabase
+      .from('fce_notas_soap')
+      .select('id')
+      .eq('id_paciente', idPaciente)
+      .eq('id_clinica', idClinica)
+      .eq('firmado', true),
   ])
 
-  if (isRealDbError(encuentrosRes.error) || isRealDbError(notasClinicasRes.error) || isRealDbError(notasSoapRes.error)) {
+  if (
+    isRealDbError(encuentrosRes.error) ||
+    isRealDbError(notasClinicasRes.error) ||
+    isRealDbError(notasSoapRes.error) ||
+    isRealDbError(idsClinicasRes.error) ||
+    isRealDbError(idsSoapRes.error)
+  ) {
     throw new Error('extraerEvolucion: query failed')
   }
 
@@ -79,17 +105,19 @@ export async function extraerEvolucion(
     }
   }
 
-  // Filtrar notas SOAP por clínica via encuentros conocidos
-  const encuentroIdsClinica = new Set(encuentros.map((e: { id: string }) => e.id))
-  const soapFiltradas = (notasSoapRes.data ?? []).filter((ns: { id_encuentro: string | null }) =>
-    ns.id_encuentro ? encuentroIdsClinica.has(ns.id_encuentro) : false
-  )
+  // La query SOAP ya filtra por id_clinica y firmado=true (fce_notas_soap.id_clinica es NOT NULL).
+  const soapFiltradas = notasSoapRes.data ?? []
+  const ids_firmados = [
+    ...(idsClinicasRes.data ?? []).map((r: { id: string }) => r.id),
+    ...(idsSoapRes.data ?? []).map((r: { id: string }) => r.id),
+  ].sort()
 
   const notas: EvolucionResult['ultimas_notas'] = []
 
   for (const nc of notasClinicasRes.data ?? []) {
     const contenido = sanitizeRutFromText(stripHtml((nc.contenido as string) ?? ''))
     notas.push({
+      id: nc.id as string,
       fecha: new Date(nc.created_at).toLocaleDateString('sv-SE', { timeZone: 'America/Santiago' }),
       tipo: 'clinica',
       profesional: nc.created_by ? (prof_map.get(nc.created_by) ?? null) : null,
@@ -108,6 +136,7 @@ export async function extraerEvolucion(
         .join(' | ')
     )
     notas.push({
+      id: ns.id as string,
       fecha: new Date(ns.created_at).toLocaleDateString('sv-SE', { timeZone: 'America/Santiago' }),
       tipo: 'soap',
       profesional: ns.firmado_por ? (prof_map.get(ns.firmado_por) ?? null) : null,
@@ -152,6 +181,7 @@ export async function extraerEvolucion(
     ultima_sesion,
     dias_en_tratamiento,
     frecuencia_semanal_estimada,
+    ids_firmados,
     ultimas_notas,
   }
 }

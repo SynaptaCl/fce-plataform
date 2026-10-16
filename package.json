@@ -30,7 +30,8 @@
     "test:copiloto-modelos": "tsx scripts/test-copiloto-modelos.ts",
     "test:sprint-pre1": "tsx scripts/test-sprint-pre1.ts",
     "test:encuentro-servicio": "tsx scripts/test-encuentro-servicio.ts",
-    "test:resumen-ia-parcial": "tsx scripts/test-resumen-ia-parcial.ts"
+    "test:resumen-ia-parcial": "tsx scripts/test-resumen-ia-parcial.ts",
+    "test:resumen-ia-incremental": "tsx scripts/test-resumen-ia-incremental.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.92.0",

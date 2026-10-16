@@ -9,9 +9,11 @@ interface Props {
   onClose: () => void
   onRegenerar: () => void
   cargando: boolean
+  /** Error de la última regeneración manual: el reporte mostrado sigue siendo la última versión válida. */
+  error?: string | null
 }
 
-export function ResumenIAModal({ reporte, onClose, onRegenerar, cargando }: Props) {
+export function ResumenIAModal({ reporte, onClose, onRegenerar, cargando, error }: Props) {
   const fecha = new Date(reporte.generado_en).toLocaleString('es-CL', {
     timeZone: 'America/Santiago',
     day: '2-digit',
@@ -47,17 +49,32 @@ export function ResumenIAModal({ reporte, onClose, onRegenerar, cargando }: Prop
 
         {/* Meta + regenerar */}
         <div className="flex items-center justify-between px-5 py-2.5 bg-surface-0 border-b border-kp-border text-xs text-ink-3">
-          <span>{reporte.desde_cache ? `Desde caché · ${fecha}` : `Generado el ${fecha}`}</span>
-          {reporte.desde_cache && (
-            <button
-              onClick={onRegenerar}
-              disabled={cargando}
-              className="text-[var(--color-kp-primary,#4f46e5)] hover:underline disabled:opacity-50"
-            >
-              {cargando ? 'Generando…' : 'Regenerar'}
-            </button>
-          )}
+          <span>
+            {reporte.version
+              ? `Versión ${reporte.version}${reporte.tipo_version === 'incremental' ? ' (actualización)' : ''} · ${fecha}`
+              : `Generado el ${fecha}`}
+          </span>
+          <button
+            onClick={onRegenerar}
+            disabled={cargando}
+            className="text-[var(--color-kp-primary,#4f46e5)] hover:underline disabled:opacity-50"
+          >
+            {cargando ? 'Generando…' : 'Actualizar'}
+          </button>
         </div>
+
+        {/* Última versión válida: nunca vacío ni inventado; se avisa si quedó atrás */}
+        {reporte.desactualizado && (
+          <div role="status" className="mx-5 mt-4 rounded-md border border-amber-300 bg-amber-50 px-3.5 py-2.5 text-xs text-amber-900 leading-relaxed">
+            Resumen desactualizado: hay registros firmados posteriores al {fecha}. Se muestra la última
+            versión válida. Usa «Actualizar» para regenerarlo.
+          </div>
+        )}
+        {error && (
+          <div role="alert" className="mx-5 mt-4 rounded-md border border-red-200 bg-red-50 px-3.5 py-2.5 text-xs text-red-700 leading-relaxed">
+            {error} Se mantiene la última versión válida ({fecha}).
+          </div>
+        )}
 
         {/* Disclaimer */}
         <div className="mx-5 mt-4 rounded-md border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-xs text-amber-800 leading-relaxed">

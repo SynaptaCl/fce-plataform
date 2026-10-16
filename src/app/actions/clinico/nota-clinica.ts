@@ -12,6 +12,7 @@ import { getContraindicacionesActivas } from "@/lib/anamnesis/red-flags";
 import type { RedFlags } from "@/types/anamnesis";
 import type { ActionResult } from "@/app/actions/patients";
 import type { NotaClinica } from "@/types/nota-clinica";
+import { programarResumenIA } from "@/lib/ia/resumen/disparar";
 
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -258,6 +259,9 @@ export async function signNotaClinica(
     idClinica: idClinica,
     idPaciente: patientId,
   });
+
+  // Resumen IA: se actualiza al firmar (después de responder), no al visualizar.
+  programarResumenIA({ supabase, idPaciente: patientId, idClinica, actorId: user.id, especialidad: profesional.especialidad });
 
   revalidatePath(`/dashboard/pacientes/${patientId}`);
   return { success: true, data: { redirectTo: `/dashboard/pacientes/${patientId}` } };

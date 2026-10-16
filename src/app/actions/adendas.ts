@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { requireContext } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import { log } from "@/lib/logger";
+import { programarResumenIA } from "@/lib/ia/resumen/disparar";
 import type {
   TipoDocumentoFirmable,
   TipoAdenda,
@@ -162,6 +163,18 @@ export async function crearAdenda(
         tipo_adenda: input.tipoAdenda,
       },
     });
+
+    // Corregir/anular/complementar una evolución cambia lo que el resumen debe decir:
+    // se regenera completo (las adendas entran al contexto del resumen).
+    if (input.tipoDocumento === "soap" || input.tipoDocumento === "nota_clinica") {
+      programarResumenIA({
+        supabase,
+        idPaciente: input.idPaciente,
+        idClinica,
+        actorId: user.id,
+        forzarCompleta: input.tipoAdenda === "adenda" ? "adenda" : "edicion_evolucion",
+      });
+    }
 
     revalidatePath(`/dashboard/pacientes/${input.idPaciente}`);
 
