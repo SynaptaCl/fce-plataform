@@ -512,7 +512,8 @@ src/app/actions/
   ├── adendas.ts         → crearAdenda + getAdendasDeDocumento (A1: adenda/errata/anulacion,
   │                       ventana 72h, override director)
   ├── encuentros.ts       → createEncuentro + getEncuentroContext (P1: resuelve nombre servicio)
-  ├── egresos.ts, timeline.ts, resumen-ia.ts
+  ├── egresos.ts, timeline.ts
+  ├── resumen-ia.ts      → obtenerResumenVigente (lee) + generarResumenIA (manual, completa); la generación vive en lib/ia/resumen/ (RIA-1, ver §16)
   ├── exportar-pdf.ts     → exportarFichaCompletaPdf (ficha completa Decreto 41/Ley 20.584,
   │                         audit `exportar_ficha_clinica`, solo se invoca on-click — sin auto-descarga)
   ├── prescripciones.ts, ordenes-examen.ts
@@ -669,6 +670,7 @@ supabase/migrations/
   → 20260907_03_storage_bucket_fichas_esteticas.sql (M13: bucket privado Storage + policies por id_clinica del path — **aplicada 2026-09-07**)
   → 20260907_04_fce_adendas_tipo_ficha_estetica.sql (M13: 'ficha_estetica' en CHECK de fce_adendas — **aplicada 2026-09-07**)
   → 20260907_05_seed_procedimientos_esteticos_catalogo.sql (M13: seed 9 procedimientos genéricos — **aplicada 2026-09-07**, ver deuda §14)
+  → 20261016_01_fce_resumenes_ia_versiones.sql (RIA-1: historial versionado del Resumen IA, RLS solo SELECT — **aplicada 2026-10-16**, ver §16)
   → 20260411_create_fce_consentimientos.sql (RECONSTRUIDA 2026-09-22 desde prod vía MCP — histórica, ya aplicada/evolucionada, NO EJECUTAR; el archivo original estaba desactualizado: id_clinica NOT NULL con FK, FK sin CASCADE, CHECK 6 tipos, RLS tiene_acceso_clinico)
   → 20260921_02_harden_trigger_consentimientos.sql (Fase 0 M5 — **aplicada 2026-09-21 y verificada**: trigger consentimientos endurecido, solo updated_at mutable post-firma; test `test:m5-consentimientos`)
   → 20260922_01_search_path_trigger_consentimientos.sql (Fase 0 M5 follow-up: fija search_path=public de block_update_signed_consentimiento() — **aplicada 2026-09-22**, verificada con pg_get_functiondef + test 18/18)
@@ -707,6 +709,7 @@ npm run test:sprint-o1-f2           # O1-F2: validador pre go-live
 npm run test:sprint-o1-f5           # O1-F5: self-service director
 npm run onboard:clinica             # CLI onboarding de clínica
 npm run test:resumen-ia-parcial     # Extracción de contexto clínico (sin llamada Anthropic)
+npm run test:resumen-ia-incremental # RIA-1: decisión incremental/completa, contador, gating, hash base, prompt incremental (puro)
 ```
 
 ---
@@ -791,7 +794,7 @@ Actualmente **ninguna clínica tiene fce-plataform en producción** — el repo 
 | Sprint | Foco |
 |---|---|
 | R1 | `renderEval()` en rehab/page.tsx — mover `if (especialidad===...)` a `getEspecialidadConfig` (campo `evalComponente`) |
-| RIA-1 (2026-10-16) | **Resumen IA optimizado (ahorro de tokens)**: el resumen se actualiza al firmar una evolución (`after()`), no al abrir la ficha; abrir lee la última versión guardada. Versionado en `fce_resumenes_ia_versiones`, modo incremental (resumen previo + evoluciones nuevas) con regeneración completa cada 5 incrementales / alta / cambio de plan / errata-anulación-adenda / cambio de contexto base. Contexto ahora solo evoluciones **firmadas** + adendas. Ver §16. Tests `test:resumen-ia-incremental` 39/39, `test:resumen-ia-parcial` 19/19, build/lint/tsc OK. **No verificado**: generación real contra Anthropic ni medición de tokens (migration sin aplicar) — ver Deuda técnica |
+| RIA-1 (2026-10-16) | **Resumen IA optimizado (ahorro de tokens)**: el resumen se actualiza al firmar una evolución (`after()`), no al abrir la ficha; abrir lee la última versión guardada. Versionado en `fce_resumenes_ia_versiones`, modo incremental (resumen previo + evoluciones nuevas) con regeneración completa cada 5 incrementales / alta / cambio de plan / errata-anulación-adenda / cambio de contexto base. Contexto ahora solo evoluciones **firmadas** + adendas. Ver §16. Tests `test:resumen-ia-incremental` 39/39, `test:resumen-ia-parcial` 19/19, build/lint/tsc OK. Migration `20261016_01` aplicada en prod. **No verificado**: generación real contra Anthropic ni medición de tokens (falta desplegar la rama y probar) — ver Deuda técnica |
 | D9 (sugerido) | Verificación manual en navegador de los 5 flujos D8 (timeline dental, adenda periograma, launchers M7/M8, firma unificada, hard-stop) con datos reales — condición previa a considerar Odontología para un piloto real, ver COMERCIAL.md §2.2 |
 | — | Activar config Nuvident en producción (pendiente de D7, sin relación con D8) |
 
