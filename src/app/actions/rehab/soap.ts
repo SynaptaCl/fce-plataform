@@ -12,6 +12,7 @@ import { getEspecialidadConfig } from "@/lib/modules/especialidad-config";
 import { getContraindicacionesActivas } from "@/lib/anamnesis/red-flags";
 import type { RedFlags } from "@/types/anamnesis";
 import type { SoapNote } from "@/types";
+import { programarResumenIA } from "@/lib/ia/resumen/disparar";
 
 // ── getOrCreateEncounter ────────────────────────────────────────────────────
 // 1. Busca un encuentro pre-creado por check-in (planificado, con id_cita, de hoy)
@@ -237,7 +238,7 @@ export async function signSoapNote(
   noteId: string,
   patientId: string,
 ): Promise<ActionResult<{ redirectTo: string }>> {
-  const { supabase, user, idClinica, profesionalId } = await requireContext();
+  const { supabase, user, idClinica, profesionalId, especialidad } = await requireContext();
 
   // firmado_por almacena profesionales.id (no auth.uid) — FK a profesionales
   const firmadoPor = profesionalId;
@@ -309,6 +310,9 @@ export async function signSoapNote(
     idClinica: idClinica!,
     idPaciente: patientId,
   });
+
+  // Resumen IA: se actualiza al firmar (después de responder), no al visualizar.
+  programarResumenIA({ supabase, idPaciente: patientId, idClinica: idClinica!, actorId: user.id, especialidad });
 
   revalidatePath(`/dashboard/pacientes/${patientId}`);
   return { success: true, data: { redirectTo: `/dashboard/pacientes/${patientId}` } };

@@ -17,6 +17,7 @@ import type {
   NivelGAS,
   PrioridadObjetivo,
 } from "@/types/plan-intervencion";
+import { programarResumenIA } from "@/lib/ia/resumen/disparar";
 
 // ── getPlanesIntervencion ──────────────────────────────────────────────────
 
@@ -245,6 +246,8 @@ export async function actualizarPlanIntervencion(
     idClinica: idClinica!,
     idPaciente: plan.id_paciente,
   });
+
+  programarResumenIA({ supabase, idPaciente: plan.id_paciente, idClinica: idClinica!, actorId: user.id, forzarCompleta: "cambio_plan" });
 
   return { success: true, data: undefined };
 }
@@ -604,6 +607,8 @@ export async function firmarPlanIntervencion(planId: string): Promise<ActionResu
     idClinica: idClinica!,
     idPaciente: plan.id_paciente,
   });
+
+  programarResumenIA({ supabase, idPaciente: plan.id_paciente, idClinica: idClinica!, actorId: user.id, forzarCompleta: "cambio_plan" });
 
   return { success: true, data: undefined };
 }

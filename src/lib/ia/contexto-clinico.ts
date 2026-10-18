@@ -6,6 +6,7 @@ import { extraerMedicacion } from './extraccion/medicacion'
 import { extraerEvolucion } from './extraccion/evolucion'
 import { extraerExamenes } from './extraccion/examenes'
 import { extraerInstrumentos } from './extraccion/instrumentos'
+import { extraerAdendas } from './extraccion/adendas'
 import { generarAlertas } from './extraccion/alertas'
 import type { DemograficoResult } from './extraccion/demografico'
 import type { AnamnesisResult } from './extraccion/anamnesis'
@@ -15,6 +16,7 @@ import type { AlertasResult } from './extraccion/alertas'
 import type { EvolucionResult } from './extraccion/evolucion'
 import type { ExamenesResult } from './extraccion/examenes'
 import type { InstrumentosResult } from './extraccion/instrumentos'
+import type { AdendasResult } from './extraccion/adendas'
 import { log } from '@/lib/logger'
 
 export interface ContextoClinico {
@@ -26,6 +28,8 @@ export interface ContextoClinico {
   evolucion: EvolucionResult
   examenes: ExamenesResult
   instrumentos: InstrumentosResult
+  /** Erratas/anulaciones/adendas firmadas sobre las evoluciones. */
+  adendas: AdendasResult
   secciones_vacias: string[]
   tokens_estimados: number
   tiene_datos_suficientes: boolean
@@ -44,6 +48,7 @@ export const SECTION_LABELS: Record<string, string> = {
   evolucion: 'evolución clínica',
   examenes: 'exámenes',
   instrumentos: 'instrumentos de valoración',
+  adendas: 'adendas y correcciones de evoluciones',
 }
 
 /**
@@ -53,7 +58,8 @@ export const SECTION_LABELS: Record<string, string> = {
  * cuando cualquiera de esas 4 secciones falla. `evolucion` no entra en ninguna de las dos
  * listas: mantiene su propio hard-gate vía `tiene_datos_suficientes` en resumen-ia.ts.
  */
-export const SECCIONES_CRITICAS: readonly string[] = ['anamnesis', 'medicacion']
+// `adendas` es crítica: una errata/anulación ignorada dejaría la nota original como verdad.
+export const SECCIONES_CRITICAS: readonly string[] = ['anamnesis', 'medicacion', 'adendas']
 export const SECCIONES_NO_CRITICAS: readonly string[] = ['demografico', 'signos_vitales', 'examenes', 'instrumentos']
 export const MAX_SECCIONES_NO_CRITICAS = 2
 
@@ -61,16 +67,17 @@ const EMPTY_DEMOGRAFICO: DemograficoResult = { edad: null, sexo: null, prevision
 const EMPTY_ANAMNESIS: AnamnesisResult = { motivo_consulta: null, antecedentes_medicos: null, alergias: null, farmacologia_cronica: null, habitos: null }
 const EMPTY_SIGNOS_VITALES: SignosVitalesResult = { ultimo_registro: null, fc_promedio: null, pa_sistolica_promedio: null, pa_diastolica_promedio: null, spo2_minimo: null, temp_ultimo: null, total_registros: 0, alertas_vitales: [] }
 const EMPTY_MEDICACION: MedicacionResult = { prescripciones_activas: [], prescripciones_historicas_count: 0 }
-const EMPTY_EVOLUCION: EvolucionResult = { total_sesiones: 0, primera_sesion: null, ultima_sesion: null, dias_en_tratamiento: null, frecuencia_semanal_estimada: null, ultimas_notas: [] }
+const EMPTY_EVOLUCION: EvolucionResult = { total_sesiones: 0, primera_sesion: null, ultima_sesion: null, dias_en_tratamiento: null, frecuencia_semanal_estimada: null, ids_firmados: [], ultimas_notas: [] }
 const EMPTY_EXAMENES: ExamenesResult = { pendientes: [], completados_count: 0 }
 const EMPTY_INSTRUMENTOS: InstrumentosResult = { aplicaciones: [] }
+const EMPTY_ADENDAS: AdendasResult = { ids_firmadas: [], recientes: [] }
 
 export async function buildContextoClinico(
   supabase: SupabaseClient,
   idPaciente: string,
   idClinica: string
 ): Promise<ContextoClinico> {
-  const [demograficoR, anamnesisR, signosVitalesR, medicacionR, evolucionR, examenesR, instrumentosR] =
+  const [demograficoR, anamnesisR, signosVitalesR, medicacionR, evolucionR, examenesR, instrumentosR, adendasR] =
     await Promise.allSettled([
       extraerDemografico(supabase, idPaciente, idClinica),
       extraerAnamnesis(supabase, idPaciente, idClinica),
@@ -79,6 +86,7 @@ export async function buildContextoClinico(
       extraerEvolucion(supabase, idPaciente, idClinica),
       extraerExamenes(supabase, idPaciente, idClinica),
       extraerInstrumentos(supabase, idPaciente, idClinica),
+      extraerAdendas(supabase, idPaciente, idClinica),
     ])
 
   // Deny-partial, no deny-all: una sección que falla no debe tumbar el resumen completo —
@@ -108,6 +116,7 @@ export async function buildContextoClinico(
   const evolucion = resolve('evolucion', evolucionR, EMPTY_EVOLUCION)
   const examenes = resolve('examenes', examenesR, EMPTY_EXAMENES)
   const instrumentos = resolve('instrumentos', instrumentosR, EMPTY_INSTRUMENTOS)
+  const adendas = resolve('adendas', adendasR, EMPTY_ADENDAS)
 
   const secciones_vacias: string[] = []
   if (!anamnesis.motivo_consulta) secciones_vacias.push('anamnesis')
@@ -118,7 +127,7 @@ export async function buildContextoClinico(
 
   const alertas = generarAlertas(anamnesis, signos_vitales, medicacion, examenes, secciones_vacias)
 
-  const payload = { demografico, anamnesis, signos_vitales, medicacion, alertas, evolucion, examenes, instrumentos }
+  const payload = { demografico, anamnesis, signos_vitales, medicacion, alertas, evolucion, examenes, instrumentos, adendas }
   const tokens_estimados = Math.ceil(JSON.stringify(payload).length / 4)
 
   return {

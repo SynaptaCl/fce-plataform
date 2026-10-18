@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { Sparkles, Loader2 } from 'lucide-react'
-import { generarResumenIA } from '@/app/actions/resumen-ia'
+import { generarResumenIA, obtenerResumenVigente } from '@/app/actions/resumen-ia'
 import { ResumenIAModal } from './ResumenIAModal'
 import type { ReporteIA } from '@/types/resumen-ia'
 
@@ -19,9 +19,23 @@ export function ResumenIAButton({ idPaciente, idClinica }: Props) {
   const [reporte, setReporte] = useState<ReporteIA | null>(null)
   const [modalAbierto, setModalAbierto] = useState(false)
 
-  async function handleGenerar() {
+  // Abrir = LEER la última versión guardada (se actualiza sola al firmar evoluciones).
+  // Solo si el paciente aún no tiene resumen se genera uno (una vez, ficha completa).
+  async function handleAbrir() {
     setEstado('cargando')
     setErrorMsg(null)
+    const vigente = await obtenerResumenVigente(idPaciente, idClinica)
+    if (!vigente.success) {
+      setEstado('error')
+      setErrorMsg(vigente.error)
+      return
+    }
+    if (vigente.data) {
+      setReporte(vigente.data)
+      setEstado('idle')
+      setModalAbierto(true)
+      return
+    }
     const result = await generarResumenIA(idPaciente, idClinica)
     if (!result.success) {
       setEstado('error')
@@ -33,6 +47,7 @@ export function ResumenIAButton({ idPaciente, idClinica }: Props) {
     setModalAbierto(true)
   }
 
+  // Si la regeneración falla se conserva el reporte en pantalla (última versión válida).
   async function handleRegenerar() {
     if (!reporte) return
     setEstado('cargando')
@@ -43,7 +58,7 @@ export function ResumenIAButton({ idPaciente, idClinica }: Props) {
       setErrorMsg(result.error)
       return
     }
-    setReporte({ ...result.data, desde_cache: false })
+    setReporte(result.data)
     setEstado('idle')
   }
 
@@ -51,7 +66,7 @@ export function ResumenIAButton({ idPaciente, idClinica }: Props) {
     <>
       <div className="flex flex-col items-start gap-1">
         <button
-          onClick={handleGenerar}
+          onClick={handleAbrir}
           disabled={estado === 'cargando'}
           title="Síntesis de antecedentes — No reemplaza el juicio clínico"
           className="flex items-center gap-2 px-3 py-1.5 text-sm font-medium rounded-md text-white disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
@@ -64,7 +79,7 @@ export function ResumenIAButton({ idPaciente, idClinica }: Props) {
           )}
           {estado === 'cargando' ? 'Generando…' : 'Resumen IA'}
         </button>
-        {estado === 'error' && errorMsg && (
+        {estado === 'error' && errorMsg && !modalAbierto && (
           <p className="text-xs text-red-600">{errorMsg}</p>
         )}
       </div>
@@ -75,6 +90,7 @@ export function ResumenIAButton({ idPaciente, idClinica }: Props) {
           onClose={() => setModalAbierto(false)}
           onRegenerar={handleRegenerar}
           cargando={estado === 'cargando'}
+          error={estado === 'error' ? errorMsg : null}
         />
       )}
     </>

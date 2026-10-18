@@ -10,6 +10,7 @@ import { log } from "@/lib/logger";
 import { requireContext } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import { dbError } from "@/lib/modules/guards";
+import { programarResumenIA } from "@/lib/ia/resumen/disparar";
 
 // ── Validation ────────────────────────────────────────────────────────────────
 // contenido es HTML rich-text — validar longitud sobre el TEXTO PLANO, no el crudo,
@@ -101,6 +102,9 @@ export async function createQuickNote(
     idClinica: idClinica,
     idPaciente: patientId,
   });
+
+  // La nota rápida nace firmada: mismo disparador que firmar una evolución.
+  programarResumenIA({ supabase, idPaciente: patientId, idClinica, actorId: user.id, especialidad: profesional.especialidad });
   revalidatePath(`/dashboard/pacientes/${patientId}`);
 
   return { success: true, data: { encuentroId, notaId } };

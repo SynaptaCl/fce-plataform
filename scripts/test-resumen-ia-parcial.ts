@@ -109,8 +109,10 @@ function contextoCompleto(overrides: Partial<ContextoClinico> = {}): ContextoCli
       ultima_sesion: "2026-07-20",
       dias_en_tratamiento: 191,
       frecuencia_semanal_estimada: 0.2,
+      ids_firmados: ["nota-1"],
       ultimas_notas: [
         {
+          id: "nota-1",
           fecha: "2026-07-20",
           tipo: "soap",
           profesional: "Dr. Pérez",
@@ -123,6 +125,7 @@ function contextoCompleto(overrides: Partial<ContextoClinico> = {}): ContextoCli
     },
     examenes: { pendientes: [], completados_count: 1 },
     instrumentos: { aplicaciones: [] },
+    adendas: { ids_firmadas: [], recientes: [] },
     secciones_vacias: [],
     tokens_estimados: 500,
     tiene_datos_suficientes: true,
@@ -149,8 +152,8 @@ function reporteIA(): ReporteIA {
 console.log("\n[Test 0] Constantes SECCIONES_CRITICAS / SECCIONES_NO_CRITICAS / MAX acordadas en Fase 1");
 
 check(
-  JSON.stringify(SECCIONES_CRITICAS) === JSON.stringify(["anamnesis", "medicacion"]),
-  "SECCIONES_CRITICAS = [anamnesis, medicacion]",
+  JSON.stringify(SECCIONES_CRITICAS) === JSON.stringify(["anamnesis", "medicacion", "adendas"]),
+  "SECCIONES_CRITICAS = [anamnesis, medicacion, adendas] (adendas: una errata ignorada deja la nota original como verdad)",
   `SECCIONES_CRITICAS inesperado: ${JSON.stringify(SECCIONES_CRITICAS)}`
 );
 check(
@@ -317,8 +320,8 @@ console.log(
   "\n  Conclusión escenario 5: día2 NO puede servir el resumen de día1 por dos motivos independientes —" +
     "\n  (a) día1 nunca se cachea: el guard híbrido (A) lo rechaza antes de llegar al paso de caché, y" +
     "\n      guardarResumenCache vive dentro de `if (!contexto.contexto_incompleto)` (B), doblemente inalcanzable;" +
-    "\n  (b) aun en un hipotético bypass de (A)/(B), el hash v2 versionado (C) de día1 difiere del de día2" +
-    "\n      porque serializa las 7 secciones completas, así que un `getResumenCacheado` de día2 jamás" +
+    "\n  (b) aun en un hipotético bypass de (A)/(B), el hash v3 versionado (C) de día1 difiere del de día2" +
+    "\n      porque serializa las secciones completas, así que un `getResumenCacheado` de día2 jamás" +
     "\n      encontraría coincidencia con una fila (real o hipotética) de día1."
 );
 
