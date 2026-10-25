@@ -1,6 +1,7 @@
 export type { Patient, PatientFormData, Address, EmergencyContact, Prevision, PacienteClinico } from "./patient";
 export type { Practitioner } from "./practitioner";
-export type { Encounter, EncounterStatus, Modalidad, CitaAgenda } from "./encounter";
+export type { Encounter, EncounterStatus, Modalidad, CitaAgenda, EstadoCita } from "./encounter";
+export { ESTADOS_CITA_ACTIVOS, citaPorConfirmar } from "./encounter";
 export type {
   Evaluation,
   KineSubArea,

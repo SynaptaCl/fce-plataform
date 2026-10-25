@@ -5,8 +5,10 @@ import type { Rol } from "@/lib/modules/registry";
 import { revalidatePath } from "next/cache";
 import { patientSchema, type PatientSchemaType } from "@/lib/validations";
 import { formatRut, cleanRut } from "@/lib/run-validator";
+import { esFechaISOValida } from "@/lib/utils";
 import type { Patient, PacienteClinico, CitaAgenda } from "@/types";
-import { requireAuth, requireContext } from "@/lib/auth";
+import { ESTADOS_CITA_ACTIVOS } from "@/types";
+import { requireAuth, requireContext, type FCEContext } from "@/lib/auth";
 import { logAudit } from "@/lib/audit";
 import { log } from "@/lib/logger";
 
@@ -76,22 +78,28 @@ export async function getPatients(): Promise<ActionResult<PacienteClinico[]>> {
 
 // ── getAgendaDiaria ────────────────────────────────────────────────────────
 
-export async function getAgendaDiaria(): Promise<ActionResult<CitaAgenda[]>> {
-  const { supabase, user } = await requireAuth();
-
-  // Resolver id_clinica y profesional en paralelo (son independientes)
-  const [idClinica, { data: prof }] = await Promise.all([
-    getIdClinica(supabase, user.id),
-    supabase
-      .from("profesionales")
-      .select("id, especialidad")
-      .eq("auth_id", user.id)
-      .maybeSingle(),
-  ]);
-  if (!idClinica) return { success: false, error: "No se encontró la clínica asociada al usuario." };
+/**
+ * Agenda de un día (default: hoy en TZ Santiago).
+ * Trae citas activas (incluye las aún sin confirmar: agendada, recordatorio_enviado,
+ * pendiente_pago) para que el dashboard pueda avisar "N citas sin confirmar".
+ *
+ * Alcance por rol:
+ * - profesional → solo las citas asignadas a su perfil profesional ACTIVO
+ *   (respeta la cookie id_profesional_activo; seguro con múltiples perfiles).
+ * - admin/director/superadmin → todas las citas de la clínica.
+ */
+export async function getAgendaDiaria(fecha?: string): Promise<ActionResult<CitaAgenda[]>> {
+  let ctx: FCEContext;
+  try {
+    ctx = await requireContext();
+  } catch {
+    return { success: false, error: "No se encontró la clínica asociada al usuario." };
+  }
+  const { supabase, idClinica, rol, profesionalId } = ctx;
 
   // Fecha en zona horaria de Santiago (UTC-3/UTC-4) para evitar el desfase de medianoche
   const hoy = new Date().toLocaleDateString("sv-SE", { timeZone: "America/Santiago" }); // "YYYY-MM-DD"
+  const dia = fecha && esFechaISOValida(fecha) ? fecha : hoy;
 
   const baseQuery = supabase
     .from("vista_agenda_diaria")
@@ -99,15 +107,19 @@ export async function getAgendaDiaria(): Promise<ActionResult<CitaAgenda[]>> {
       "id_cita, estado, fecha, hora_inicio, hora_fin, id_paciente, " +
       "paciente_nombre, paciente_apellido, paciente_rut, " +
       "id_profesional, profesional_nombre, profesional_especialidad, " +
-      "color_agenda, notas_cita, id_encuentro, encuentro_status, id_clinica"
+      "color_agenda, notas_cita, id_encuentro, encuentro_status, id_clinica, " +
+      "servicio_nombre, requiere_pago"
     )
     .eq("id_clinica", idClinica)
-    .eq("fecha", hoy)
-    .in("estado", ["confirmada", "completada"])
+    .eq("fecha", dia)
+    .in("estado", ESTADOS_CITA_ACTIVOS)
     .order("hora_inicio");
 
-  // Profesional clínico → solo su agenda; admin sin match → toda la clínica
-  const { data, error } = await (prof ? baseQuery.eq("id_profesional", prof.id) : baseQuery);
+  // Profesional → solo su agenda (perfil activo); admin/director/superadmin → toda la clínica
+  const esProfesionalClinico = rol === "profesional" && !!profesionalId;
+  const { data, error } = await (
+    esProfesionalClinico ? baseQuery.eq("id_profesional", profesionalId) : baseQuery
+  );
   if (error) return dbError("patients", error);
   return { success: true, data: (data ?? []) as unknown as CitaAgenda[] };
 }
