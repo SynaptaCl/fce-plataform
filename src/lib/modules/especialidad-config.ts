@@ -66,6 +66,13 @@ export interface EspecialidadConfig {
   accionesRapidas: AccionRapida[];
 }
 
+/**
+ * AMB-1 — interruptor maestro de Ambient Scribe. Mientras sea `false` se ocultan recorder,
+ * badge/panel de consentimiento de grabación y los guards del servidor rechazan la acción.
+ * Pasar a `true` cuando exista proveedor STT + DPA/DPIA/consentimiento revisado (ver docs/AMB-1-ambient-scribe.md §3).
+ */
+export const AMBIENT_SCRIBE_DISPONIBLE = false;
+
 export const ESPECIALIDAD_CONFIG: Record<string, EspecialidadConfig> = {
   "Kinesiología": {
     modelo: "rehabilitacion",
@@ -158,7 +165,7 @@ export const ESPECIALIDAD_CONFIG: Record<string, EspecialidadConfig> = {
     tieneResumenIA: true,
     tienePresupuesto: true,
     tieneInformes: true,
-    tieneAmbientScribe: true,
+    tieneAmbientScribe: AMBIENT_SCRIBE_DISPONIBLE,
     diagnostico: { tipo: 'icd11_mms', label: 'Diagnóstico (ICD-11)', mostrarCIE10: true },
     secciones: [
       {
@@ -338,7 +345,7 @@ export const ESPECIALIDAD_CONFIG: Record<string, EspecialidadConfig> = {
     tieneResumenIA: false,
     tienePresupuesto: true,
     tieneInformes: true,
-    tieneAmbientScribe: true,
+    tieneAmbientScribe: AMBIENT_SCRIBE_DISPONIBLE,
     diagnostico: { tipo: 'icd11_mms', label: 'Diagnóstico (ICD-11)', mostrarCIE10: true },
     secciones: [
       { id: "motivo", label: "Motivo de consulta", campos: [], colapsable: false, defaultAbierta: true },
@@ -448,7 +455,7 @@ export const ESPECIALIDAD_CONFIG: Record<string, EspecialidadConfig> = {
     tieneResumenIA: true,
     tienePresupuesto: true,
     tieneInformes: true,
-    tieneAmbientScribe: true,
+    tieneAmbientScribe: AMBIENT_SCRIBE_DISPONIBLE,
     diagnostico: { tipo: 'icd11_mms', label: 'Diagnóstico (ICD-11)', mostrarCIE10: true },
     secciones: [
       {
@@ -494,7 +501,7 @@ export const ESPECIALIDAD_CONFIG: Record<string, EspecialidadConfig> = {
     tieneResumenIA: true,
     tienePresupuesto: true,
     tieneInformes: true,
-    tieneAmbientScribe: true,
+    tieneAmbientScribe: AMBIENT_SCRIBE_DISPONIBLE,
     diagnostico: { tipo: 'icd11_mms', label: 'Diagnóstico (ICD-11)', mostrarCIE10: true },
     secciones: [
       {

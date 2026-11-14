@@ -15,7 +15,7 @@
  * está fuera de este script — ver AMB-1-ambient-scribe.md §3 y §6.
  */
 
-import { getEspecialidadConfig, ESPECIALIDAD_CONFIG } from "../src/lib/modules/especialidad-config";
+import { getEspecialidadConfig, ESPECIALIDAD_CONFIG, AMBIENT_SCRIBE_DISPONIBLE } from "../src/lib/modules/especialidad-config";
 import { esConsentimientoGrabacionVigente, TIPO_CONSENTIMIENTO_GRABACION } from "../src/lib/ambient/consentimiento";
 
 const errors: string[] = [];
@@ -38,12 +38,12 @@ function check(condition: boolean, passMsg: string, failMsg: string) {
 console.log("\nGating — tieneAmbientScribe");
 
 check(
-  getEspecialidadConfig("Medicina General").tieneAmbientScribe === true,
+  getEspecialidadConfig("Medicina General").tieneAmbientScribe === AMBIENT_SCRIBE_DISPONIBLE,
   "Medicina General habilitada",
   "Medicina General NO habilitada"
 );
 check(
-  getEspecialidadConfig("Odontología").tieneAmbientScribe === true,
+  getEspecialidadConfig("Odontología").tieneAmbientScribe === AMBIENT_SCRIBE_DISPONIBLE,
   "Odontología habilitada",
   "Odontología NO habilitada"
 );
