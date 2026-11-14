@@ -1,0 +1,35 @@
+# Dependencias y builds
+node_modules/
+.next/
+out/
+dist/
+build/
+coverage/
+*.tsbuildinfo
+package-lock.json
+
+# Secretos / entorno (mantener .env.local.example legible)
+.env
+.env.*
+!.env.local.example
+
+# Vercel / Supabase local
+.vercel/
+supabase/.branches/
+supabase/.temp/
+
+# Worktrees y estado local de agentes
+.worktrees/
+.claude/worktrees/
+.agents/
+
+# Binarios y assets (sin valor para el código)
+public/
+brandkit/
+*.png
+*.jpg
+*.jpeg
+*.webp
+*.pdf
+
+# NOTA: docs/ NO se ignora — CLAUDE.md lo referencia (sprints, specs, schema-real).
