@@ -37,7 +37,7 @@ const TIPO_CONFIG: Record<
   errata: {
     label: "Errata",
     bg: "var(--color-kp-warning-lt)",
-    color: "var(--color-kp-warning)",
+    color: "var(--color-amber-icon, #B45309)",
   },
   anulacion: {
     label: "Anulación",
@@ -54,7 +54,7 @@ export function AdendaExpandedCard({ entry }: Props) {
   const badgeCfg = TIPO_CONFIG[tipo] ?? TIPO_CONFIG.adenda;
 
   return (
-    <div className="space-y-3 text-xs">
+    <div className="space-y-3 text-sm">
       {/* Tipo badge + reference line */}
       <div className="flex flex-col gap-1">
         <div className="flex items-center gap-2">
@@ -72,8 +72,8 @@ export function AdendaExpandedCard({ entry }: Props) {
 
         {data.titulo_documento_original && (
           <p
-            className="text-xs leading-snug"
-            style={{ color: "var(--color-ink-3)" }}
+            className="text-sm leading-snug"
+            style={{ color: "var(--color-ink-2)" }}
           >
             Sobre:{" "}
             <span style={{ color: "var(--color-ink-2)" }}>
@@ -96,16 +96,16 @@ export function AdendaExpandedCard({ entry }: Props) {
       {/* Override director */}
       {data.override_director && (
         <div
-          className="rounded-r px-3 py-2 text-xs leading-snug space-y-0.5"
+          className="rounded-r px-3 py-2 text-sm leading-snug space-y-0.5"
           style={{
             borderLeft: "3px solid var(--color-kp-warning)",
             background: "var(--color-kp-warning-lt)",
-            color: "var(--color-ink-2)",
+            color: "var(--color-ink-1)",
           }}
         >
           <p
             className="font-semibold text-xs uppercase tracking-wide"
-            style={{ color: "var(--color-kp-warning)" }}
+            style={{ color: "var(--color-amber-icon, #B45309)" }}
           >
             Autorizado por dirección
           </p>

@@ -16,7 +16,7 @@ export function PrescripcionExpandedCard({ entry, onVerReceta }: Props) {
   const prescripcionData = entry.prescripcionData;
 
   if (!prescripcionData) {
-    return <div className="text-xs text-ink-4 italic">Sin datos de prescripción</div>;
+    return <div className="text-sm text-ink-3 italic">Sin datos de prescripción</div>;
   }
 
   return (
@@ -30,15 +30,15 @@ export function PrescripcionExpandedCard({ entry, onVerReceta }: Props) {
 
       {prescripcionData.tipo === "farmacologica" && prescripcionData.medicamentosCount > 0 && (
         <div>
-          <p className="font-bold text-ink-3 uppercase tracking-wide text-xs mb-1">
+          <p className="font-bold text-ink-2 uppercase tracking-wide text-xs mb-1">
             Medicamentos
           </p>
-          <div className="space-y-1 text-xs text-ink-2">
+          <div className="space-y-1 text-sm text-ink-1">
             {prescripcionData.primerMedicamento && (
               <p>{prescripcionData.primerMedicamento}</p>
             )}
             {prescripcionData.medicamentosCount > 1 && (
-              <p className="text-ink-3 italic">
+              <p className="text-sm text-ink-2 italic">
                 y {prescripcionData.medicamentosCount - 1} medicamento(s) más
               </p>
             )}
@@ -55,9 +55,9 @@ export function PrescripcionExpandedCard({ entry, onVerReceta }: Props) {
       {onVerReceta && (
         <button
           onClick={() => onVerReceta(entry.id)}
-          className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-kp-accent hover:underline transition-colors"
+          className="mt-2 inline-flex items-center gap-1.5 text-sm font-medium text-kp-accent hover:underline transition-colors"
         >
-          <Pill className="w-3 h-3" />
+          <Pill className="w-3.5 h-3.5" />
           Ver receta completa / Descargar PDF
         </button>
       )}

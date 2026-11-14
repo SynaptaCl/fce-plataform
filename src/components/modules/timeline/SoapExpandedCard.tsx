@@ -41,16 +41,16 @@ export function SoapExpandedCard({ entry, patientId, onAgregarAdenda }: Props) {
       )}
       {intervenciones.length > 0 && (
         <div>
-          <p className="font-bold text-ink-3 uppercase tracking-wide text-xs mb-1">
+          <p className="font-bold text-ink-2 uppercase tracking-wide text-xs mb-1">
             Intervenciones
           </p>
           <ul className="space-y-0.5">
             {intervenciones.map((iv, i) => (
-              <li key={i} className="text-xs text-ink-2">
+              <li key={i} className="text-sm text-ink-1">
                 <span className="font-medium text-ink-1">{iv.tipo}</span>
                 {iv.descripcion && ` — ${iv.descripcion}`}
                 {iv.dosificacion && (
-                  <span className="text-ink-3"> ({iv.dosificacion})</span>
+                  <span className="text-ink-2"> ({iv.dosificacion})</span>
                 )}
               </li>
             ))}
@@ -60,8 +60,8 @@ export function SoapExpandedCard({ entry, patientId, onAgregarAdenda }: Props) {
       {d.tareas_domiciliarias && (
         <RichTextSection label="Tareas domiciliarias" value={String(d.tareas_domiciliarias)} />
       )}
-      <div className="flex items-center gap-1.5 text-xs text-ink-2">
-        <span className="font-bold text-ink-3 uppercase tracking-wide text-xs">
+      <div className="flex items-center gap-1.5 text-sm text-ink-1">
+        <span className="font-bold text-ink-2 uppercase tracking-wide text-xs">
           Próxima sesión:
         </span>
         <span>
@@ -81,8 +81,8 @@ export function SoapExpandedCard({ entry, patientId, onAgregarAdenda }: Props) {
             color: (entry.data.adendas as { anulada: boolean }).anulada
               ? "var(--color-kp-danger)"
               : (entry.data.adendas as { tieneErrata: boolean }).tieneErrata
-                ? "var(--color-kp-warning)"
-                : "var(--color-ink-3)",
+                ? "var(--color-amber-icon, #B45309)"
+                : "var(--color-ink-2)",
             border: "1px solid currentColor",
           }}
         >
@@ -112,7 +112,7 @@ export function SoapExpandedCard({ entry, patientId, onAgregarAdenda }: Props) {
                 idEncuentro: entry.encuentroId ?? null,
               })
             }
-            className="text-xs font-medium hover:underline transition-colors"
+            className="text-sm font-medium hover:underline transition-colors"
             style={{ color: "var(--color-kp-accent)" }}
           >
             Agregar adenda / corrección

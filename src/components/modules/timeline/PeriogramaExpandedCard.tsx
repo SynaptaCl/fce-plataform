@@ -59,8 +59,8 @@ export function PeriogramaExpandedCard({ entry, patientId, onAgregarAdenda }: Pr
             color: (entry.data.adendas as { anulada: boolean }).anulada
               ? "var(--color-kp-danger)"
               : (entry.data.adendas as { tieneErrata: boolean }).tieneErrata
-                ? "var(--color-kp-warning)"
-                : "var(--color-ink-3)",
+                ? "var(--color-amber-icon, #B45309)"
+                : "var(--color-ink-2)",
             border: "1px solid currentColor",
           }}
         >
@@ -91,7 +91,7 @@ export function PeriogramaExpandedCard({ entry, patientId, onAgregarAdenda }: Pr
                 idEncuentro: entry.encuentroId ?? null,
               })
             }
-            className="text-xs font-medium hover:underline transition-colors"
+            className="text-sm font-medium hover:underline transition-colors"
             style={{ color: "var(--color-kp-accent)" }}
           >
             Agregar adenda / corrección

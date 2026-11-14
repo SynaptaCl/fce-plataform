@@ -30,18 +30,18 @@ export function SignosVitalesExpandedCard({ entry }: Props) {
               key={c.key}
               className="bg-surface-0 rounded-lg px-2 py-1.5 text-center"
             >
-              <p className="text-xs font-bold text-ink-3 uppercase tracking-wide">
+              <p className="text-xs font-bold text-ink-2 uppercase tracking-wide">
                 {c.label}
               </p>
-              <p className="text-sm font-bold text-ink-1">
+              <p className="text-base font-bold text-ink-1">
                 {String(d[c.key])}{" "}
-                <span className="text-xs font-normal text-ink-3">{c.unit}</span>
+                <span className="text-xs font-normal text-ink-2">{c.unit}</span>
               </p>
             </div>
           ))}
         </div>
       ) : (
-        <p className="text-xs text-ink-4 italic">Sin datos de signos vitales</p>
+        <p className="text-sm text-ink-3 italic">Sin datos de signos vitales</p>
       )}
       <EntryFooter
         firmado={false}

@@ -32,7 +32,7 @@ function getTipoBadgeStyle(tipo: string): React.CSSProperties {
       return { background: "var(--color-kp-border)", color: "var(--color-ink-2)" };
     case "otro":
     default:
-      return { background: "var(--color-kp-border)", color: "var(--color-ink-3)" };
+      return { background: "var(--color-kp-border)", color: "var(--color-ink-2)" };
   }
 }
 
@@ -60,7 +60,7 @@ export function EgresoCard({ entry, patientId }: EgresoCardProps) {
         >
           {label}
         </span>
-        <span className="text-xs text-ink-3">{dateLabel}</span>
+        <span className="text-sm text-ink-2">{dateLabel}</span>
       </div>
 
       {/* Diagnóstico */}
@@ -70,13 +70,13 @@ export function EgresoCard({ entry, patientId }: EgresoCardProps) {
 
       {/* Profesional */}
       {entry.profesional_nombre && (
-        <p className="text-xs text-ink-3">Por: {entry.profesional_nombre}</p>
+        <p className="text-sm text-ink-2">Por: {entry.profesional_nombre}</p>
       )}
 
       {/* Link */}
       <Link
         href={`/dashboard/pacientes/${patientId}/egreso/${entry.id}`}
-        className="inline-flex items-center text-xs font-medium text-kp-primary hover:underline"
+        className="inline-flex items-center text-sm font-medium text-kp-primary hover:underline"
       >
         Ver detalle →
       </Link>

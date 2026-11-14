@@ -26,7 +26,7 @@ export function OrdenExamenExpandedCard({ entry, onVerOrden }: Props) {
 
   if (!data) {
     return (
-      <div className="text-xs italic" style={{ color: "var(--color-ink-3)" }}>
+      <div className="text-sm italic" style={{ color: "var(--color-ink-3)" }}>
         Sin datos de orden
       </div>
     );
@@ -69,7 +69,7 @@ export function OrdenExamenExpandedCard({ entry, onVerOrden }: Props) {
       </div>
 
       {/* Exam count */}
-      <p className="text-xs" style={{ color: "var(--color-ink-2)" }}>
+      <p className="text-sm" style={{ color: "var(--color-ink-2)" }}>
         {examenes.length} examen{examenes.length !== 1 ? "es" : ""} solicitado
         {examenes.length !== 1 ? "s" : ""}
       </p>
@@ -86,7 +86,7 @@ export function OrdenExamenExpandedCard({ entry, onVerOrden }: Props) {
         <div>
           <p
             className="font-bold uppercase tracking-wide text-xs mb-1"
-            style={{ color: "var(--color-ink-3)" }}
+            style={{ color: "var(--color-ink-2)" }}
           >
             Exámenes
           </p>
@@ -94,14 +94,14 @@ export function OrdenExamenExpandedCard({ entry, onVerOrden }: Props) {
             {examenes.slice(0, 3).map((e, i) => (
               <li
                 key={i}
-                className="text-xs"
-                style={{ color: "var(--color-ink-2)" }}
+                className="text-sm"
+                style={{ color: "var(--color-ink-1)" }}
               >
                 • {e.nombre}
               </li>
             ))}
             {examenes.length > 3 && (
-              <li className="text-xs italic" style={{ color: "var(--color-ink-3)" }}>
+              <li className="text-sm italic" style={{ color: "var(--color-ink-2)" }}>
                 y {examenes.length - 3} más…
               </li>
             )}
@@ -114,10 +114,10 @@ export function OrdenExamenExpandedCard({ entry, onVerOrden }: Props) {
         <button
           type="button"
           onClick={() => onVerOrden(entry.id)}
-          className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium transition-colors hover:underline"
+          className="mt-2 inline-flex items-center gap-1.5 text-sm font-medium transition-colors hover:underline"
           style={{ color: "var(--color-kp-accent)" }}
         >
-          <ClipboardList className="w-3 h-3" />
+          <ClipboardList className="w-3.5 h-3.5" />
           Ver orden completa / Descargar PDF
         </button>
       )}

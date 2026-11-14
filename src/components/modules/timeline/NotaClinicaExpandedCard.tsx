@@ -36,7 +36,7 @@ export function NotaClinicaExpandedCard({ entry, patientId, onAgregarAdenda }: P
       {/* ICD-11 códigos estructurados — mostrar chips si existen */}
       {Array.isArray(d.icd_codigos) && (d.icd_codigos as ICDCodeSnap[]).length > 0 && (
         <div>
-          <p className="font-bold text-ink-3 uppercase tracking-wide text-xs mb-1.5">
+          <p className="font-bold text-ink-2 uppercase tracking-wide text-xs mb-1.5">
             Diagnóstico ICD-11
           </p>
           <div className="flex flex-wrap gap-1.5">
@@ -49,7 +49,7 @@ export function NotaClinicaExpandedCard({ entry, patientId, onAgregarAdenda }: P
       )}
       {cie10.length > 0 && (
         <div>
-          <p className="font-bold text-ink-3 uppercase tracking-wide text-xs mb-1">
+          <p className="font-bold text-ink-2 uppercase tracking-wide text-xs mb-1">
             CIE-10
           </p>
           <div className="flex flex-wrap gap-1">
@@ -74,7 +74,7 @@ export function NotaClinicaExpandedCard({ entry, patientId, onAgregarAdenda }: P
           if (campos && typeof campos === "object" && !Array.isArray(campos)) {
             return (
               <div key={seccion}>
-                <p className="font-bold text-ink-3 uppercase tracking-wide text-xs mb-1.5">
+                <p className="font-bold text-ink-2 uppercase tracking-wide text-xs mb-1.5">
                   {label}
                 </p>
                 <KeyValueList data={campos as Record<string, unknown>} />
@@ -84,8 +84,8 @@ export function NotaClinicaExpandedCard({ entry, patientId, onAgregarAdenda }: P
           return null;
         })}
       {d.proxima_sesion && (
-        <div className="flex items-center gap-1.5 text-xs text-ink-2">
-          <span className="font-bold text-ink-3 uppercase tracking-wide text-xs">
+        <div className="flex items-center gap-1.5 text-sm text-ink-1">
+          <span className="font-bold text-ink-2 uppercase tracking-wide text-xs">
             Próxima sesión:
           </span>
           <span>{formatDate(String(d.proxima_sesion))}</span>
@@ -104,8 +104,8 @@ export function NotaClinicaExpandedCard({ entry, patientId, onAgregarAdenda }: P
             color: (entry.data.adendas as { anulada: boolean }).anulada
               ? "var(--color-kp-danger)"
               : (entry.data.adendas as { tieneErrata: boolean }).tieneErrata
-                ? "var(--color-kp-warning)"
-                : "var(--color-ink-3)",
+                ? "var(--color-amber-icon, #B45309)"
+                : "var(--color-ink-2)",
             border: "1px solid currentColor",
           }}
         >
@@ -139,7 +139,7 @@ export function NotaClinicaExpandedCard({ entry, patientId, onAgregarAdenda }: P
                 idEncuentro: entry.encuentroId ?? null,
               })
             }
-            className="text-xs font-medium hover:underline transition-colors"
+            className="text-sm font-medium hover:underline transition-colors"
             style={{ color: "var(--color-kp-accent)" }}
           >
             Agregar adenda / corrección

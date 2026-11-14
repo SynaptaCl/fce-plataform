@@ -30,8 +30,8 @@ export function formatDate(iso: string): string {
 export function Section({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <p className="font-bold text-ink-3 uppercase tracking-wide text-xs mb-0.5">{label}</p>
-      <p className="leading-relaxed text-ink-2 whitespace-pre-wrap text-xs">{children}</p>
+      <p className="font-bold text-ink-2 uppercase tracking-wide text-xs mb-1">{label}</p>
+      <p className="leading-relaxed text-ink-1 whitespace-pre-wrap text-sm">{children}</p>
     </div>
   );
 }
@@ -44,15 +44,15 @@ export function RichTextSection({ label, value }: { label: string; value: string
   if (!value) return null;
   return (
     <div>
-      <p className="font-bold text-ink-3 uppercase tracking-wide text-xs mb-0.5">{label}</p>
+      <p className="font-bold text-ink-2 uppercase tracking-wide text-xs mb-1">{label}</p>
       {isRichTextHtml(value) ? (
         <div
-          className="rte-display text-ink-2 text-xs"
+          className="rte-display text-ink-1 text-sm"
           // Contenido sanitizado server-side antes de persistir (sanitizeRichText)
           dangerouslySetInnerHTML={{ __html: value }}
         />
       ) : (
-        <p className="leading-relaxed text-ink-2 whitespace-pre-wrap text-xs">{value}</p>
+        <p className="leading-relaxed text-ink-1 whitespace-pre-wrap text-sm">{value}</p>
       )}
     </div>
   );
@@ -60,7 +60,7 @@ export function RichTextSection({ label, value }: { label: string; value: string
 
 export function FieldLabel({ children }: { children: React.ReactNode }) {
   return (
-    <p className="font-bold text-ink-3 uppercase tracking-wide text-xs">{children}</p>
+    <p className="font-bold text-ink-2 uppercase tracking-wide text-xs">{children}</p>
   );
 }
 
@@ -80,14 +80,14 @@ export function EntryFooter({
   borradorLabel?: string;
 }) {
   return (
-    <div className="flex flex-wrap items-center gap-1.5 text-xs text-ink-3 pt-2 border-t border-kp-border mt-1">
+    <div className="flex flex-wrap items-center gap-1.5 text-sm text-ink-2 pt-2 border-t border-kp-border mt-1">
       {firmado ? (
         <>
-          <Lock className="w-3 h-3 text-kp-success shrink-0" />
-          <span className="text-kp-success font-medium">{firmadoLabel}</span>
+          <Lock className="w-3.5 h-3.5 text-kp-success shrink-0" />
+          <span className="text-kp-success font-semibold">{firmadoLabel}</span>
         </>
       ) : (
-        <span className="italic text-ink-4">{borradorLabel}</span>
+        <span className="italic text-ink-3">{borradorLabel}</span>
       )}
       {nombre && <span>· {nombre}</span>}
       <span>· {formatDate(fecha)}</span>
@@ -102,7 +102,7 @@ export function EncuentroLink({ url }: { url: string }) {
     <div className="flex justify-end pt-1">
       <Link
         href={url}
-        className="text-xs text-kp-accent font-medium hover:underline transition-colors flex items-center gap-0.5"
+        className="text-sm text-kp-accent font-medium hover:underline transition-colors flex items-center gap-0.5"
       >
         Ver encuentro completo →
       </Link>
@@ -124,26 +124,26 @@ export function CifSection({ cif }: { cif: CifAssessment }) {
   if (activeDomains.length === 0) {
     return (
       <div>
-        <p className="font-bold text-ink-3 uppercase tracking-wide text-xs mb-0.5">A — Análisis CIF</p>
-        <p className="text-xs text-ink-4 italic">Sin ítems CIF registrados</p>
+        <p className="font-bold text-ink-2 uppercase tracking-wide text-xs mb-1">A — Análisis CIF</p>
+        <p className="text-sm text-ink-3 italic">Sin ítems CIF registrados</p>
       </div>
     );
   }
   return (
     <div>
-      <p className="font-bold text-ink-3 uppercase tracking-wide text-xs mb-1">A — Análisis CIF</p>
+      <p className="font-bold text-ink-2 uppercase tracking-wide text-xs mb-1">A — Análisis CIF</p>
       <div className="space-y-2">
         {activeDomains.map(({ key, label }) => {
           const items = cif[key] as CifItem[];
           return (
             <div key={key}>
-              <p className="text-xs font-semibold text-ink-3 mb-0.5">{label}</p>
+              <p className="text-xs font-semibold text-ink-2 mb-1">{label}</p>
               <div className="space-y-0.5">
                 {items.map((item) => (
-                  <div key={item.id} className="flex items-start gap-1.5 text-xs text-ink-2">
-                    <span className="font-mono text-xs text-ink-3 shrink-0 mt-0.5">{item.code}</span>
+                  <div key={item.id} className="flex items-start gap-1.5 text-sm text-ink-1">
+                    <span className="font-mono text-xs text-ink-2 shrink-0 mt-0.5">{item.code}</span>
                     <span className="flex-1">{item.description}</span>
-                    <span className="text-ink-3 shrink-0 text-xs">
+                    <span className="text-ink-2 shrink-0 text-sm">
                       {CIF_QUANTIFIER_LABELS[item.quantifier]?.split(" ")[0]}
                     </span>
                   </div>
@@ -169,8 +169,8 @@ export function KeyValueList({ data }: { data: Record<string, unknown> }) {
   return (
     <div className="space-y-1">
       {entries.map(([key, val]) => (
-        <div key={key} className="flex gap-2 text-xs text-ink-2">
-          <span className="font-medium text-ink-1 capitalize shrink-0" style={{ minWidth: "8rem" }}>
+        <div key={key} className="flex gap-2 text-sm text-ink-1">
+          <span className="font-medium text-ink-2 capitalize shrink-0" style={{ minWidth: "8rem" }}>
             {key.replace(/_/g, " ")}:
           </span>
           <span className="flex-1 break-words">

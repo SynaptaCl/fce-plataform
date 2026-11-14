@@ -29,7 +29,7 @@ export function EsteticaExpandedCard({ entry, onAgregarAdenda }: Props) {
   return (
     <div className="space-y-3 text-sm">
       <div>
-        <span className="text-xs font-semibold uppercase tracking-wide" style={{ color: "var(--color-ink-3)" }}>
+        <span className="text-xs font-semibold uppercase tracking-wide" style={{ color: "var(--color-ink-2)" }}>
           Tipo de ficha
         </span>
         <p style={{ color: "var(--color-ink-1)" }}>
@@ -38,7 +38,7 @@ export function EsteticaExpandedCard({ entry, onAgregarAdenda }: Props) {
       </div>
       {data.motivo && (
         <div>
-          <span className="text-xs font-semibold uppercase tracking-wide" style={{ color: "var(--color-ink-3)" }}>
+          <span className="text-xs font-semibold uppercase tracking-wide" style={{ color: "var(--color-ink-2)" }}>
             Motivo
           </span>
           <p style={{ color: "var(--color-ink-1)" }}>{data.motivo}</p>
@@ -46,7 +46,7 @@ export function EsteticaExpandedCard({ entry, onAgregarAdenda }: Props) {
       )}
       {data.observaciones_generales && (
         <div>
-          <span className="text-xs font-semibold uppercase tracking-wide" style={{ color: "var(--color-ink-3)" }}>
+          <span className="text-xs font-semibold uppercase tracking-wide" style={{ color: "var(--color-ink-2)" }}>
             Observaciones
           </span>
           {isRichTextHtml(data.observaciones_generales) ? (
@@ -63,7 +63,7 @@ export function EsteticaExpandedCard({ entry, onAgregarAdenda }: Props) {
         </div>
       )}
       {data.adendas && data.adendas.count > 0 && (
-        <p className="text-xs" style={{ color: "var(--color-ink-3)" }}>
+        <p className="text-sm" style={{ color: "var(--color-ink-2)" }}>
           {data.adendas.count} adenda(s) asociada(s)
           {data.adendas.tieneErrata ? " · incluye errata" : ""}
           {data.adendas.anulada ? " · incluye anulación" : ""}
@@ -82,7 +82,7 @@ export function EsteticaExpandedCard({ entry, onAgregarAdenda }: Props) {
                 idEncuentro: entry.encuentroId ?? null,
               })
             }
-            className="text-xs font-medium hover:underline transition-colors"
+            className="text-sm font-medium hover:underline transition-colors"
             style={{ color: "var(--color-kp-accent)" }}
           >
             + Agregar adenda

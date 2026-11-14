@@ -66,7 +66,7 @@ function getInterpretacionStyle(
   if (lower.includes("moderado") || lower.includes("medio")) {
     return {
       background: "var(--color-kp-secondary-lt, #FEF3E2)",
-      color: "var(--color-kp-secondary, #F5A623)",
+      color: "var(--color-amber-icon, #B45309)",
     };
   }
   return {
@@ -112,10 +112,10 @@ export function InstrumentoExpandedCard({ entry, patientId }: Props) {
               style={{
                 display: "inline-flex",
                 alignSelf: "flex-start",
-                padding: "3px 8px",
+                padding: "3px 10px",
                 borderRadius: "6px",
-                fontSize: "12px",
-                fontWeight: 500,
+                fontSize: "13px",
+                fontWeight: 600,
                 ...interpStyle,
               }}
             >
@@ -132,7 +132,7 @@ export function InstrumentoExpandedCard({ entry, patientId }: Props) {
             {Object.entries(respuestas)
               .filter(([key]) => key !== "subescalas_json")
               .map(([key, val]) => (
-                <div key={key} className="flex items-start justify-between gap-2 text-xs">
+                <div key={key} className="flex items-start justify-between gap-2 text-sm">
                   <span className="text-ink-2 flex-1">
                     {schemaMap.get(key) ?? key.replace(/_/g, " ")}
                   </span>

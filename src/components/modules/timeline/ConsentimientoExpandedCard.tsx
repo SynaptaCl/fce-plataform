@@ -24,7 +24,7 @@ export function ConsentimientoExpandedCard({ entry }: Props) {
 
   return (
     <div className="space-y-3">
-      <div className="space-y-1.5 text-xs">
+      <div className="space-y-1.5 text-sm">
         <div className="flex items-center gap-2">
           <span className="font-semibold text-ink-1">Tipo:</span>
           <span className="text-ink-2">{(TIPO_LABELS[tipo] ?? tipo) || "—"}</span>

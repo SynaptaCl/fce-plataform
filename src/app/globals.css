@@ -102,7 +102,7 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 /* RichTextEditor — render de contenido */
-.rte-content { font-size: 14px; line-height: 1.6; color: var(--color-ink-1); }
+.rte-content { font-size: 15px; line-height: 1.6; color: var(--color-ink-1); }
 .rte-content p { margin: 0 0 0.5rem 0; }
 .rte-content h2 { font-size: 1.15rem; font-weight: 600; margin: 0.75rem 0 0.5rem; }
 .rte-content h3 { font-size: 1.05rem; font-weight: 600; margin: 0.6rem 0 0.4rem; }
@@ -120,7 +120,7 @@ h1, h2, h3, h4, h5, h6 {
 .rte-content u { text-decoration: underline; }
 
 /* Render readOnly (Timeline cards, PDF preview en pantalla) */
-.rte-display { font-size: 14px; line-height: 1.6; }
+.rte-display { font-size: 15px; line-height: 1.6; color: var(--color-ink-1); }
 .rte-display p { margin: 0 0 0.5rem 0; }
 .rte-display h2, .rte-display h3 { font-weight: 600; margin: 0.5rem 0 0.3rem; }
 .rte-display ul, .rte-display ol { padding-left: 1.5rem; }
