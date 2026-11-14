@@ -121,9 +121,25 @@ CREATE POLICY adjuntos_insert ON fce_adjuntos
         AND p.id_clinica = fce_adjuntos.id_clinica
     )
     AND storage_path LIKE (id_clinica::text || '/' || id_paciente::text || '/%')
+    AND created_by_rol = (
+      SELECT au.rol FROM admin_users au
+      WHERE au.auth_id = auth.uid() AND au.activo = true
+        AND au.id_clinica = fce_adjuntos.id_clinica
+      LIMIT 1
+    )
     AND (
       (estado_validacion = 'pendiente' AND validado_por IS NULL AND validado_at IS NULL)
-      OR es_profesional_clinico(id_clinica)
+      OR (
+        estado_validacion = 'validado'
+        AND es_profesional_clinico(id_clinica)
+        AND validado_por IN (
+          SELECT aup.id_profesional
+          FROM admin_users au
+          JOIN admin_user_profesionales aup ON aup.id_admin_user = au.id
+          WHERE au.auth_id = auth.uid() AND au.activo = true
+            AND au.id_clinica = fce_adjuntos.id_clinica
+        )
+      )
     )
   );
 
@@ -204,7 +220,10 @@ CREATE POLICY adjuntos_clinicos_obj_delete ON storage.objects
   USING (
     bucket_id = 'adjuntos-clinicos'
     AND (
-      es_profesional_clinico((storage.foldername(name))[1]::uuid)
+      (
+        es_profesional_clinico((storage.foldername(name))[1]::uuid)
+        AND public.adjunto_objeto_eliminable(name)
+      )
       OR (
         owner_id = (SELECT auth.uid())::text
         AND public.adjunto_objeto_eliminable(name)
@@ -216,3 +235,67 @@ CREATE POLICY adjuntos_clinicos_obj_delete ON storage.objects
       )
     )
   );
+
+-- ── Integridad en UPDATE: la policy solo da tenancy+rol; el trigger fija qué
+--    puede cambiar. Columnas de identidad/ubicación inmutables; no se vuelve de
+--    validado a pendiente; validar exige ser un perfil propio; anular exige
+--    anulado_por = auth.uid() y motivo. Se omite para service_role/postgres
+--    (auth.uid() NULL) para no romper mantenimiento. ─────────────────────────
+CREATE OR REPLACE FUNCTION public.guard_update_fce_adjuntos()
+RETURNS trigger
+LANGUAGE plpgsql
+SET search_path = public
+AS $$
+BEGIN
+  IF auth.uid() IS NULL THEN
+    RETURN NEW;
+  END IF;
+
+  IF NEW.id_clinica              IS DISTINCT FROM OLD.id_clinica
+     OR NEW.id_paciente          IS DISTINCT FROM OLD.id_paciente
+     OR NEW.storage_path         IS DISTINCT FROM OLD.storage_path
+     OR NEW.mime_type            IS DISTINCT FROM OLD.mime_type
+     OR NEW.tamano_bytes         IS DISTINCT FROM OLD.tamano_bytes
+     OR NEW.nombre_archivo_original IS DISTINCT FROM OLD.nombre_archivo_original
+     OR NEW.created_by           IS DISTINCT FROM OLD.created_by
+     OR NEW.created_by_rol       IS DISTINCT FROM OLD.created_by_rol
+     OR NEW.created_at           IS DISTINCT FROM OLD.created_at THEN
+    RAISE EXCEPTION 'fce_adjuntos: columnas de identidad/archivo son inmutables';
+  END IF;
+
+  IF OLD.estado_validacion = 'validado' AND NEW.estado_validacion <> 'validado' THEN
+    RAISE EXCEPTION 'fce_adjuntos: un adjunto validado no vuelve a pendiente';
+  END IF;
+
+  IF OLD.anulado AND NOT NEW.anulado THEN
+    RAISE EXCEPTION 'fce_adjuntos: un adjunto anulado no se reactiva';
+  END IF;
+
+  IF OLD.estado_validacion = 'pendiente' AND NEW.estado_validacion = 'validado' THEN
+    IF NEW.validado_por IS NULL OR NEW.validado_at IS NULL
+       OR NOT EXISTS (
+         SELECT 1
+         FROM admin_users au
+         JOIN admin_user_profesionales aup ON aup.id_admin_user = au.id
+         WHERE au.auth_id = auth.uid() AND au.activo = true
+           AND au.id_clinica = OLD.id_clinica
+           AND aup.id_profesional = NEW.validado_por
+       ) THEN
+      RAISE EXCEPTION 'fce_adjuntos: validado_por debe ser un perfil profesional propio';
+    END IF;
+  END IF;
+
+  IF NEW.anulado AND NOT OLD.anulado THEN
+    IF NEW.anulado_por IS DISTINCT FROM auth.uid()
+       OR NEW.anulado_motivo IS NULL OR btrim(NEW.anulado_motivo) = '' THEN
+      RAISE EXCEPTION 'fce_adjuntos: anular exige anulado_por = usuario actual y motivo';
+    END IF;
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER trg_guard_update_fce_adjuntos
+  BEFORE UPDATE ON fce_adjuntos
+  FOR EACH ROW EXECUTE FUNCTION public.guard_update_fce_adjuntos();
