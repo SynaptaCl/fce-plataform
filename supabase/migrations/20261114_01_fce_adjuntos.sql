@@ -40,7 +40,8 @@
 --   DELETE FROM storage.buckets WHERE id = 'adjuntos-clinicos';
 --   (vaciar el bucket antes de borrarlo)
 --
--- ⚠ PENDIENTE DE APROBACIÓN HUMANA (CLAUDE.md regla 15). Claude genera, NO aplica.
+-- ⚠ NO APLICADA (2026-11-14): revisada tras security review; pendiente de aplicar
+--   por un humano (CLAUDE.md regla 15; el MCP del entorno no tiene permiso de escritura).
 --   Pre-flight: confirmar que el MCP/SQL apunta a vigyhfpwyxihrjiygfsa y
 --   revisar policies vivas de storage.objects (ver plan §Verificación).
 -- ============================================================================
@@ -80,11 +81,18 @@ COMMENT ON TABLE fce_adjuntos IS
   'Adjuntos clínicos transversales (imágenes y resultados de examen). created_by = auth.users.id (D2). Solo adjuntos validados y no anulados aparecen en timeline/PDF.';
 
 -- ── RLS ─────────────────────────────────────────────────────────────────────
--- La parte delicada: recepcionista escribe sin acceso clínico. SELECT le
--- permite ver SOLO sus propios pendientes (minimización PHI); INSERT exige
--- miembro activo de la clínica con rol autorizado; UPDATE/DELETE quedan en
--- tenancy clínico — el gate fino de rol (solo profesional valida/anula;
--- hard delete solo pendientes) vive en los server actions.
+-- Revisión de seguridad 2026-11-14 (antes de aplicar):
+--   * INSERT: `au.id_clinica = id_clinica` sin calificar era una tautología
+--     (cross-tenant). Ahora califica, exige created_by = auth.uid(), paciente
+--     de la misma clínica, path canónico y que solo un profesional inserte
+--     como 'validado'.
+--   * UPDATE/DELETE: ya no basta tiene_acceso_clinico (incluía admin/director,
+--     que son solo lectura por decisión 2026-09-29). UPDATE = es_profesional_clinico;
+--     DELETE = solo pendientes (uploader o profesional).
+--   * Storage: la recepcionista NO pasa tiene_acceso_clinico, pero la action
+--     registrarAdjunto descarga el objeto (magic bytes) y limpia si falla, y
+--     ella borra sus pendientes → se le permite solo SUS objetos (owner_id)
+--     en su clínica; los de adjuntos validados no se borran por esa vía.
 
 ALTER TABLE fce_adjuntos ENABLE ROW LEVEL SECURITY;
 
@@ -98,55 +106,89 @@ CREATE POLICY adjuntos_select ON fce_adjuntos
 CREATE POLICY adjuntos_insert ON fce_adjuntos
   FOR INSERT TO authenticated
   WITH CHECK (
-    EXISTS (
+    created_by = auth.uid()
+    AND anulado = false
+    AND EXISTS (
       SELECT 1 FROM admin_users au
       WHERE au.auth_id = auth.uid()
         AND au.activo = true
-        AND au.id_clinica = id_clinica
+        AND au.id_clinica = fce_adjuntos.id_clinica
         AND au.rol IN ('profesional','recepcionista','director')
+    )
+    AND EXISTS (
+      SELECT 1 FROM pacientes p
+      WHERE p.id = fce_adjuntos.id_paciente
+        AND p.id_clinica = fce_adjuntos.id_clinica
+    )
+    AND storage_path LIKE (id_clinica::text || '/' || id_paciente::text || '/%')
+    AND (
+      (estado_validacion = 'pendiente' AND validado_por IS NULL AND validado_at IS NULL)
+      OR es_profesional_clinico(id_clinica)
     )
   );
 
+-- Validar / anular: solo profesional (admin/director son solo lectura).
 CREATE POLICY adjuntos_update ON fce_adjuntos
   FOR UPDATE TO authenticated
-  USING (tiene_acceso_clinico(id_clinica))
-  WITH CHECK (tiene_acceso_clinico(id_clinica));
+  USING (es_profesional_clinico(id_clinica))
+  WITH CHECK (es_profesional_clinico(id_clinica));
 
+-- Hard delete: solo pendientes (uploader o profesional). Los validados se anulan, no se borran.
 CREATE POLICY adjuntos_delete ON fce_adjuntos
   FOR DELETE TO authenticated
   USING (
-    tiene_acceso_clinico(id_clinica)
-    OR (created_by = auth.uid() AND estado_validacion = 'pendiente')
+    estado_validacion = 'pendiente'
+    AND (created_by = auth.uid() OR es_profesional_clinico(id_clinica))
   );
 
 -- ── Bucket privado con límites (defense in depth — mismo patrón que
---    documentos-firma): Storage rechaza tamaño/MIME antes de que la action
---    valide magic bytes. Path: {id_clinica}/{id_paciente}/{uuid}.{ext} ──────
+--    documentos-firma). Path: {id_clinica}/{id_paciente}/{uuid}.{ext} ───────
 
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 VALUES ('adjuntos-clinicos', 'adjuntos-clinicos', false, 15728640,
         ARRAY['image/jpeg','image/png','image/webp','application/pdf'])
 ON CONFLICT (id) DO NOTHING;
 
--- Lectura/descarga y borrado de objetos: acceso clínico por primer segmento
--- del path (id_clinica), mismo criterio que fichas_esteticas_*. La
--- recepcionista NO pasa este gate (deliberado: ve metadatos de sus
--- pendientes, no los archivos, hasta que un profesional valida).
+-- El objeto se puede borrar por su uploader solo si no está registrado como
+-- validado. SECURITY DEFINER porque la recepcionista no ve filas validadas.
+CREATE OR REPLACE FUNCTION public.adjunto_objeto_eliminable(p_path text)
+RETURNS boolean
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public
+STABLE
+AS $$
+  SELECT NOT EXISTS (
+    SELECT 1 FROM fce_adjuntos
+    WHERE storage_path = p_path AND estado_validacion <> 'pendiente'
+  );
+$$;
 
+-- SELECT: acceso clínico, o el propio uploader dentro de su clínica
+-- (necesario para que registrarAdjunto valide magic bytes).
 CREATE POLICY adjuntos_clinicos_obj_select ON storage.objects
   FOR SELECT TO authenticated
   USING (
     bucket_id = 'adjuntos-clinicos'
-    AND tiene_acceso_clinico((storage.foldername(name))[1]::uuid)
+    AND (
+      tiene_acceso_clinico((storage.foldername(name))[1]::uuid)
+      OR (
+        owner_id = (SELECT auth.uid())::text
+        AND EXISTS (
+          SELECT 1 FROM admin_users au
+          WHERE au.auth_id = auth.uid() AND au.activo = true
+            AND au.id_clinica = (storage.foldername(name))[1]::uuid
+        )
+      )
+    )
   );
 
--- Gate real de la subida directa del cliente (plan D3): tenant + rol.
-
+-- INSERT (subida directa del cliente, plan D3): tenant + rol por admin_users.
+-- No usa tiene_acceso_clinico: excluiría a la recepcionista (flujo de diseño).
 CREATE POLICY adjuntos_clinicos_obj_insert ON storage.objects
   FOR INSERT TO authenticated
   WITH CHECK (
     bucket_id = 'adjuntos-clinicos'
-    AND tiene_acceso_clinico((storage.foldername(name))[1]::uuid)
     AND EXISTS (
       SELECT 1 FROM admin_users au
       WHERE au.auth_id = auth.uid()
@@ -156,9 +198,21 @@ CREATE POLICY adjuntos_clinicos_obj_insert ON storage.objects
     )
   );
 
+-- DELETE: profesional de la clínica, o el uploader de un objeto no validado.
 CREATE POLICY adjuntos_clinicos_obj_delete ON storage.objects
   FOR DELETE TO authenticated
   USING (
     bucket_id = 'adjuntos-clinicos'
-    AND tiene_acceso_clinico((storage.foldername(name))[1]::uuid)
+    AND (
+      es_profesional_clinico((storage.foldername(name))[1]::uuid)
+      OR (
+        owner_id = (SELECT auth.uid())::text
+        AND public.adjunto_objeto_eliminable(name)
+        AND EXISTS (
+          SELECT 1 FROM admin_users au
+          WHERE au.auth_id = auth.uid() AND au.activo = true
+            AND au.id_clinica = (storage.foldername(name))[1]::uuid
+        )
+      )
+    )
   );
