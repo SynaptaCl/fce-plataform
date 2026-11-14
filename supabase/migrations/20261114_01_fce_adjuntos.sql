@@ -271,6 +271,30 @@ BEGIN
     RAISE EXCEPTION 'fce_adjuntos: un adjunto anulado no se reactiva';
   END IF;
 
+  -- Atribución inmutable una vez fijada; sin transición, no se tocan.
+  IF OLD.estado_validacion = 'validado'
+     AND (NEW.validado_por IS DISTINCT FROM OLD.validado_por
+          OR NEW.validado_at IS DISTINCT FROM OLD.validado_at) THEN
+    RAISE EXCEPTION 'fce_adjuntos: la validación es inmutable';
+  END IF;
+
+  IF OLD.estado_validacion = 'pendiente' AND NEW.estado_validacion = 'pendiente'
+     AND (NEW.validado_por IS NOT NULL OR NEW.validado_at IS NOT NULL) THEN
+    RAISE EXCEPTION 'fce_adjuntos: no se puede fijar validación sin validar';
+  END IF;
+
+  IF OLD.anulado
+     AND (NEW.anulado_por IS DISTINCT FROM OLD.anulado_por
+          OR NEW.anulado_motivo IS DISTINCT FROM OLD.anulado_motivo
+          OR NEW.anulado_at IS DISTINCT FROM OLD.anulado_at) THEN
+    RAISE EXCEPTION 'fce_adjuntos: la anulación es inmutable';
+  END IF;
+
+  IF NOT OLD.anulado AND NOT NEW.anulado
+     AND (NEW.anulado_por IS NOT NULL OR NEW.anulado_motivo IS NOT NULL OR NEW.anulado_at IS NOT NULL) THEN
+    RAISE EXCEPTION 'fce_adjuntos: no se puede fijar anulación sin anular';
+  END IF;
+
   IF OLD.estado_validacion = 'pendiente' AND NEW.estado_validacion = 'validado' THEN
     IF NEW.validado_por IS NULL OR NEW.validado_at IS NULL
        OR NOT EXISTS (
