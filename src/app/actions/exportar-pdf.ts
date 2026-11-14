@@ -106,6 +106,7 @@ export async function exportarFichaCompletaPdf(
     odontogramaRes,
     periogramaRes,
     planTratamientoRes,
+    adjuntosRes,
   ] = await Promise.all([
     supabase
       .from("fce_anamnesis")
@@ -239,6 +240,15 @@ export async function exportarFichaCompletaPdf(
       .eq("id_paciente", idPaciente)
       .eq("id_clinica", idClinica)
       .order("created_at", { ascending: true }),
+    // ADJ-1 — adjuntos validados y no anulados (solo listado en el PDF).
+    supabase
+      .from("fce_adjuntos")
+      .select("id, categoria, descripcion, nombre_archivo_original, fecha_documento, validado_at")
+      .eq("id_paciente", idPaciente)
+      .eq("id_clinica", idClinica)
+      .eq("estado_validacion", "validado")
+      .eq("anulado", false)
+      .order("fecha_documento", { ascending: true }),
   ]);
 
   // Audit obligatorio en exportación de ficha clínica
@@ -352,6 +362,10 @@ export async function exportarFichaCompletaPdf(
     egreso: (egresoRes.data as FichaClinicaData["egreso"]) ?? null,
     adendas: adendasMap,
     dental: buildDentalData(odontogramaRes, periogramaRes, planTratamientoRes),
+    // ADJ-1 — tolerar la ventana pre-migration (tabla inexistente → sin sección)
+    adjuntos: /fce_adjuntos.*(does not exist|no existe)/i.test(adjuntosRes.error?.message ?? "")
+      ? []
+      : rows<NonNullable<FichaClinicaData["adjuntos"]>[number]>(adjuntosRes),
   };
 
   return { success: true, data };

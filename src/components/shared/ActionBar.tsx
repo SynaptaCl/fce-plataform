@@ -14,6 +14,7 @@ import {
   MoreHorizontal,
   Shield,
   LogOut,
+  Paperclip,
 } from "lucide-react";
 import { useClinicaSession } from "@/lib/modules/provider";
 import { QuickNoteModal } from "@/components/clinico/QuickNoteModal";
@@ -171,6 +172,16 @@ export function ActionBar({ patientId, paciente, primaryAction }: ActionBarProps
             Plan de intervención
           </Link>
         )}
+
+        {/* ADJ-1 — adjuntos clínicos (transversal, sin gate de módulo) */}
+        <Link
+          href={`${base}#adjuntos`}
+          style={chipBase}
+          className="hover:border-kp-accent hover:text-kp-accent"
+        >
+          <IconBox><Paperclip style={{ width: 12, height: 12 }} /></IconBox>
+          Adjuntos
+        </Link>
 
         {/* Nivel 3 — Acciones condicionales (M7/M8) — sin encuentro activo (encuentroId=null) */}
         {showCondicionales && (

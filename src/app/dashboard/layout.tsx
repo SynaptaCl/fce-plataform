@@ -47,8 +47,15 @@ export default async function DashboardLayout({
   const rol = adminRow.rol as Rol;
   const idClinica = adminRow.id_clinica;
 
-  // Guard: recepcionista no accede a FCE
-  requireAccesoFCE(rol);
+  // Guard: recepcionista no accede a FCE — EXCEPCIÓN ADJ-1 (plan D6):
+  // /dashboard/adjuntos es la única ruta permitida (carga de exámenes/imágenes
+  // que quedan pendientes de validación profesional). El resto la redirige.
+  // La defensa real sigue siendo el RLS de fce_adjuntos y del bucket.
+  const headersList = await headers();
+  const pathname = headersList.get("x-pathname") ?? "";
+  if (rol === "recepcionista" && !pathname.startsWith("/dashboard/adjuntos")) {
+    requireAccesoFCE(rol);
+  }
 
   // Guard: admin / director / superadmin son SOLO lectura administrativa
   // (decisión 2026-09-29, spec 2026-09-29-roles-admin-director-solo-lectura.md).
@@ -57,8 +64,6 @@ export default async function DashboardLayout({
   // (es_profesional_clinico); este guard evita pantallas vacías/confusas y filtra
   // rutas cuyos datos ya no pueden leer.
   if (rol !== "profesional") {
-    const headersList = await headers();
-    const pathname = headersList.get("x-pathname") ?? "";
     const m = pathname.match(
       /^\/dashboard\/pacientes\/([^/]+)\/(consentimiento|encuentro|egreso)(\/|$)/
     );

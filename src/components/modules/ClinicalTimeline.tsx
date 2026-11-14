@@ -22,6 +22,7 @@ import {
   LogOut,
   Grid3x3,
   Sparkles,
+  Paperclip,
 } from "lucide-react";
 import { useProfesionalActivo } from "@/lib/modules/provider";
 import { EncuentroLauncher } from "@/components/shared/EncuentroLauncher";
@@ -44,6 +45,7 @@ import { PeriogramaExpandedCard } from "./timeline/PeriogramaExpandedCard";
 import { PlanTratamientoExpandedCard } from "./timeline/PlanTratamientoExpandedCard";
 import { AdendaExpandedCard } from "./timeline/AdendaExpandedCard";
 import { EsteticaExpandedCard } from "./timeline/EsteticaExpandedCard";
+import { AdjuntoExpandedCard } from "./timeline/AdjuntoExpandedCard";
 import { AdendaModal } from "@/components/shared/AdendaModal";
 import type { AdendaTarget } from "@/types/adenda";
 import type { Patient } from "@/types/patient";
@@ -210,6 +212,14 @@ const TYPE_CONFIG: Record<
     iconBg: "var(--color-kp-accent-lt, #D5F5F4)",
     iconColor: "var(--color-kp-primary, #006B6B)",
   },
+  adjunto: {
+    label: "Adjunto",
+    icon: Paperclip,
+    badgeVariant: "info" as BadgeVariant,
+    borderColor: "var(--color-kp-accent, #00B0A8)",
+    iconBg: "var(--color-kp-accent-lt, #D5F5F4)",
+    iconColor: "var(--color-kp-primary, #006B6B)",
+  },
 };
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -315,6 +325,8 @@ function EntryContent({
       return <AdendaExpandedCard entry={entry} patientId={patientId} />;
     case "ficha_estetica":
       return <EsteticaExpandedCard entry={entry} patientId={patientId} onAgregarAdenda={onAgregarAdenda} />;
+    case "adjunto":
+      return <AdjuntoExpandedCard entry={entry} patientId={patientId} />;
   }
 }
 
@@ -355,7 +367,8 @@ function SignedFooterBar({
       style={{
         borderTop: "0.5px solid var(--color-kp-border, #E2E8F0)",
         padding: "8px 16px",
-        fontSize: "12px",
+        fontSize: "13px",
+        fontWeight: 600,
         color: "var(--color-kp-success, #16A34A)",
         background: "var(--color-kp-success-lt, #DCFCE7)",
         display: "flex",
@@ -363,7 +376,7 @@ function SignedFooterBar({
         gap: "6px",
       }}
     >
-      <Lock size={12} className="shrink-0" />
+      <Lock size={14} className="shrink-0" />
       <span>{parts.join(" · ")}</span>
     </div>
   );
@@ -414,19 +427,19 @@ function TimelineCard({
           "border-b border-kp-border hover:bg-surface-0 transition-colors group cursor-pointer"
         )}
       >
-        <TypeIcon className="w-3.5 h-3.5 text-ink-3 shrink-0" />
-        <span className="text-xs text-ink-2 flex-1 truncate min-w-0">
+        <TypeIcon className="w-4 h-4 text-ink-3 shrink-0" />
+        <span className="text-sm text-ink-1 flex-1 truncate min-w-0">
           {entry.titulo}
         </span>
         {isDraft && (
           <span
             style={{
-              fontSize: "12px",
+              fontSize: "13px",
               background: "var(--color-kp-secondary-lt, #FEF3E2)",
-              color: "var(--color-kp-secondary, #F5A623)",
-              padding: "1px 5px",
+              color: "var(--color-amber-icon, #B45309)",
+              padding: "1px 6px",
               borderRadius: "4px",
-              fontWeight: 500,
+              fontWeight: 600,
               flexShrink: 0,
             }}
           >
@@ -434,10 +447,10 @@ function TimelineCard({
           </span>
         )}
         {espLabel && <Badge variant={cfg.badgeVariant}>{espLabel}</Badge>}
-        <span className="text-xs text-ink-3 whitespace-nowrap shrink-0">
+        <span className="text-sm text-ink-2 whitespace-nowrap shrink-0">
           {formatRelativeDate(entry.date)}
         </span>
-        <ChevronDown className="w-3.5 h-3.5 text-ink-3 shrink-0 group-hover:text-kp-accent transition-colors" />
+        <ChevronDown className="w-4 h-4 text-ink-3 shrink-0 group-hover:text-kp-accent transition-colors" />
       </button>
     );
   }
@@ -469,9 +482,9 @@ function TimelineCard({
         {/* Type icon box */}
         <div
           style={{
-            width: 28,
-            height: 28,
-            borderRadius: 6,
+            width: 32,
+            height: 32,
+            borderRadius: 7,
             background: cfg.iconBg,
             display: "flex",
             alignItems: "center",
@@ -481,26 +494,26 @@ function TimelineCard({
           }}
         >
           <span style={{ color: cfg.iconColor, display: "flex" }}>
-            <TypeIcon size={14} />
+            <TypeIcon size={16} />
           </span>
         </div>
 
         {/* Header content */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <span style={{ fontSize: "14px", fontWeight: 500 }} className="text-ink-1">
+            <span style={{ fontSize: "15px", fontWeight: 600 }} className="text-ink-1">
               {entry.titulo}
             </span>
             {/* Draft badge */}
             {isDraft && (
               <span
                 style={{
-                  fontSize: "12px",
+                  fontSize: "13px",
                   background: "var(--color-kp-secondary-lt, #FEF3E2)",
-                  color: "var(--color-kp-secondary, #F5A623)",
-                  padding: "1px 5px",
+                  color: "var(--color-amber-icon, #B45309)",
+                  padding: "1px 6px",
                   borderRadius: "4px",
-                  fontWeight: 500,
+                  fontWeight: 600,
                   flexShrink: 0,
                 }}
               >
@@ -511,7 +524,7 @@ function TimelineCard({
             {/* Lock icon for signed docs — right side */}
             {isSigned && (
               <Lock
-                size={12}
+                size={14}
                 className="text-kp-accent shrink-0 ml-auto"
                 aria-label="Firmado"
               />
@@ -519,26 +532,26 @@ function TimelineCard({
           </div>
           {/* Meta row */}
           <div
-            style={{ fontSize: "12px" }}
-            className="flex flex-wrap items-center gap-3 mt-0.5 text-ink-3"
+            style={{ fontSize: "13px" }}
+            className="flex flex-wrap items-center gap-3 mt-0.5 text-ink-2"
           >
             {entry.profesional_nombre && (
               <span className="flex items-center gap-1">
-                <User className="w-3 h-3" />
+                <User className="w-3.5 h-3.5" />
                 {entry.profesional_nombre}
               </span>
             )}
             <span className="flex items-center gap-1">
-              <Clock className="w-3 h-3" />
+              <Clock className="w-3.5 h-3.5" />
               {formatDateTime(entry.date)}
             </span>
           </div>
           {!expanded && (
-            <p className="text-xs text-ink-3 mt-0.5 truncate">{entry.resumen}</p>
+            <p className="text-sm text-ink-2 mt-0.5 truncate">{entry.resumen}</p>
           )}
         </div>
 
-        <div className="shrink-0 text-ink-4 group-hover:text-kp-accent transition-colors mt-0.5">
+        <div className="shrink-0 text-ink-3 group-hover:text-kp-accent transition-colors mt-0.5">
           {expanded ? (
             <ChevronUp className="w-4 h-4" />
           ) : (
@@ -677,12 +690,12 @@ export function ClinicalTimeline({
     <div className="bg-surface-1 rounded-xl border border-kp-border overflow-hidden">
       {/* Header */}
       <div className="px-4 py-3 border-b border-kp-border flex items-center justify-between gap-2 flex-wrap">
-        <p className="text-xs font-bold text-ink-3 uppercase tracking-widest shrink-0">
+        <p className="text-sm font-bold text-ink-2 uppercase tracking-widest shrink-0">
           Timeline Clínico
         </p>
         <div className="flex items-center gap-2">
           {/* Segmented control: Todos / Solo notas */}
-          <div className="flex items-center rounded-md border border-kp-border overflow-hidden text-xs">
+          <div className="flex items-center rounded-md border border-kp-border overflow-hidden text-sm">
             {(["todos", "solo_notas"] as const).map((mode) => (
               <button
                 key={mode}
@@ -691,7 +704,7 @@ export function ClinicalTimeline({
                   "px-2.5 py-1 font-medium transition-colors whitespace-nowrap",
                   viewMode === mode
                     ? "bg-kp-accent text-white"
-                    : "text-ink-3 hover:text-ink-2 hover:bg-surface-0"
+                    : "text-ink-2 hover:text-ink-1 hover:bg-surface-0"
                 )}
               >
                 {mode === "todos" ? "Todos" : "Solo notas"}
@@ -701,16 +714,16 @@ export function ClinicalTimeline({
           {/* Expandir / Colapsar todo */}
           <button
             onClick={allExpanded ? collapseAll : expandAll}
-            className="flex items-center gap-1 text-xs font-medium text-ink-3 hover:text-kp-accent transition-colors px-2 py-1 rounded-md hover:bg-surface-0"
+            className="flex items-center gap-1 text-sm font-medium text-ink-2 hover:text-kp-accent transition-colors px-2 py-1 rounded-md hover:bg-surface-0"
           >
             {allExpanded ? (
               <>
-                <ChevronsDownUp className="w-3 h-3" />
+                <ChevronsDownUp className="w-3.5 h-3.5" />
                 Colapsar todo
               </>
             ) : (
               <>
-                <ChevronsUpDown className="w-3 h-3" />
+                <ChevronsUpDown className="w-3.5 h-3.5" />
                 Expandir todo
               </>
             )}
@@ -727,21 +740,21 @@ export function ClinicalTimeline({
               key={tab.key}
               onClick={() => setActiveTab(tab.key)}
               className={cn(
-                "flex items-center gap-1.5 px-3.5 py-2.5 text-xs font-medium whitespace-nowrap",
+                "flex items-center gap-1.5 px-3.5 py-2.5 text-sm font-medium whitespace-nowrap",
                 "border-b-2 -mb-px transition-colors",
                 activeTab === tab.key
                   ? "border-kp-accent text-kp-primary"
-                  : "border-transparent text-ink-3 hover:text-ink-2"
+                  : "border-transparent text-ink-2 hover:text-ink-1"
               )}
             >
               {tab.label}
               {count > 0 && (
                 <span
                   className={cn(
-                    "text-xs font-bold px-1 py-0.5 rounded-full min-w-[1.1rem] text-center leading-tight",
+                    "text-xs font-bold px-1 py-0.5 rounded-full min-w-[1.25rem] text-center leading-tight",
                     activeTab === tab.key
                       ? "bg-kp-accent text-white"
-                      : "bg-surface-0 text-ink-3"
+                      : "bg-surface-0 text-ink-2"
                   )}
                 >
                   {count}
@@ -758,15 +771,15 @@ export function ClinicalTimeline({
           entries.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-14 text-center">
               <FileText className="w-8 h-8 text-ink-4 mb-2" />
-              <p className="text-sm font-medium text-ink-3">
+              <p className="text-base font-medium text-ink-1">
                 Paciente sin registros clínicos
               </p>
               <div className="flex flex-wrap gap-2 mt-4 justify-center">
                 <Link
                   href={`/dashboard/pacientes/${patientId}/anamnesis`}
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-kp-border bg-surface-0 text-ink-2 hover:text-kp-accent hover:border-kp-accent transition-colors"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-medium border border-kp-border bg-surface-0 text-ink-2 hover:text-kp-accent hover:border-kp-accent transition-colors"
                 >
-                  <ClipboardList className="w-3.5 h-3.5" />
+                  <ClipboardList className="w-4 h-4" />
                   Completar anamnesis
                 </Link>
                 {profesionalActivo && (
@@ -780,10 +793,10 @@ export function ClinicalTimeline({
           ) : (
             <div className="flex flex-col items-center justify-center py-14 text-center">
               <FileText className="w-8 h-8 text-ink-4 mb-2" />
-              <p className="text-sm font-medium text-ink-3">
+              <p className="text-base font-medium text-ink-1">
                 Sin registros para este filtro
               </p>
-              <p className="text-xs text-ink-4 mt-1">
+              <p className="text-sm text-ink-3 mt-1">
                 Los registros aparecerán aquí en orden cronológico inverso
               </p>
             </div>

@@ -8,7 +8,9 @@ import { OrdenExamenPdfView } from "@/components/shared/OrdenExamenPdfView";
 import { generarOrdenExamenPdf } from "@/lib/ordenes-examen/pdf-renderer";
 import { buildMailtoLink, buildWhatsappLink } from "@/lib/ordenes-examen/share-helpers";
 import { getOrdenExamenById, logOrdenExamenAction } from "@/app/actions/ordenes-examen";
+import { getAdjuntosDeOrden, auditarDescargaAdjunto } from "@/app/actions/adjuntos";
 import type { OrdenExamen, ExamenIndicado } from "@/types/orden-examen";
+import type { AdjuntoConUrl } from "@/types/adjunto";
 import type { Patient } from "@/types/patient";
 import type { ClinicaConfig } from "@/lib/modules/config";
 
@@ -34,6 +36,7 @@ export function OrdenExamenDetalleModal({
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"orden" | "detalles" | "acciones">("orden");
   const [pdfLoading, setPdfLoading] = useState(false);
+  const [adjuntos, setAdjuntos] = useState<AdjuntoConUrl[]>([]);
 
   useEffect(() => {
     getOrdenExamenById(ordenId)
@@ -42,6 +45,14 @@ export function OrdenExamenDetalleModal({
         else setError(result.error);
       })
       .finally(() => setLoading(false));
+
+    // ADJ-1 — resultados adjuntos a esta orden (si la tabla aún no existe,
+    // falla silenciosamente: el modal sigue funcional pre-migration).
+    getAdjuntosDeOrden(ordenId)
+      .then((res) => {
+        if (res.success) setAdjuntos(res.data);
+      })
+      .catch(() => {});
 
     // Fire-and-forget audit log
     logOrdenExamenAction(ordenId, "ver_orden_examen").catch(() => {});
@@ -284,6 +295,59 @@ export function OrdenExamenDetalleModal({
               >
                 {orden.estado_resultados}
               </span>
+            </div>
+
+            {/* ADJ-1 — Resultados adjuntos a esta orden */}
+            <div>
+              <p
+                className="text-xs font-semibold uppercase tracking-wide mb-2"
+                style={{ color: "var(--color-ink-3)" }}
+              >
+                Resultados adjuntos
+              </p>
+              {adjuntos.length === 0 ? (
+                <p className="text-sm" style={{ color: "var(--color-ink-3)" }}>
+                  Sin archivos adjuntos. Se agregan desde la sección Adjuntos de la ficha del
+                  paciente, vinculándolos a esta orden.
+                </p>
+              ) : (
+                <ul className="space-y-2">
+                  {adjuntos.map((a) => (
+                    <li
+                      key={a.id}
+                      className="flex items-center justify-between gap-3 rounded-lg border px-3 py-2"
+                      style={{ borderColor: "var(--color-kp-border)" }}
+                    >
+                      <div className="min-w-0">
+                        <p className="text-sm truncate" style={{ color: "var(--color-ink-1)" }}>
+                          {a.descripcion || a.nombre_archivo_original}
+                        </p>
+                        <p className="text-xs" style={{ color: "var(--color-ink-3)" }}>
+                          {a.fecha_documento}
+                          {a.anulado
+                            ? " · anulado"
+                            : a.estado_validacion === "pendiente"
+                              ? " · pendiente de validación"
+                              : " · validado"}
+                        </p>
+                      </div>
+                      {a.signedUrl && !a.anulado && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            auditarDescargaAdjunto(a.id).catch(() => {});
+                            window.open(a.signedUrl ?? "", "_blank", "noopener,noreferrer");
+                          }}
+                          className="text-xs font-medium whitespace-nowrap"
+                          style={{ color: "var(--color-kp-accent)" }}
+                        >
+                          Ver archivo
+                        </button>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
 
             {/* Diagnóstico presuntivo */}

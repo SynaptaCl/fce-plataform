@@ -54,6 +54,14 @@ export type {
   TipoComercialPresentacion,
 } from "./medicamento";
 export type { ExamenCatalogo, ExamenIndicado, OrdenExamen } from "./orden-examen";
+export type {
+  Adjunto,
+  AdjuntoConUrl,
+  CategoriaAdjunto,
+  EstadoValidacionAdjunto,
+  MimeAdjunto,
+} from "./adjunto";
+export { CATEGORIA_ADJUNTO_LABELS, MIMES_ADJUNTO } from "./adjunto";
 export type { Egreso, TipoEgreso } from "./egreso";
 export { TIPOS_EGRESO } from "./egreso";
 export type { EstadoPieza, SuperficieDental, OdontogramaEntry, OdontogramaHistorial } from "./odontograma";

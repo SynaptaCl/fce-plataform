@@ -18,6 +18,7 @@ import { logAudit } from "@/lib/audit";
 import { getEspecialidadConfig } from "@/lib/modules/especialidad-config";
 import { getUltimaVersionGrabacion } from "@/lib/ambient/consentimiento";
 import { AmbientConsentPanel } from "@/components/shared/AmbientConsentPanel";
+import { AdjuntosPanel } from "@/components/adjuntos/AdjuntosPanel";
 import type { PatientSummary } from "@/app/actions/timeline";
 
 export async function generateMetadata({
@@ -268,6 +269,12 @@ async function _patientDetailPage(
             )}
           </div>
 
+        </div>
+
+        {/* ADJ-1 — Adjuntos clínicos (transversal: imágenes y resultados de
+            examen). Chip "Adjuntos" del ActionBar ancla aquí (#adjuntos). */}
+        <div id="adjuntos" className="scroll-mt-24">
+          <AdjuntosPanel patientId={id} rol={rol} />
         </div>
       </div>
     </div>

@@ -24,7 +24,8 @@ export type TimelineEntryType =
   | "periograma"
   | "plan_tratamiento"
   | "adenda"
-  | "ficha_estetica";
+  | "ficha_estetica"
+  | "adjunto";
 
 export interface TimelineEntry {
   id: string;
@@ -113,6 +114,24 @@ type OrdenExamenTimelineRow = {
   prof_especialidad_snapshot: string | null;
   id_clinica: string;
   id_paciente: string;
+};
+
+// ADJ-1 — fila de fce_adjuntos (solo validados/no anulados llegan al timeline)
+type AdjuntoTimelineRow = {
+  id: string;
+  id_encuentro: string | null;
+  id_orden_examen: string | null;
+  categoria: "imagen_clinica" | "resultado_examen" | "documento";
+  descripcion: string | null;
+  nombre_archivo_original: string;
+  mime_type: string;
+  tamano_bytes: number;
+  fecha_documento: string;
+  estado_validacion: string;
+  validado_por: string | null;
+  validado_at: string | null;
+  created_by_rol: string;
+  created_at: string;
 };
 
 type PlanIntervencionRow = {
@@ -240,7 +259,7 @@ export async function getPatientTimeline(
 
   // Todas las queries usan el cliente con RLS + filtro id_clinica explícito (defense-in-depth).
   // Ya NO se usa service_role: fce_notas_soap y fce_evaluaciones tienen id_clinica + RLS directa (20260606_03).
-  const [soapRes, evalRes, vitalsRes, consentRes, anamnesisRes, notasRes, instrumentosRes, prescripcionesRes, ordenesExamenRes, egresosRes, planesRes, periogramasRes, planesTratamientoRes, adendaRes, fichasEsteticasRes] = await Promise.all([
+  const [soapRes, evalRes, vitalsRes, consentRes, anamnesisRes, notasRes, instrumentosRes, prescripcionesRes, ordenesExamenRes, egresosRes, planesRes, periogramasRes, planesTratamientoRes, adendaRes, fichasEsteticasRes, adjuntosRes] = await Promise.all([
     supabase.from("fce_notas_soap").select("*").eq("id_paciente", patientId).eq("id_clinica", idClinica).order("created_at", { ascending: false }),
     supabase.from("fce_evaluaciones").select("*").eq("id_paciente", patientId).eq("id_clinica", idClinica).order("created_at", { ascending: false }),
     supabase.from("fce_signos_vitales").select("*").eq("id_paciente", patientId).eq("id_clinica", idClinica).order("recorded_at", { ascending: false }),
@@ -319,6 +338,16 @@ export async function getPatientTimeline(
       .eq("id_paciente", patientId)
       .eq("id_clinica", idClinica)
       .order("created_at", { ascending: false }),
+    // ADJ-1 — adjuntos clínicos: SOLO validados y no anulados (los pendientes
+    // no son contenido clínico hasta validación profesional — plan D4).
+    supabase
+      .from("fce_adjuntos")
+      .select("id, id_encuentro, id_orden_examen, categoria, descripcion, nombre_archivo_original, mime_type, tamano_bytes, fecha_documento, estado_validacion, validado_por, validado_at, created_by_rol, created_at")
+      .eq("id_paciente", patientId)
+      .eq("id_clinica", idClinica)
+      .eq("estado_validacion", "validado")
+      .eq("anulado", false)
+      .order("created_at", { ascending: false }),
   ]);
 
   // RLS deniega fila por fila sin lanzar error — pero un fallo real de query (no simplemente
@@ -340,6 +369,11 @@ export async function getPatientTimeline(
     { label: "planes_tratamiento", error: planesTratamientoRes.error },
     { label: "adendas", error: adendaRes.error },
     { label: "fichas_esteticas", error: fichasEsteticasRes.error },
+    // ADJ-1: tolerar la ventana pre-migration (deploy antes que 20261114_01)
+    // sin banner de "historial incompleto"; cualquier otro error sí avisa.
+    ...(/fce_adjuntos.*(does not exist|no existe)/i.test(adjuntosRes.error?.message ?? "")
+      ? []
+      : [{ label: "adjuntos", error: adjuntosRes.error }]),
   ];
   const failedSections = subqueries.filter((s) => s.error).map((s) => s.label);
   if (failedSections.length > 0) {
@@ -697,6 +731,38 @@ export async function getPatientTimeline(
         diagnostico_presuntivo: orden.diagnostico_presuntivo,
         prioridad: orden.prioridad,
         estado_resultados: orden.estado_resultados,
+      },
+    });
+  }
+
+  // ADJ-1 — Adjuntos clínicos (solo validados y no anulados llegan acá por el
+  // filtro de la query). Los pendientes viven solo en el panel de adjuntos.
+  // Nota: created_by guarda auth uid (no profesionales.id) — no se resuelve
+  // nombre via profMap para no mostrar un autor equivocado.
+  for (const adj of (adjuntosRes.data ?? []) as AdjuntoTimelineRow[]) {
+    const categoriaLabel =
+      adj.categoria === "imagen_clinica"
+        ? "Imagen clínica adjunta"
+        : adj.categoria === "resultado_examen"
+          ? "Resultado de examen adjunto"
+          : "Documento adjunto";
+    entries.push({
+      id: adj.id,
+      type: "adjunto",
+      date: adj.created_at,
+      titulo: categoriaLabel,
+      resumen: adj.descripcion || adj.nombre_archivo_original,
+      encuentroId: adj.id_encuentro ?? undefined,
+      data: {
+        categoria: adj.categoria,
+        descripcion: adj.descripcion,
+        nombre_archivo_original: adj.nombre_archivo_original,
+        mime_type: adj.mime_type,
+        tamano_bytes: adj.tamano_bytes,
+        fecha_documento: adj.fecha_documento,
+        id_orden_examen: adj.id_orden_examen,
+        validado_por: adj.validado_por,
+        validado_at: adj.validado_at,
       },
     });
   }

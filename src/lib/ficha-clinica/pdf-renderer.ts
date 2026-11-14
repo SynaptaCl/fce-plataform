@@ -167,6 +167,19 @@ export interface FichaClinicaData {
     periograma: Periograma[];
     planTratamiento: Array<PlanTratamiento & { items: PlanTratamientoItem[] }>;
   } | null;
+  /**
+   * ADJ-1 — adjuntos clínicos validados y no anulados (solo listado; sin
+   * thumbnails: html2pdf + URLs firmadas remotas es frágil y expiran).
+   * Opcional para tolerar el deploy previo a la migration 20261114_01.
+   */
+  adjuntos?: Array<{
+    id: string;
+    categoria: "imagen_clinica" | "resultado_examen" | "documento";
+    descripcion: string | null;
+    nombre_archivo_original: string;
+    fecha_documento: string;
+    validado_at: string | null;
+  }>;
 }
 
 // ── Constantes de presentación ────────────────────────────────────────────────
@@ -777,8 +790,31 @@ function buildOrdenesExamen(ordenes: FichaClinicaData["ordenesExamen"]): string 
   return sectionTitle("11. Órdenes de Examen (firmadas)") + cards;
 }
 
-function buildPlanesIntervencion(planes: FichaClinicaData["planesIntervencion"]): string {
-  if (planes.length === 0) return "";
+function buildAdjuntos(adjuntos: FichaClinicaData["adjuntos"]): string {
+  if (!adjuntos || adjuntos.length === 0) return "";
+  const CATEGORIAS: Record<string, string> = {
+    imagen_clinica: "Imagen clínica",
+    resultado_examen: "Resultado de examen",
+    documento: "Documento",
+  };
+  const cards = adjuntos
+    .map((a) => {
+      let body = "";
+      body += field("Categoría", CATEGORIAS[a.categoria] ?? a.categoria);
+      body += field("Archivo", a.nombre_archivo_original);
+      body += field("Fecha del documento", a.fecha_documento);
+      return entryCard(
+        esc(a.descripcion || a.nombre_archivo_original),
+        "✓ Validado",
+        body
+      );
+    })
+    .join("");
+  if (!cards.trim()) return "";
+  return sectionTitle("15. Adjuntos Clínicos (validados)") + cards;
+}
+
+function buildPlanesIntervencion(planes: FichaClinicaData["planesIntervencion"]): string {  if (planes.length === 0) return "";
   const cards = planes
     .map((plan) => {
       let body = "";
@@ -924,6 +960,7 @@ export function renderFichaCompletaPdf(data: FichaClinicaData): string {
     buildPlanesIntervencion(data.planesIntervencion),
     buildEgreso(data.egreso),
     buildDental(data.dental),
+    buildAdjuntos(data.adjuntos),
   ].join("");
 
   return `

@@ -82,6 +82,13 @@ export const ROLES_QUE_GESTIONAN_PACIENTES: Rol[] = ["superadmin", "director", "
 export const ROLES_QUE_CONFIGURAN: Rol[] = ["superadmin", "director", "admin"];
 /** Roles con acceso de solo lectura a plan de intervención (M10) y plan de tratamiento dental. */
 export const ROLES_QUE_VEN_PLANES: Rol[] = ["superadmin", "director", "admin", "profesional"];
+/**
+ * ADJ-1 — adjuntos clínicos: roles que pueden SUBIR archivos. Espeja el guard
+ * de las policies RLS de fce_adjuntos/adjuntos-clinicos (20261114_01).
+ * Profesional sube auto-validado; recepcionista/director dejan el adjunto
+ * `pendiente` hasta validación profesional.
+ */
+export const ROLES_QUE_SUBEN_ADJUNTOS: Rol[] = ["profesional", "recepcionista", "director"];
 
 // ============================================================================
 // Definición de módulo

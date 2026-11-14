@@ -31,7 +31,8 @@
     "test:sprint-pre1": "tsx scripts/test-sprint-pre1.ts",
     "test:encuentro-servicio": "tsx scripts/test-encuentro-servicio.ts",
     "test:resumen-ia-parcial": "tsx scripts/test-resumen-ia-parcial.ts",
-    "test:resumen-ia-incremental": "tsx scripts/test-resumen-ia-incremental.ts"
+    "test:resumen-ia-incremental": "tsx scripts/test-resumen-ia-incremental.ts",
+    "test:sprint-adj1": "tsx scripts/test-sprint-adj1.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.92.0",
