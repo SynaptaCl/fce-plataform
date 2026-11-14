@@ -1,7 +1,9 @@
 "use client";
 
+import { useLayoutEffect, useState } from "react";
+import { PanelLeftOpen } from "lucide-react";
 import { usePathname } from "next/navigation";
-import { Sidebar } from "./Sidebar";
+import { Sidebar, type SidebarMode } from "./Sidebar";
 import { TopBar } from "./TopBar";
 import { ProfesionalSelector } from "./ProfesionalSelector";
 import { SessionIdleTimeout } from "./SessionIdleTimeout";
@@ -27,6 +29,8 @@ interface DashboardShellProps {
 /**
  * Derives the breadcrumb ReactNode from the current pathname.
  */
+const SIDEBAR_KEY = "fce-sidebar-mode";
+
 function getBreadcrumb(pathname: string, patientName?: string): React.ReactNode {
   if (pathname.startsWith("/dashboard/configuracion")) {
     return "Configuración";
@@ -62,6 +66,26 @@ export function DashboardShell({
 }: DashboardShellProps) {
   const pathname = usePathname();
   const breadcrumb = getBreadcrumb(pathname, patientName);
+  const [mode, setMode] = useState<SidebarMode>("rail");
+
+  useLayoutEffect(() => {
+    try {
+      const stored = localStorage.getItem(SIDEBAR_KEY);
+      if (stored === "expanded" || stored === "rail" || stored === "hidden") {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setMode(stored);
+      } else if (localStorage.getItem("fce-sidebar-expanded") === "true") {
+        setMode("expanded");
+      }
+    } catch {}
+  }, []);
+
+  function changeMode(next: SidebarMode) {
+    setMode(next);
+    try {
+      localStorage.setItem(SIDEBAR_KEY, next);
+    } catch {}
+  }
 
   return (
     <div
@@ -74,6 +98,8 @@ export function DashboardShell({
     >
       <SessionIdleTimeout />
       <Sidebar
+        mode={mode}
+        onModeChange={changeMode}
         practitionerName={practitionerName}
         practitionerInitials={practitionerInitials}
         especialidad={especialidad}
@@ -92,7 +118,33 @@ export function DashboardShell({
           overflow: "hidden",
         }}
       >
-        <TopBar breadcrumb={breadcrumb}>
+        <TopBar
+          breadcrumb={breadcrumb}
+          leading={
+            mode === "hidden" ? (
+              <button
+                type="button"
+                onClick={() => changeMode("rail")}
+                title="Mostrar menú"
+                aria-label="Mostrar menú"
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  width: 32,
+                  height: 32,
+                  borderRadius: 8,
+                  border: "1px solid var(--color-kp-border, #E2E8F0)",
+                  background: "var(--color-surface-1, #FFFFFF)",
+                  color: "var(--color-ink-2, #475569)",
+                  cursor: "pointer",
+                }}
+              >
+                <PanelLeftOpen size={16} />
+              </button>
+            ) : undefined
+          }
+        >
           {perfilesProfesional &&
             perfilesProfesional.length > 0 &&
             perfilActivoId && (

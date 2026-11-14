@@ -1,6 +1,5 @@
 "use client";
 
-import { useState, useLayoutEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
@@ -10,12 +9,12 @@ import {
   Settings,
   ChevronLeft,
   ChevronRight,
+  PanelLeftClose,
   LogOut,
 } from "lucide-react";
 import type { BrandingConfig } from "@/lib/modules/registry";
 import { createClient } from "@/lib/supabase/client";
 const ROLES_CON_CONFIG = ["admin", "director", "superadmin"];
-const STORAGE_KEY = "fce-sidebar-expanded";
 const W_EXPANDED = 240;
 const W_COLLAPSED = 58;
 
@@ -121,7 +120,11 @@ function NavItem({ href, icon, label, active, expanded, badge }: NavItemProps) {
 
 // ── Sidebar ────────────────────────────────────────────────────────────────────
 
+export type SidebarMode = "expanded" | "rail" | "hidden";
+
 interface SidebarProps {
+  mode: SidebarMode;
+  onModeChange: (mode: SidebarMode) => void;
   practitionerName: string;
   practitionerInitials: string;
   especialidad: string | null;
@@ -131,6 +134,8 @@ interface SidebarProps {
 }
 
 export function Sidebar({
+  mode,
+  onModeChange,
   practitionerName,
   practitionerInitials,
   especialidad,
@@ -140,22 +145,10 @@ export function Sidebar({
 }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const [{ expanded, mounted }, setSidebarState] = useState({ expanded: false, mounted: false });
-
-  useLayoutEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    setSidebarState({
-      expanded: localStorage.getItem(STORAGE_KEY) === "true",
-      mounted: true,
-    });
-  }, []);
+  const expanded = mode === "expanded";
 
   function toggle() {
-    setSidebarState((prev) => {
-      const next = !prev.expanded;
-      localStorage.setItem(STORAGE_KEY, String(next));
-      return { expanded: next, mounted: prev.mounted };
-    });
+    onModeChange(expanded ? "rail" : "expanded");
   }
 
   async function handleLogout() {
@@ -176,7 +169,9 @@ export function Sidebar({
   const showConfig = ROLES_CON_CONFIG.includes(rol);
   const specialtyLabel = especialidad ?? "Profesional";
 
-  const width = mounted ? (expanded ? W_EXPANDED : W_COLLAPSED) : W_COLLAPSED;
+  const width = expanded ? W_EXPANDED : W_COLLAPSED;
+
+  if (mode === "hidden") return null;
 
   return (
     <aside
@@ -506,6 +501,34 @@ export function Sidebar({
             </div>
           )}
         </div>
+
+        {/* Hide menu */}
+        <button
+          onClick={() => onModeChange("hidden")}
+          title={!expanded ? "Ocultar menú" : undefined}
+          className="fce-sb-btn"
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 9,
+            height: 36,
+            borderRadius: 8,
+            border: "none",
+            background: "transparent",
+            cursor: "pointer",
+            paddingLeft: expanded ? 10 : 0,
+            paddingRight: expanded ? 10 : 0,
+            width: expanded ? "100%" : 38,
+            justifyContent: expanded ? "flex-start" : "center",
+            color: "rgba(255,255,255,0.38)",
+            flexShrink: 0,
+            overflow: "hidden",
+            whiteSpace: "nowrap",
+          }}
+        >
+          <PanelLeftClose size={16} style={{ flexShrink: 0 }} />
+          {expanded && <span style={{ fontSize: 14 }}>Ocultar menú</span>}
+        </button>
 
         {/* Logout */}
         <button

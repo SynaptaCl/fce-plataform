@@ -5,6 +5,8 @@ interface TopBarProps {
   breadcrumb: ReactNode;
   /** Additional actions/controls rendered on the right side */
   children?: ReactNode;
+  /** Control rendered before the breadcrumb (e.g. show-menu button) */
+  leading?: ReactNode;
 }
 
 /**
@@ -34,7 +36,7 @@ function getSantiagoDate(): string {
   return `${weekdayClean}, ${day} de ${month} ${year}`;
 }
 
-export function TopBar({ breadcrumb, children }: TopBarProps) {
+export function TopBar({ breadcrumb, children, leading }: TopBarProps) {
   const dateLabel = getSantiagoDate();
 
   return (
@@ -53,7 +55,9 @@ export function TopBar({ breadcrumb, children }: TopBarProps) {
         flexShrink: 0,
       }}
     >
-      {/* Left: breadcrumb */}
+      {/* Left: leading control + breadcrumb */}
+      <div style={{ display: "flex", alignItems: "center", gap: 12, minWidth: 0 }}>
+      {leading}
       <nav
         aria-label="breadcrumb"
         style={{
@@ -67,6 +71,7 @@ export function TopBar({ breadcrumb, children }: TopBarProps) {
       >
         {breadcrumb}
       </nav>
+      </div>
 
       {/* Right: date + optional children */}
       <div

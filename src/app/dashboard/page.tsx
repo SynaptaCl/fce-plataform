@@ -82,7 +82,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Se
   const otroDiaLabel = esHoy ? "mañana" : "hoy";
 
   return (
-    <div className="max-w-4xl space-y-6">
+    <div className="@container max-w-6xl space-y-6">
       {/* Encabezado */}
       <div>
         <h2 className="text-2xl font-bold text-ink-1">{titulo}</h2>
@@ -97,7 +97,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Se
       )}
 
       {/* Cards resumen */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 @lg:grid-cols-2 @5xl:grid-cols-4 gap-4">
         <SummaryCard
           icon={<Calendar className="w-5 h-5 text-kp-accent" />}
           label={esHoy ? "Citas hoy" : "Citas mañana"}
