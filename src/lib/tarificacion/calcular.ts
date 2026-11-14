@@ -162,11 +162,12 @@ export function validarLineas(
 
 /**
  * Saldo (§7): derivado, nunca columna.
- * Solo pagos con estado 'aprobado' suman al pagado.
+ * Pagado = Σ 'aprobado' − Σ 'reembolsado'. Una devolución de caja es una fila
+ * nueva con estado 'reembolsado' y monto positivo; el pago original sigue 'aprobado'.
  */
 export function calcularSaldo(total_clp: number, pagos: PagoParaSaldo[]): SaldoResumen {
-  const pagado_clp = pagos
-    .filter((p) => p.estado === "aprobado")
-    .reduce((s, p) => s + p.monto_clp, 0);
+  const suma = (estado: string) =>
+    pagos.filter((p) => p.estado === estado).reduce((s, p) => s + p.monto_clp, 0);
+  const pagado_clp = suma("aprobado") - suma("reembolsado");
   return { pagado_clp, saldo_clp: total_clp - pagado_clp };
 }

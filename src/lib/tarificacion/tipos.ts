@@ -113,7 +113,7 @@ export type ValidacionLineas =
   | { ok: true }
   | { ok: false; error: string };
 
-/** Pago mínimo para `calcularSaldo()`; solo estado 'aprobado' suma (§7). */
+/** Pago mínimo para `calcularSaldo()`; 'aprobado' suma y 'reembolsado' resta (§7). */
 export interface PagoParaSaldo {
   monto_clp: number;
   estado: string;

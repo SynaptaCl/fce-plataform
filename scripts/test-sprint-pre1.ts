@@ -226,6 +226,17 @@ function run() {
     assert(s.saldo_clp === 15_000, "saldo = 15.000", `got ${s.saldo_clp}`);
   }
 
+  section("Caso 10b — devolución (reembolsado) resta del pagado y reabre saldo");
+
+  {
+    const s = calcularSaldo(30_000, [
+      { monto_clp: 30_000, estado: "aprobado" },
+      { monto_clp: 10_000, estado: "reembolsado" },
+    ]);
+    assert(s.pagado_clp === 20_000, "pagado = 20.000 (30.000 − 10.000 devueltos)", `got ${s.pagado_clp}`);
+    assert(s.saldo_clp === 10_000, "saldo = 10.000", `got ${s.saldo_clp}`);
+  }
+
   // ── Caso 11: honorario no influye en precio_unitario ──────────────────────
 
   section("Caso 11 — honorario 40% + recargo 20% → precio_unitario intacto");
